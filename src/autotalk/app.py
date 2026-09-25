@@ -39,8 +39,7 @@ from .runtime import Cancelled, Task, data_dir, ensure_codex, ensure_speech
 from .services import extract_scope, import_pdf, narrate, prepare, synthesize
 
 STYLE = """
-QMainWindow, QDialog { background: #101722; color: #e7edf5; }
-QWidget { color: #e7edf5; font-size: 14px; }
+QWidget { background: #101722; color: #e7edf5; font-size: 14px; }
 QToolBar { background: #172231; border: none; padding: 8px; spacing: 12px; }
 QToolButton { padding: 8px 12px; border-radius: 5px; }
 QToolButton:hover { background: #2b3d52; }
