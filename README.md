@@ -1,104 +1,157 @@
 # AutoTalk
 
-AutoTalk is a planned Qt desktop application that turns an existing PDF slide
-deck into a timed, spoken presentation tailored to its conference and audience.
-The application name is **AutoTalk**; its executable will be **`autotalk`**.
+**Turn existing PDF slides into a timed presentation in your own voice.**
 
-## Project status
+AutoTalk is a Python/PySide6 desktop prototype for Linux. It uses **Codex
+app-server with ChatGPT sign-in** to write the talk and **Qwen3-TTS on your
+NVIDIA GPU** to generate speech locally. The executable is **`autotalk`**.
 
-This repository currently contains the project description. The application,
-installer, and speech integration have not been implemented. Features below
-describe the intended first draft, not capabilities already available.
+## Start the application
 
-## Intended workflow
+Extract the packaged `AutoTalk-0.1.0-linux-x86_64.tar.gz` archive and open the
+`autotalk` executable inside its `autotalk` directory. Keep the accompanying
+`_internal` directory beside it. The package contains Python and Qt: users do
+not install Python, PySide6, PyTorch, a CUDA toolkit, or command-line tools.
 
-1. Select a PDF slide deck and enter the desired talk duration in minutes.
-2. Provide the conference scope through a website URL or a manual description.
-   Review and edit the extracted scope, including conference themes, audience,
-   and the talk's objective.
-3. Generate a coherent narration grounded in the slides and aligned with that
-   scope. Review and edit the narration alongside each slide.
-4. Choose an available voice or record/import a reference sample of your own
-   voice inside the application.
-5. Generate speech locally, measure the actual audio duration, and adjust the
-   narration to fit the requested duration within an explicit tolerance.
-6. Present fullscreen with synchronized slides and audio, using pause, resume,
-   previous, next, and stop controls.
-7. Save the prepared talk for reuse and offline playback.
+For this development checkout, the built application is available through
+`./autotalk` and directly at `dist/autotalk/autotalk`. Release archives are
+build outputs and are not committed to Git.
 
-## Planned architecture
+The first speech operation automatically downloads a private Python speech
+runtime, pinned dependencies, and the selected model. Downloads show progress,
+can be cancelled, and reuse completed/cached files when retried. Tools and model
+files are verified against pinned upstream hashes. A built-in voice and voice
+cloning use different Qwen models; each is downloaded only when needed.
 
-- **Qt desktop interface:** initially targeting Linux, with an integrated PDF
-  viewer and audio playback. Python with PySide6 is the proposed implementation
-  stack, subject to packaging validation.
-- **Codex app-server:** analyzes slide text and rendered page images, interprets
-  conference context, and writes or revises the narration. Users sign in with
-  ChatGPT through the supported Codex authentication flow.
-- **Local speech generation:** Qwen3-TTS Base 0.6B is the initial candidate for
-  generating narration and cloning the user's voice from reference audio.
-  Reference-based cloning normally does not require fine-tuning a model.
-- **GPU acceleration:** NVIDIA GPU execution is the first supported acceleration
-  target. Model inference, memory use, and voice quality require validation.
-  NPU support is outside the first draft's scope. CPU execution and its practical
-  minimum requirements remain to be evaluated; no universal hardware support or
-  real-time generation speed is promised.
-- **Playback controller:** one controller owns the current slide and audio
-  position. Playback follows prepared audio segments and does not depend on live
-  model responses or estimated slide timers.
+**Current target:** Linux x86_64 with a working NVIDIA driver. The prototype was
+verified on an RTX 2000 Ada laptop GPU with 8 GB VRAM. NPU and CPU inference are
+not supported by this first build. AutoTalk does not replace system drivers.
+Allow roughly 15–20 GB of free disk space for runtime, models, and download
+caches; the application archive itself is much smaller. The locally built Qt
+bundle still relies on ordinary Linux desktop/system libraries. Compatibility
+with other distributions needs separate testing.
 
-The conference URL and manual-description paths produce one editable conference
-scope. The model must preserve the slide deck's factual claims, flag unclear
-material, and avoid inventing evidence to match conference themes.
+## Create a talk
 
-Slides, narration, generated audio, and measured timing belong to one consistent
-talk version. Editing narration invalidates its corresponding audio and timing.
-The final duration includes narration, planned pauses, and transitions.
+1. **New from PDF:** select a PDF and a parent directory for a portable project.
+   AutoTalk creates a new project folder without overwriting an existing one.
+   The prototype supports unencrypted decks of 1–80 pages.
+2. **Talk details:** set the duration in minutes, timing tolerance, pause between
+   slides, spoken language, audience, and objective.
+3. **Conference scope:** enter a description directly, or give a conference URL
+   and select **Read conference website**. Review the extracted scope and source
+   links. The reader handles static HTML and a small number of relevant pages
+   on the same site; login-protected or JavaScript-only sites may need manual
+   scope entry.
+4. **Connect ChatGPT:** use an existing Codex ChatGPT login or complete the
+   supported browser sign-in flow. No API key is needed. Your subscription's
+   limits apply; AutoTalk does not switch to paid API access automatically.
+5. **Create narration:** Codex receives the deck's rendered pages and extracted
+   text, plus your conference context. Review and edit each slide's narration.
+   Notes identify uncertainties rather than inventing supporting facts.
+6. **Voice:** use the built-in Ryan voice, or import/record your own reference
+   voice. Recordings are PCM WAV, 3–60 seconds; in-app recording stops after
+   30 seconds. Entering the recording's exact transcript improves conditioning.
+   Preview the voice before generating the whole talk. Reference-based cloning
+   requires no fine-tuning; AutoTalk prepares the conditioning automatically.
+7. **Generate speech:** synthesize the reviewed script as written. AutoTalk
+   measures the audio files, including the configured inter-slide pauses.
+   **Fit narration to duration** can revise the script and regenerate audio for
+   up to three passes. It reports if the result is still outside your tolerance;
+   it never silently claims that an unmet target has been reached.
+8. **Present:** select the display and start fullscreen playback. Audio completion
+   advances the slides. Use the presenter controls or Space to pause/resume,
+   arrow keys to navigate, and Esc to leave fullscreen. Prepared playback is
+   offline. The measured content duration excludes user pauses and small device
+   loading delays between audio files.
 
-## No manual technical setup
+The spoken language is selectable: **English, German, French, Spanish, Italian,
+Portuguese, Russian, Chinese, Japanese, and Korean**. The selection is sent to
+both Codex and Qwen. Changing it invalidates generated audio and flags existing
+narration for review/regeneration. The UI itself is currently English.
 
-The intended user experience is to install and launch AutoTalk without terminal
-commands, Python installation, CUDA toolkit installation, or manual environment
-configuration. The application must:
+## Save and reopen
 
-- Bundle or automatically provision an isolated runtime and required dependencies.
-- Detect compatible hardware and existing drivers.
-- Download and verify model files with progress and resumable downloads.
-- Validate the selected speech runtime with a short generation check.
-- Guide voice recording/import and automatically prepare reusable voice data.
-- Keep the interface responsive during setup and speech generation.
+Use **Save** or Ctrl+S. AutoTalk also saves before operations, after completed
+preparation steps, and on normal exit. Editing alone is not crash-safe autosave.
+A project directory contains:
 
-ChatGPT sign-in and providing a voice sample are user interactions, not technical
-setup. First use requires internet access for sign-in and downloads. Hardware and
-driver requirements must be documented once validated; automatic runtime setup
-does not imply automatic system-driver replacement. Prepared playback is offline.
+- `talk.autotalk.json`: settings, narration, notes, budgets, and audio metadata.
+- `slides.pdf` and `slides/`: the original deck and rendered page previews.
+- `voice/`: an imported/recorded reference voice, when used.
+- `audio/`: generated PCM WAV files keyed by their generation inputs.
 
-## Data and usage costs
+Move or copy the complete folder to keep the talk portable. **Open talk** loads
+its `talk.autotalk.json`. Original PDF/reference hashes are checked on load;
+missing or damaged audio is marked for regeneration. Completed slide audio is
+saved even when a later generation is cancelled. Superseded audio files remain
+in the folder; automatic disk cleanup is not implemented.
 
-Codex preparation uses the user's eligible ChatGPT subscription allowance and is
-subject to its usage limits. Subscription authentication does not include general
-OpenAI API access. The proposed local speech engine requires no paid speech API.
+## Architecture and invariants
 
-Voice recordings and reusable voice data are intended to remain local. Slide
-content, conference context, and narration sent to Codex are processed through
-the configured Codex service; preparation is therefore not fully offline.
-Conference URL analysis also requires network access.
+- `project.py` owns project state and derives whether audio matches its narration,
+  language, voice, and pause settings. There is no independent mutable ready flag.
+- `codex.py` speaks JSON-RPC over app-server stdio, supports ChatGPT login,
+  structured output, errors, and cancellation. Generation disables shell tools,
+  web search, app connectors, and configured MCP servers. It supplies document
+  content explicitly and does not send voice recordings.
+- `services.py` imports PDFs, extracts conference context, generates narration,
+  synthesizes audio, and performs bounded duration adjustment.
+- `runtime.py` provisions verified tools and an isolated speech environment.
+  `speech_worker.py` loads the official Qwen runtime in a separate process,
+  retaining the model and voice prompt across slides in that job. Process exit
+  releases its GPU resources.
+- `playback.py` is the single authority for slide index and audio position.
+- `app.py` provides the Qt interface and cancellable background jobs.
 
-## First-draft validation
+Conference URL extraction and manual entry populate the same editable scope.
+Narration/audio/timing belong to one consistent project version. Editing a
+narration or changing voice/language/pause settings makes affected audio stale;
+playback requires current audio for every slide. A scope change flags narration
+for review but does not rewrite it without a generation request.
 
-- Clean-machine setup without manual dependency installation.
-- GPU model loading and successful voice-cloned speech generation.
-- Voice similarity, language support, and pronunciation of technical terms.
-- Measured talk duration against the requested target and tolerance.
-- Correct slide/audio synchronization after pause, resume, and navigation.
-- Consistent regeneration after narration edits.
-- Saved-talk reopening and offline playback.
+## Data and costs
 
-## Upstream documentation
+Voice reference recordings and generated speech stay local. Slide images, text,
+narration, and conference context are sent to Codex for preparation, under the
+user's configured ChatGPT account. Source websites are accessed when requested.
+Preparation is therefore not fully offline; playing an already prepared talk is.
+
+Speech has no OpenAI API charge. Codex uses an eligible ChatGPT subscription and
+its usage allowance. First-run downloads, disk storage, and local computation
+are still required. Synthesized narration should be identified as AI-generated.
+
+Application data normally lives in `~/.local/share/autotalk`, respecting
+`XDG_DATA_HOME`. Developers can override it with `AUTOTALK_DATA_DIR`. Existing
+Codex authentication is reused through app-server; otherwise the application
+provisions Codex and opens its login flow.
+
+## Development
+
+These commands are for contributors, not end-user preparation:
+
+```sh
+uv venv --python 3.12
+uv pip install -e '.[dev]'
+.venv/bin/autotalk
+QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest -q
+.venv/bin/python tools/build.py
+```
+
+The build produces a standalone application directory and a compressed archive
+under `dist/`. Unit/UI tests use a generated two-page PDF and short WAV fixtures;
+normal test runs do not invoke paid APIs, Codex generation, or model downloads.
+GitHub Actions runs these checks on Ubuntu 24.04. Its remote run is separate
+from local verification.
+
+See [verification results](docs/VERIFICATION.md) for what was actually exercised
+and remaining limitations. AutoTalk is a prototype, not yet a broadly qualified
+Linux distribution. Its own license remains to be selected; see
+[third-party components](THIRD_PARTY.md).
+
+## Upstream references
 
 - [Codex app-server](https://learn.chatgpt.com/docs/app-server)
 - [Codex authentication](https://learn.chatgpt.com/docs/auth)
 - [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS)
 - [Qt for Python](https://doc.qt.io/qtforpython-6/)
-
-The project license has not yet been selected. Third-party runtimes and model
-weights retain their respective licenses.

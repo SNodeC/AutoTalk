@@ -1,0 +1,118 @@
+{
+  "Base": {
+    "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+    "revision": "5d83992436eae1d760afd27aff78a71d676296fc",
+    "files": {
+      ".gitattributes": {
+        "algorithm": "git-sha1",
+        "digest": "a6344aac8c09253b3b630fb776ae94478aa0275b"
+      },
+      "README.md": {
+        "algorithm": "git-sha1",
+        "digest": "50931da8c9b34f7233394b5c3063a47ef3285acf"
+      },
+      "config.json": {
+        "algorithm": "git-sha1",
+        "digest": "4e923f500f5c3eeb78d44072e7049b28817c2e04"
+      },
+      "generation_config.json": {
+        "algorithm": "git-sha1",
+        "digest": "1872b16d4535564abf2db5d6debe6cddd82b7f2e"
+      },
+      "merges.txt": {
+        "algorithm": "git-sha1",
+        "digest": "20024bfe7c83998e9aeaf98a0cd6a2ce6306c2f0"
+      },
+      "model.safetensors": {
+        "algorithm": "sha256",
+        "digest": "180b3b10eb1c9f1b4db7806d5475bae3071c0243c299d49926bab1da3b6946f6"
+      },
+      "preprocessor_config.json": {
+        "algorithm": "git-sha1",
+        "digest": "0525dd953bb9241912f7147666f0d535165d5d4f"
+      },
+      "speech_tokenizer/config.json": {
+        "algorithm": "git-sha1",
+        "digest": "06cc8dc4c5ec8a1929086b71b98c313020d9268b"
+      },
+      "speech_tokenizer/configuration.json": {
+        "algorithm": "git-sha1",
+        "digest": "ab58e2eaf53cd14a1a2a7527d9261ceea93a24cd"
+      },
+      "speech_tokenizer/model.safetensors": {
+        "algorithm": "sha256",
+        "digest": "836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258"
+      },
+      "speech_tokenizer/preprocessor_config.json": {
+        "algorithm": "git-sha1",
+        "digest": "ba40914f4f49ab98a8ca545d4892ef7291a39592"
+      },
+      "tokenizer_config.json": {
+        "algorithm": "git-sha1",
+        "digest": "6ff9fd60cc623bb54bbd603cbd418c97a11528d7"
+      },
+      "vocab.json": {
+        "algorithm": "git-sha1",
+        "digest": "4783fe10ac3adce15ac8f358ef5462739852c569"
+      }
+    }
+  },
+  "CustomVoice": {
+    "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+    "revision": "85e237c12c027371202489a0ec509ded67b5e4b5",
+    "files": {
+      ".gitattributes": {
+        "algorithm": "git-sha1",
+        "digest": "a6344aac8c09253b3b630fb776ae94478aa0275b"
+      },
+      "README.md": {
+        "algorithm": "git-sha1",
+        "digest": "ed613da23a5e133a506b13b79055854938b9e67c"
+      },
+      "config.json": {
+        "algorithm": "git-sha1",
+        "digest": "5e8d5fc100536984e3a89bd87ef08e59e322b29b"
+      },
+      "generation_config.json": {
+        "algorithm": "git-sha1",
+        "digest": "1872b16d4535564abf2db5d6debe6cddd82b7f2e"
+      },
+      "merges.txt": {
+        "algorithm": "git-sha1",
+        "digest": "20024bfe7c83998e9aeaf98a0cd6a2ce6306c2f0"
+      },
+      "model.safetensors": {
+        "algorithm": "sha256",
+        "digest": "bc3c7e785eb961179c25450d1acff03f839e0002f2f3a5aeb67b5735c0fa2adb"
+      },
+      "preprocessor_config.json": {
+        "algorithm": "git-sha1",
+        "digest": "0525dd953bb9241912f7147666f0d535165d5d4f"
+      },
+      "speech_tokenizer/config.json": {
+        "algorithm": "git-sha1",
+        "digest": "06cc8dc4c5ec8a1929086b71b98c313020d9268b"
+      },
+      "speech_tokenizer/configuration.json": {
+        "algorithm": "git-sha1",
+        "digest": "ab58e2eaf53cd14a1a2a7527d9261ceea93a24cd"
+      },
+      "speech_tokenizer/model.safetensors": {
+        "algorithm": "sha256",
+        "digest": "836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258"
+      },
+      "speech_tokenizer/preprocessor_config.json": {
+        "algorithm": "git-sha1",
+        "digest": "ba40914f4f49ab98a8ca545d4892ef7291a39592"
+      },
+      "tokenizer_config.json": {
+        "algorithm": "git-sha1",
+        "digest": "6ff9fd60cc623bb54bbd603cbd418c97a11528d7"
+      },
+      "vocab.json": {
+        "algorithm": "git-sha1",
+        "digest": "4783fe10ac3adce15ac8f358ef5462739852c569"
+      }
+    }
+  }
+}

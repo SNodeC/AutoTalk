@@ -1,0 +1,12 @@
+#!/bin/sh
+# Convenience launcher for a checkout. Release users run the bundled executable.
+set -eu
+autotalk_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if [ -x "$autotalk_root/dist/autotalk/autotalk" ]; then
+    exec "$autotalk_root/dist/autotalk/autotalk" "$@"
+fi
+if [ -x "$autotalk_root/.venv/bin/autotalk" ]; then
+    exec "$autotalk_root/.venv/bin/autotalk" "$@"
+fi
+printf '%s\n' 'Use the packaged AutoTalk release; this source checkout has not been built yet.' >&2
+exit 1
