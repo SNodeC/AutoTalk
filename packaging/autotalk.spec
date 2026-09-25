@@ -16,7 +16,7 @@ exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="autotalk",
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="autotalk")
 if sys.platform == "darwin":
     app = BUNDLE(coll, name="AutoTalk.app", bundle_identifier="org.snodec.autotalk",
-                 info_plist={"CFBundleName": "AutoTalk", "CFBundleShortVersionString": "0.2.0",
+                 info_plist={"CFBundleName": "AutoTalk", "CFBundleShortVersionString": "0.3.0",
                              "LSMinimumSystemVersion": "14.0",
                              "NSMicrophoneUsageDescription": "Record a reference of your voice for local speech synthesis.",
                              "NSHighResolutionCapable": True})

@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tarfile
 import threading
+from contextlib import contextmanager
 import time
 import urllib.error
 import urllib.request
@@ -57,6 +58,7 @@ class Task:
         self.open_url = open_url
         self.cancelled = threading.Event()
         self.event = event
+        self.speech = None
 
     def check(self):
         if self.cancelled.is_set():
@@ -141,7 +143,7 @@ def stop_process(process):
 def run(command, task: Task, *, env=None, cwd=None):
     task.check()
     process = start_process([str(c) for c in command], stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT,
+                               stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace",
                                env=env or child_env(), cwd=cwd)
     tail = ""
     messages = queue.Queue(maxsize=256)
@@ -149,7 +151,7 @@ def run(command, task: Task, *, env=None, cwd=None):
 
     def read():
         try:
-            for block in iter(process.stdout.readline, b""):
+            for block in iter(process.stdout.readline, ""):
                 while not finished.is_set():
                     try:
                         messages.put(block, timeout=0.1)
@@ -165,10 +167,9 @@ def run(command, task: Task, *, env=None, cwd=None):
         while not finished.is_set() or not messages.empty():
             task.check()
             try:
-                block = messages.get(timeout=0.2)
+                value = messages.get(timeout=0.2)
             except queue.Empty:
                 continue
-            value = block.decode(errors="replace")
             tail = (tail + value)[-12000:]
             task.log(value.strip())
         task.check()
@@ -320,20 +321,50 @@ def worker_path():
 
 
 def speech_command(task, request: dict):
-    with SpeechSession(task, request) as session:
+    with speech_session(task, request) as session:
         session.generate(request)
 
 
+@contextmanager
+def speech_session(task, config):
+    config = {key: config[key] for key in ("backend", "model", "source", "speaker", "sampling")}
+    session = task.speech or SpeechSession(task, config)
+    with session.guard:
+        if session.idle_timer:
+            session.idle_timer.cancel()
+            session.idle_timer = None
+        try:
+            if any(session.config.get(k) != config[k] for k in ("backend", "model", "source", "sampling")) or (session.process and session.process.poll() is not None):
+                session.close()
+            session.task, session.config = task, config
+            yield session.__enter__()
+        except BaseException:
+            session.close()
+            raise
+        finally:
+            if task.speech is None or session.retention == "operation":
+                session.close()
+            else:
+                session.schedule_release()
+            session.task = Task(report=lambda _: None, log=lambda _: None)
+
+
 class SpeechSession:
-    """One managed model process per preparation; it accepts successive batches."""
+    """One model owner, optionally retained by the application between jobs."""
     def __init__(self, task, config):
         self.task, self.config = task, config
+        self.guard = threading.Lock()
+        self.retention = "session"
+        self.idle_timer = None
         self.process = None
         self.readers = []
         self.messages = queue.Queue()
         self.lock = None
 
     def __enter__(self):
+        if self.process:
+            self.task.report("Reusing the loaded speech model.")
+            return self
         from PySide6.QtCore import QLockFile
         try:
             data_dir().mkdir(parents=True, exist_ok=True)
@@ -404,10 +435,37 @@ class SpeechSession:
         raise TimeoutError("Speech generation stopped responding. Completed slides have been retained.")
 
     def generate(self, request, on_event=None):
-        self._send({"items": request["items"]})
+        self._send({**self.config, "items": request["items"]})
         self._wait("batch_complete", on_event)
 
+    def schedule_release(self):
+        def expire():
+            with self.guard:
+                if self.idle_timer is threading.current_thread():
+                    self.close()
+        if self.idle_timer:
+            self.idle_timer.cancel()
+            self.idle_timer = None
+        if self.retention != "session" and self.process:
+            self.idle_timer = threading.Timer(300 if self.retention == "idle" else 0, expire)
+            self.idle_timer.daemon = True
+            self.idle_timer.start()
+
+    def set_retention(self, policy):
+        self.retention = policy
+        if self.guard.acquire(blocking=False):
+            try:
+                self.schedule_release()
+            finally:
+                self.guard.release()
+
+    def release(self):
+        with self.guard:
+            self.close()
+
     def close(self):
+        if self.idle_timer:
+            self.idle_timer.cancel()
         if self.process:
             stop_process(self.process)
             for reader in self.readers:
@@ -420,6 +478,8 @@ class SpeechSession:
             self.process = None
         if self.lock and self.lock.isLocked():
             self.lock.unlock()
+        self.readers.clear()
+        self.messages = queue.Queue()
 
     def __exit__(self, *args):
         self.close()

@@ -26,7 +26,7 @@ SAMPLING = {"temperature": (0.0, 2.0, 0.9), "top_k": (1, 200, 50),
             "max_new_tokens": (128, 2048, 2048)}
 
 
-class SettingsPanel(QScrollArea):
+class SettingsPanel(QWidget):
     changed = Signal()
 
     def __init__(self):
@@ -35,9 +35,7 @@ class SettingsPanel(QScrollArea):
         self.loading = False
         self.fields = {}
         self.vocal = []
-        self.setWidgetResizable(True)
-        body = QWidget()
-        box = QVBoxLayout(body)
+        box = QVBoxLayout(self)
         self.form = QFormLayout()
         box.addLayout(self.form)
         self.combo("language_policy", "Language arrangement", [
@@ -50,7 +48,8 @@ class SettingsPanel(QScrollArea):
             ("Require timing match before start", "require")])
         self.combo("realtime_script", "Realtime narration", [
             ("Write the complete script first", "whole"),
-            ("Plan the deck; write ahead in two-slide batches", "ahead")])
+            ("Plan the deck; write ahead by slide", "ahead")])
+        self.combo("speech_priority", "Realtime speech priority", [("Consistency first", "consistency"), ("Earliest playback", "earliest")])
         buffer = QDoubleSpinBox()
         buffer.setRange(2, 30)
         buffer.setSuffix(" seconds")
@@ -65,6 +64,15 @@ class SettingsPanel(QScrollArea):
             row.addWidget(button)
         self.form.addRow(row)
         self.refresh_presets()
+        main_form = self.form
+        advanced = QWidget()
+        self.form = QFormLayout(advanced)
+        advanced.hide()
+        toggle = QPushButton("Advanced delivery and synthesis ▾")
+        toggle.setCheckable(True)
+        toggle.toggled.connect(advanced.setVisible)
+        box.addWidget(toggle)
+        box.addWidget(advanced)
         for name, values in ATTRIBUTES.items():
             widget = self.combo("delivery.attributes." + name, name.capitalize(),
                                 [("Model default", "")] + [(v, v) for v in values])
@@ -80,7 +88,7 @@ class SettingsPanel(QScrollArea):
         self.explanation = QLabel()
         self.explanation.setWordWrap(True)
         self.form.addRow(self.explanation)
-        self.override = QCheckBox("Override model sampling defaults")
+        self.override = QCheckBox("Override main speech generator sampling defaults")
         self.override.toggled.connect(self.sampling_changed)
         self.form.addRow("Advanced synthesis", self.override)
         self.sampling = {}
@@ -93,8 +101,12 @@ class SettingsPanel(QScrollArea):
             spin.valueChanged.connect(self.sampling_changed)
             self.sampling[name] = spin
             self.form.addRow(name.replace("_", " ").capitalize(), spin)
+        self.recording_widget = QWidget()
+        self.form = QFormLayout(self.recording_widget)
         self.record = QCheckBox("Record presentation as a video")
-        self.bind("record_presentation", "Presentation recording", self.record, self.record.toggled)
+        self.fields["record_presentation"] = self.record
+        self.record.toggled.connect(lambda: self.edit("record_presentation"))
+        self.record.setToolTip("Record slides and narration during playback. Choose the destination in Present & Export. Prepared export is also available after an unrecorded talk.")
         self.combo("recording_policy", "Recording pauses", [
             ("Keep fullscreen pauses; omit time outside fullscreen", "fullscreen"),
             ("Keep all elapsed time", "all"),
@@ -106,12 +118,11 @@ class SettingsPanel(QScrollArea):
         choose.clicked.connect(self.choose_destination)
         self.form.addRow(choose)
         self.combo("export_rate", "Export audio sample rate", [("24 kHz (native)", 24000), ("44.1 kHz", 44100), ("48 kHz", 48000)])
-        self.combo("export_bitrate", "Video audio encoding", [("AAC 96 kbit/s", 96000), ("AAC 128 kbit/s", 128000), ("AAC 192 kbit/s", 192000)])
+        self.combo("export_bitrate", "MP4 / M4A audio encoding", [("AAC 96 kbit/s", 96000), ("AAC 128 kbit/s", 128000), ("AAC 192 kbit/s", 192000)])
         quality = QLabel("Synthesis remains at its native rate. Resampling and encoding affect export; they do not add voice detail. Expression and age are model instructions—preview their effect.")
         quality.setWordWrap(True)
         box.addWidget(quality)
-        box.addStretch()
-        self.setWidget(body)
+        self.form = main_form
 
     def bind(self, path, label, widget, signal):
         self.fields[path] = widget
@@ -152,6 +163,9 @@ class SettingsPanel(QScrollArea):
                 owner.pop(key, None)
         else:
             setattr(owner, key, value)
+        if path == "speech_priority":
+            self.project.buffer_seconds = 2 if value == "earliest" else 5
+            self.load(self.project)
         if path == "delivery.style":
             presets = {
                 "Professional": {"energy": "Moderate", "articulation": "Precise", "projection": "Confident"},
@@ -201,6 +215,11 @@ class SettingsPanel(QScrollArea):
         self.fields["delivery.attributes.age"].setEnabled(supported and project.voice.source == "VoiceDesign")
         self.explanation.setText("Base cloning reuses the reference identity and delivery; direct vocal controls are unavailable. Writing style still applies to narration."
             if project.voice.source == "Base" else "CustomVoice and VoiceDesign accept delivery instructions. Dialect presets apply to Chinese; use previews to assess pronunciation and expression.")
+        for path, applicable in (("quick_timing", project.mode == "Quick"), ("realtime_script", project.mode == "Realtime"),
+                                 ("buffer_seconds", project.mode == "Realtime"), ("speech_priority", project.mode == "Realtime")):
+            widget = self.fields[path]
+            widget.setVisible(applicable)
+            self.form.labelForField(widget).setVisible(applicable)
         self.loading = False
 
     def choose_destination(self):

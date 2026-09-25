@@ -1,14 +1,246 @@
-# Agreed feature scope and implementation status
+# AutoTalk refinement plan and implementation status
 
-The original agreed requirements are retained below. The 0.2 implementation now
-exposes these selections and workflows. Linux integration has been exercised;
-Windows/macOS adapters and native build definitions are present but need native
-qualification. See [current behavior](../README.md) and [verification](VERIFICATION.md).
+This plan replaces the previous implementation sequence while retaining the
+complete agreed product scope below. Implementation targets 0.3. Testing for
+this refinement pass is **Linux only**; Windows/macOS support is retained.
+See [behavior](../README.md) and [measured verification](VERIFICATION.md).
 
-Remaining acceptance work includes native Windows/macOS GPU and microphone tests,
-subjective voice/dialect/expression checks, long talks, and release signing.
-These requirements are broader than a claim that every voice property works
-reliably for every language.
+## Current follow-up — implementation started
+
+The current scope is checkbox visibility, recording discovery, Linux screen/audio
+recording for live demonstrations, the three CI failures, and the explicitly
+approved speech-continuity work below. Preserve startup and sustained Realtime
+measurements and all existing product/platform requirements.
+
+Implemented in the working tree:
+
+- Linux CI includes `libpulse0` so QtMultimedia can import.
+- Subprocess output uses UTF-8 text mode with universal newline handling.
+- PDF import and export destroy their operation-owned Qt documents on every exit,
+  before staging moves/cleanup; exception tracebacks cannot retain native handles.
+- Native Qt controls follow the system light/dark appearance, including live changes;
+  the forced dark stylesheet and custom checkbox asset are removed.
+- Shared checkboxes have visible native states. Recording selection stays beside
+  Start on all tabs; active capture shows recorded time. Destination and saved-file
+  actions are near the top of Present & Export. Settings lock during presentation.
+- The existing delivery resolver supplies steady-pace, restrained-expression and
+  consistent-character guidance. Style/custom/slide overrides remain explicit;
+  Base receives no unsupported vocal instruction and Quick uses its default voice.
+  Effective instructions remain part of audio freshness. Splitting is unchanged.
+- The sampling override label identifies its main-generator scope. Sampling
+  defaults are unchanged; both-stage comparison and listening acceptance remain open.
+
+The user approved the narrow PDF/UI additions. They add 20 net production lines
+relative to the prior follow-up changes, within the estimated 15–25 lines. Linux
+verification passes 97 tests after the system-theme refinement, with minimum-size
+UI checks in light/dark appearance at normal/150% scaling.
+
+Screen capture has a successful video-only feasibility result through Qt's portal
+capture and the existing PyAV/libx264 encoder. A separate isolated stereo monitor
+probe succeeded using the installed PulseAudio library. These probes are not an
+implemented recording feature. The proposed integration reuses these boundaries,
+consolidates encoding, and gives recording one owner independent of narration.
+Estimated net production growth is 350–500 lines; the separate approval request
+is pending. It includes background encoding, selected audio sources, recovery and
+UI integration. Desktop audio and direct narration capture must not be duplicated.
+Audio/video synchronization, microphone mixing, recovery and simultaneous active
+Qwen performance remain acceptance work.
+
+The running user's speech session was not interrupted for synthesis comparisons;
+the normal exclusive GPU lease rejected the comparison attempt. The reproducible
+fixed-text/seed comparison harness is in ignored
+`artifacts/improvements/continuity/compare.py`. Neither sampling defaults nor the
+chosen voice were changed. Base reference evaluation and listening remain open.
+
+**Deferred: Windows QEMU/KVM setup and local Windows VM testing.** These are
+optional future work and do not block current fixes or delivery. When explicitly
+resumed, prepare a reusable Windows 11 x64 VM (8 vCPUs, 16 GiB RAM, 128 GiB dynamic
+disk, UEFI/Secure Boot, virtual TPM), official installation media and a clean
+checkpoint. Match CI's Python 3.12 environment; test imports, persistence, playback,
+exports, native packaging and launch without developer Python. GPU passthrough is
+excluded. Windows/macOS CI remains required after authorized publication; local
+testing remains Linux-only.
+
+## 1. Product and platform support — preserved
+
+Keep AutoTalk, executable `autotalk`, Python/PySide6, PDF import and timed spoken
+presentations, selectable language/conference scope (URL or editable text),
+Codex app-server subscription sign-in/model/reasoning, and automatic local
+Qwen3-TTS 1.7B installation. Preserve Prepared, Quick and Realtime, language
+versions, voice library/design/cloning, delivery controls, fullscreen display
+choice, system-owned audio routing, clips/backgrounds, recording, and persistence.
+
+Retain Linux NVIDIA/vLLM-Omni, Windows NVIDIA/PyTorch, and Apple Silicon macOS/MLX
+adapters and native packaging. CPU/NPU and Intel Mac inference remain outside
+scope. Only Linux is qualified in this pass; native Windows/macOS qualification,
+signing and distribution remain future work. Automatic provisioning cannot
+supply missing GPU hardware or replace the operating system's driver setup.
+
+## 2. Architectural rules and implementation sequence
+
+Trace authority, transformations, ownership, lifetime, presentation, persistence,
+and tests before changes. Reduce first, reshape existing code second, add narrowly
+only where necessary. Keep one script-acceptance authority, one speech-process
+owner, one playback position, and one shared audio mix. Preserve unrelated work.
+
+The following architectural corrections are implemented. Finding 5 remains open
+for acoustic acceptance: matched samples still show pace variation. Qualification
+limits and measured results are tracked below.
+
+| Review finding | Narrow correction and acceptance boundary |
+| --- | --- |
+| 1. Partial regeneration approves stale slides | Per-slide script context/origin replaces the version-wide stamp. Aggregate readiness derives from slides; explicit acceptance protects manual edits. Legacy scripts require review without deleting audio. |
+| 2. Language silently relabels old text | Select existing language versions or create translation drafts; preserve originals and send translation instructions to Codex. |
+| 3. Realtime serial startup | Load speech concurrently with Codex. A single first request plans the deck and writes its opening slide; later slide requests overlap synthesis and use the same thread/context. |
+| 4. Repeated cold model loads | Lease the existing speech process across preview/preparation; reload incompatible configurations, release on error/exit or selected idle policy. No separate model service. |
+| 5. Inconsistent sentence delivery | Group compatible sentences within paragraphs and the existing 300-character bound. Retain Earliest playback as a selectable tradeoff. Preserve voice and effective delivery settings, and record segmentation provenance. Listening acceptance remains separate. |
+| 6. Confusing/clipped UI | Setup, Script, Present & Export; scrollable workspaces; one contextual primary action; technical controls under Advanced; mode-specific options; recording beside presentation. |
+| 7. Lost style/redesigned preview | Combine style and attributes with explicit instruction precedence. Accept the exact VoiceDesign preview and explain the transition to Base controls. |
+| 8. Expensive timing updates | Audio descriptors change at project/audio transitions. Timing labels read descriptors at 4 Hz; audio feeding performs no full-deck file/hash traversal. |
+| 9. Buffering/misleading timing | Show incomplete remaining time as estimating, expose buffered audio and fullscreen state, adapt consistency-first buffering to observed production, persist stage/run measurements. |
+| 10. Hidden recovery/manual overwrite | Separate Continue, Resume preparation, Stop and edit, and explicit regeneration. Ignore events from finished jobs; reuse completed scripts/audio. An interrupted slide restarts from its beginning. |
+| 11. Fragile recording/export | Direct MP4/WAV/M4A export through the same mixer, discover pending sessions, retain export inputs/destination on failure, and offer finish/save-later/cancel on close. |
+| 12. Enlarged previews/mono imported music | Render captured original PDF at export resolution. Use a stereo 48 kHz mix and keep speech assets at 24 kHz; retain stereo clips/backgrounds. |
+
+### Remembered defaults
+
+- Speech model: keep until exit; alternatives five idle minutes / each operation;
+  manual Release GPU remains available.
+- Quick: generate once and start; alternatives fit / require duration match.
+- Realtime: consistency first with grouped speech and adaptive buffering;
+  Earliest playback uses a shorter first unit and lower minimum buffer.
+- Existing project settings are preserved when reopening. New project defaults
+  use the remembered preferences.
+
+## 3. Verification and remaining acceptance
+
+Measure application launch separately from runtime installation, cached cold
+model load, warm generation, first audio, first playback, sustained production,
+fitting and export. Record a baseline before performance changes. Test public
+workflow boundaries, legacy migration, cancellation/resume, manual acceptance,
+voice-preview identity, output timing/stereo, recovery/close, minimum-size UI,
+and an 80-slide timeline. Production and test line changes are reported separately.
+
+Linux regression tests, real GPU/end-to-end Realtime, startup/UI timing, and
+export evidence are recorded in VERIFICATION.md. These establish the exercised
+cases, not a latency guarantee. Subjective voice continuity, own-voice similarity,
+all-language/dialect adherence, and sustained generation of a full conference
+remain acceptance work. Long synthetic media export is distinct from long speech
+inference. Native Windows/macOS testing is deliberately excluded from this pass.
+
+## 4. Improvement backlog from hands-on review
+
+Collected 2026-09-25. Items below remain requirements or investigations; the current
+follow-up above records partial implementation, not overall completion. They supplement the preserved scope and the
+remaining acceptance work above. This list does not authorize publishing changes
+or expand the current Linux-only local testing scope.
+
+### Recording and live demonstrations
+
+1. **Make checkboxes recognizable.** Fix the shared dark-theme checkbox appearance,
+   including Record presentation and Loop: clear border, adequately sized indicator,
+   and distinct unchecked, checked, focused and disabled states. Verify visibility
+   at normal and enlarged display scaling; the complete label remains clickable.
+2. **Make recording discoverable before Start.** Expose recording selection and its
+   enabled/disabled state near the primary presentation action, without requiring
+   users to discover controls below the scroll viewport. Make the destination easy
+   to find and explain when a recording is active versus when a file is being saved.
+3. **Offer two recording sources.** Preserve Slides and narration for clean internal
+   capture, and add Screen and audio for the actual performance, including manually
+   operated applications, pointer movement and intermediate live demonstrations.
+   Keep direct prepared-talk export available independently of live recording.
+4. **Continue screen recording through a demo.** Leaving fullscreen pauses narration
+   and preserves its position while screen recording continues. Returning to the
+   slides and choosing Continue resumes narration in the same recording. Apply this
+   behavior to screen recording explicitly; preserve the existing internal-capture
+   pause policies.
+5. **Give screen recording explicit Start/Stop controls.** Its lifetime must be
+   independent of fullscreen and narration playback. Reaching the final slide must
+   not silently end a recording that may include a closing demo or discussion.
+   Show a persistent recording indicator and elapsed recording time, distinguishable
+   from the narration playback state. Define close/failure behavior and retain a
+   recoverable result when interrupted.
+6. **Use native Linux screen selection.** Investigate the desktop screen-capture
+   portal with PipeWire for Plasma/Wayland. Let the user select the capture source
+   through the system dialog; keep it distinct from AutoTalk's fullscreen-display
+   selection. Handle cancellation and capture-source loss visibly. Preserve future
+   Windows/macOS support without assuming the Linux capture path works there.
+7. **Select recording audio sources.** Offer AutoTalk narration, microphone for live
+   explanations, and desktop/demo audio, individually or together where supported.
+   Playback destination routing remains owned by the OS. Prevent capturing narration
+   twice through both the internal mix and desktop output; verify synchronization,
+   levels and behavior when sources disappear.
+8. **Investigate encoding during the presentation.** Aim for a short finalization
+   step after Stop instead of a full post-presentation encoding pass. Measure CPU/GPU
+   load alongside Qwen before choosing the implementation. Preserve recovery and
+   synchronization; avoid a second recording-state authority or duplicated encoding
+   policy. Reduce/reshape the existing recorder first and propose only the narrow
+   additional capture boundary that is actually needed.
+9. **Make saved results obvious.** Show the final filename/location, saving progress
+   and Open file/Open folder actions prominently. Keep unfinished recordings easy
+   to recover. Explain that prepared export can create a video after an unrecorded
+   talk, but cannot reconstruct live demonstrations, navigation or spoken comments.
+
+Acceptance scenario: start recording, present slides with generated narration,
+leave fullscreen, demonstrate another application while explaining through the
+microphone, return and continue, then explicitly stop recording. Check the resulting
+video/audio, timing, source selection, recording indicator and interrupted-session
+recovery. A slides-only export does not satisfy this scenario.
+
+### CI reliability
+
+10. **Repair the three confirmed CI causes.** The inspected
+    [native-build run for `6199c01`](https://github.com/SNodeC/AutoTalk/actions/runs/36144942117)
+    failed before packaging on Linux and Windows:
+    - Linux: install the missing `libpulse0` runtime dependency; QtMultimedia fails
+      to import without `libpulse.so.0`, even when physical-audio tests are excluded.
+    - Windows: end PDF ownership before moving/deleting staged import files.
+      `QPdfDocument.close()` retained a file handle in a local Linux probe; document
+      destruction released it. Windows reported `WinError 32` in 37 test setups.
+      Fix resource lifetime at the import boundary, including failure cleanup.
+    - Windows: define consistent newline handling for subprocess text output;
+      the output test received CRLF while expecting LF. Fix the boundary contract
+      rather than weakening the test to hide an unspecified behavior.
+    Retain independent matrix jobs and verify each affected stage after fixes are
+    published. The inspected macOS run passed tests, packaging and launch; it did
+    not establish GPU speech functionality. The local 0.3 changes were not in that run.
+
+### Existing open quality items — retained
+
+11. **Speech continuity:** continue matched listening and pace/expression evaluation.
+    Grouped synthesis removes request boundaries but has not demonstrated reduced
+    pace variation. Keep this item open until the audible result is assessed.
+12. **Startup and duration:** retain separate cold/warm startup measurements, sustained
+    Realtime buffering checks and duration accuracy work. Realtime remains approximate;
+    the latest 30-second target produced 46.36 seconds. Do not imply that streaming
+    alone solves startup latency, delivery consistency or duration matching.
+
+### Confirmed continuity decisions
+
+The user explicitly supplied the following eight-item list. Its numbering is
+separate from the improvement backlog above; retain the heading and explanatory
+items separately to preserve the exact decisions.
+
+| Item | Proposal | User decision |
+| --- | --- | --- |
+| 1 | Replace the fixed 300-character splitting. | **Rejected** |
+| 2 | Aim for one synthesis request per slide within model limits; split longer slides at natural paragraph boundaries while streaming audio. | **Rejected** |
+| 3 | Use one explicit delivery instruction throughout the talk. | **Approved** |
+| 4 | Specify steady pace, restrained expression and consistent delivery rather than only “Professional”; preserve deliberate slide overrides. This is guidance, not an exact acoustic lock. | **Approved** |
+| 5 | Evaluate less-random synthesis correctly. | **Approved** |
+| 6 | Compare controlled sampling settings for both the main speech generator and acoustic-code generator. The current Linux temperature selector changes only the first. A fixed seed supports repeatable experiments, not continuity between different texts. | **Approved** |
+| 7 | If voice character still drifts, evaluate a fixed reference recording. | **Not applicable** |
+| 8 | Evaluate reuse of the same accepted audio sample and exact transcript for every passage through Qwen Base. Account for the different delivery controls when switching from CustomVoice; demonstrate improvement. | **Approved** |
+
+Retain the current 300-character splitting. Proceed within the approved delivery,
+sampling-evaluation and reference-reuse scope without interpreting item 7 as a
+rejection of item 8 or making drift a prerequisite for that approved evaluation.
+Preserve selected style and deliberate slide overrides when resolving the common
+delivery instruction. Record measured and audible outcomes before claiming a
+continuity improvement. No implementation or synthesis experiments were performed
+when recording these decisions.
+
+## Preserved detailed feature requirements
 
 1. **Presentation modes:** Prepared retains narration review, voice and conference
    configuration, complete audio preparation, duration fitting, and explicit
@@ -134,12 +366,12 @@ Optional audio clips, with technical generation parameters under Advanced.
 
 ## Performance evidence and capability sources
 
-The [recorded local measurements](VERIFICATION.md#observed-synthesis-times) show
-7.50 seconds of generation for 9.96 seconds of German audio (including a 0.6-second
-pause), and 10.29 seconds for 13.92 seconds. These exclude loading and downloads.
-Speech synthesis is therefore a likely sustained bottleneck for long talks on
-the tested machine, but no controlled Codex-versus-Qwen timing has been recorded.
-Duration fitting can add repeated narration and synthesis passes.
+The [current measurements](VERIFICATION.md) separate application launch, model
+loading, Codex planning, first audio/playback and synthesis. Cached cold model
+loading dominates the tested cold Realtime start; warm starts avoid that load.
+Sustained synthesis still determines whether buffering can keep up. Duration
+fitting adds narration and synthesis passes. Historical 0.6B figures in the
+verification record are not measurements of the current 1.7B runtime.
 
 - [Codex model discovery and supported reasoning efforts](https://learn.chatgpt.com/docs/app-server#models)
   provide the selectable capabilities; do not hard-code account/model availability.

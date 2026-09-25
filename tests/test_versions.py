@@ -58,8 +58,8 @@ def test_legacy_project_migrates_without_destroying_source_or_audio(project):
     legacy = {name: copy.deepcopy(getattr(project, name)) for name in (
         "title", "target_minutes", "tolerance_seconds", "pause_seconds", "scope",
         "conference_url", "sources", "audience", "objective", "language", "pdf_hash",
-        "voice_file", "voice_hash", "voice_transcript", "narration_context")}
-    legacy.update(version=1, slides=[])
+        "voice_file", "voice_hash", "voice_transcript")}
+    legacy.update(version=1, narration_context="legacy-context", slides=[])
     for slide in project.slides:
         key = digest(["qwen3-0.6b-base-v1", slide.narration, project.language,
                       "qwen-customvoice-ryan-v1", "", project.pause_seconds if slide.page == 1 else 0])
@@ -72,6 +72,9 @@ def test_legacy_project_migrates_without_destroying_source_or_audio(project):
     project.manifest.write_text(raw)
     loaded = Project.load(project.manifest)
     assert project.manifest.read_text() == raw
+    assert not loaded.prepared
+    assert all(loaded.ready(s) for s in loaded.slides)
+    loaded.accept_script()
     assert loaded.prepared
     assert all(s.audio_provenance["imported"] for s in loaded.slides)
     loaded.save()

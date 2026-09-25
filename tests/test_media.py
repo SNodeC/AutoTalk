@@ -9,7 +9,35 @@ from autotalk.media import AudioFile, Capture, RATE, export_recording, import_cl
 from autotalk.runtime import Task
 
 
-@pytest.mark.parametrize("policy, expected", [("fullscreen", 3600), ("all", 6000), ("content", 1200)])
+@pytest.mark.parametrize('outcome', ['success', 'cancel', 'invalid'])
+def test_export_releases_pdf_even_when_an_exception_retains_its_frame(project, monkeypatch, outcome):
+    from autotalk import media
+    from autotalk.runtime import Cancelled
+    from shiboken6 import isValid
+    documents = []
+    original = media.QPdfDocument
+    class Document(original):
+        def __init__(self):
+            super().__init__()
+            documents.append(self)
+    monkeypatch.setattr(media, 'QPdfDocument', Document)
+    capture = Capture(project)
+    capture.append(np.ones((RATE//10, 2), dtype=np.int16), 1)
+    root = capture.close()
+    task = Task(report=lambda _: None)
+    if outcome == 'cancel':
+        task.cancelled.set()
+    if outcome == 'invalid':
+        (root/'slides.pdf').write_bytes(b'invalid pdf')
+    if outcome == 'success':
+        assert export_recording(root, task).is_file()
+    else:
+        with pytest.raises(Cancelled if outcome == 'cancel' else ValueError):
+            export_recording(root, task)
+    assert documents and all(not isValid(d) for d in documents)
+
+
+@pytest.mark.parametrize("policy, expected", [("fullscreen", 6000), ("all", 10800), ("content", 1200)])
 def test_recording_policy_and_slide_journal(project, policy, expected):
     project.recording_policy = policy
     capture = Capture(project)
@@ -17,11 +45,11 @@ def test_recording_policy_and_slide_journal(project, policy, expected):
     capture.waiting(0.1, 1, True)
     capture.waiting(0.1, 2, False)
     root = capture.close()
-    assert (root / "audio.pcm").stat().st_size == expected * 2
+    assert (root / "audio.pcm").stat().st_size == expected * 4
     journal = [json.loads(l) for l in (root / "events.jsonl").read_text().splitlines()]
     assert journal[0] == {"frame": 0, "slide": 1}
     if policy == "all":
-        assert journal[-1] == {"frame": 3600, "slide": 2}
+        assert journal[-1] == {"frame": 6000, "slide": 2}
 
 
 @pytest.mark.parametrize("rate", [24000, 44100, 48000])

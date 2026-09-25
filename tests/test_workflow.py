@@ -75,7 +75,7 @@ def test_duration_adjustment_has_a_bound(project, monkeypatch):
     from contextlib import nullcontext
     calls = []
     monkeypatch.setattr(services, "synthesize", lambda p, t, **kwargs: make_audio(p))
-    monkeypatch.setattr(services, "SpeechSession", lambda *args: nullcontext(None))
+    monkeypatch.setattr(services, "speech_session", lambda *args: nullcontext(None))
     monkeypatch.setattr(services, "Codex", lambda *args: nullcontext(None))
     def revision(p, t, client, fit=False):
         calls.append(fit)

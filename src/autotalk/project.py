@@ -107,6 +107,8 @@ class Slide:
     notes: str = ""
     budget_seconds: float = 0
     directions: str = ""
+    narration_context: str = ""
+    narration_origin: str = "manual"
     audio_key: str = ""
     audio_file: str = ""
     audio_sha256: str = ""
@@ -121,13 +123,14 @@ class Slide:
     @narration.setter
     def narration(self, text):
         self.passages = parse_passages(text)
+        self.narration_context = ""
+        self.narration_origin = "manual"
 
 
 @dataclass
 class TalkVersion:
     name: str = "English"
     language: str = "English"
-    narration_context: str = ""
     slides: list[Slide] = field(default_factory=list)
 
 
@@ -150,8 +153,9 @@ class Project:
     delivery: Delivery = field(default_factory=Delivery)
     mode: str = "Prepared"
     language_policy: str = "mixed"
-    quick_timing: str = "fit"
-    realtime_script: str = "whole"
+    quick_timing: str = "once"
+    realtime_script: str = "ahead"
+    speech_priority: str = "consistency"
     buffer_seconds: float = 5
     codex_model: str = ""
     codex_effort: str = ""
@@ -177,14 +181,25 @@ class Project:
     @language.setter
     def language(self, value):
         self.version.language = value
+        self.version.name = value
 
     @property
-    def narration_context(self):
-        return self.version.narration_context
+    def script_current(self):
+        context = self.context_key()
+        return bool(self.slides) and all(s.passages and s.narration_context == context for s in self.slides)
 
-    @narration_context.setter
-    def narration_context(self, value):
-        self.version.narration_context = value
+    @property
+    def manual_review_required(self):
+        context = self.context_key()
+        return any(s.passages and s.narration_origin == "manual" and s.narration_context != context for s in self.slides)
+
+    def accept_script(self):
+        for slide in self.slides:
+            self.effective_passages(slide)
+            if not slide.passages:
+                raise ValueError(f"Slide {slide.page} has no narration.")
+        for slide in self.slides:
+            slide.narration_context = self.context_key()
 
     def reference(self, language=None):
         refs = self.voice.references
@@ -257,14 +272,16 @@ class Project:
         return values
 
     def directions(self, slide):
-        if self.mode == "Quick":
-            return "Professional"
-        if self.voice.source == "Base":
+        if self.effective_voice.source == "Base":
             return ""
-        parts = [", ".join(f"{k}: {v}" for k, v in self.delivery.attributes.items()
+        continuity = "Maintain a steady pace, restrained expression and consistent vocal character throughout the talk, unless the selected style or explicit directions call for a change"
+        if self.mode == "Quick":
+            return "Professional. " + continuity
+        parts = [continuity, self.delivery.style, ", ".join(f"{k}: {v}" for k, v in self.delivery.attributes.items()
                           if (k != "accent" or all(p.language == "Chinese" for p in self.effective_passages(slide)))
-                          and (k != "age" or self.voice.source == "VoiceDesign")) or self.delivery.style,
+                          and (k != "age" or self.voice.source == "VoiceDesign")),
                  self.delivery.instructions, slide.directions]
+        parts.insert(0, "Resolve conflicts in this order: slide directions override custom global directions; custom global directions override attributes and style; attributes and style override baseline delivery guidance")
         if self.delivery.progression:
             parts.append(f"Slide {slide.page} of {len(self.slides)}. Progression: {self.delivery.progression}")
         if self.voice.source == "VoiceDesign":
@@ -280,8 +297,9 @@ class Project:
         elif selected.source == "Base":
             voice["references"] = {p["language"]: [self.reference(p["language"]).sha256,
                                     self.reference(p["language"]).transcript] for p in passages}
-        return digest([ENGINE, passages, voice, self.directions(slide), {} if self.mode == "Quick" else self.delivery.sampling,
-                       self.pause_seconds if slide.page < len(self.slides) else 0])
+        key = digest([ENGINE, passages, voice, self.directions(slide), {} if self.mode == "Quick" else self.delivery.sampling,
+                      self.pause_seconds if slide.page < len(self.slides) else 0])
+        return digest([key, "earliest"]) if self.speech_priority == "earliest" else key
 
     def ready(self, slide: Slide) -> bool:
         try:
@@ -292,7 +310,7 @@ class Project:
 
     @property
     def prepared(self):
-        return bool(self.slides) and all(self.ready(s) for s in self.slides)
+        return self.script_current and all(self.ready(s) for s in self.slides)
 
     @property
     def total_seconds(self):
@@ -304,24 +322,29 @@ class Project:
 
     def save(self):
         self.root.mkdir(parents=True, exist_ok=True)
-        # Preserve the v1 source exactly once, immediately before its first replacement.
-        if self.manifest.exists() and json.loads(self.manifest.read_text(encoding="utf-8")).get("version") == 1:
-            backup = self.manifest.with_suffix(".v1-backup.json")
+        # Preserve an older schema exactly once before its first replacement.
+        previous = json.loads(self.manifest.read_text(encoding="utf-8")).get("version") if self.manifest.exists() else 3
+        if previous < 3:
+            backup = self.manifest.with_suffix(f".v{previous}-backup.json")
             if not backup.exists():
                 shutil.copy2(self.manifest, backup)
         data = asdict(self)
         data.pop("root")
-        data["version"] = 2
+        data["version"] = 3
         temporary = self.manifest.with_suffix(".tmp")
         temporary.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         temporary.replace(self.manifest)
 
-    def add_version(self, language):
+    def add_version(self, language, translate=False):
         if language not in LANGUAGES:
             raise ValueError("Unsupported language.")
         key = uuid.uuid4().hex[:12]
         # Source text is an immutable extraction snapshot from the common PDF.
         slides = [Slide(s.page, s.source_text) for s in self.slides]
+        if translate:
+            for source, slide in zip(self.slides, slides):
+                slide.narration = source.narration
+                slide.narration_origin = "translation"
         self.versions[key] = TalkVersion(language, language, slides=slides)
         self.active_version = key
         return key
@@ -345,7 +368,7 @@ class Project:
     def load(cls, manifest: Path):
         data = json.loads(manifest.read_text(encoding="utf-8"))
         version = data.pop("version", None)
-        if version not in (1, 2):
+        if version not in (1, 2, 3):
             raise ValueError("Unsupported AutoTalk project version.")
         root = manifest.resolve().parent
         legacy = None
@@ -353,10 +376,9 @@ class Project:
             legacy = data.pop("slides")
             language = data.pop("language")
             reference = Reference(data.pop("voice_file"), data.pop("voice_hash"), data.pop("voice_transcript"))
-            context = data.pop("narration_context")
+            data.pop("narration_context")
             project = cls(root=root, **data)
             project.language = project.version.name = language
-            project.narration_context = context
             if reference.file:
                 project.voice = Voice("My voice", "Base", references={"default": reference})
             for value in legacy:
@@ -379,6 +401,7 @@ class Project:
         else:
             versions = {}
             for key, value in data.pop("versions").items():
+                value.pop("narration_context", None)
                 slides = []
                 for s in value.pop("slides"):
                     s["passages"] = [Passage(**p) for p in s["passages"]]
@@ -420,6 +443,7 @@ class Project:
             (self.language_policy, ("mixed", "slide", "version")),
             (self.quick_timing, ("fit", "once", "require")),
             (self.realtime_script, ("whole", "ahead")),
+            (self.speech_priority, ("consistency", "earliest")),
             (self.recording_policy, ("fullscreen", "all", "content")),
             (self.delivery.style, STYLES),
             (self.export_rate, (24000, 44100, 48000)), (self.export_bitrate, (96000, 128000, 192000))):

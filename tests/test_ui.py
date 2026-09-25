@@ -6,6 +6,109 @@ from autotalk.app import MainWindow
 from autotalk.playback import Playback
 
 
+def test_recording_selection_visible_on_all_tabs_and_persisted(qtbot, project):
+    from PySide6.QtCore import QPoint
+    from autotalk.project import Project
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.adopt(project)
+    window.resize(940, 680)
+    window.show()
+    checkbox = window.options.record
+    for tab in range(window.tabs.count()):
+        window.tabs.setCurrentIndex(tab)
+        qtbot.wait(10)
+        assert checkbox.isVisible() and checkbox.isEnabled()
+        top = checkbox.mapTo(window, QPoint(0, 0))
+        assert window.rect().contains(top)
+        assert top.y() + checkbox.height() <= window.tabs.mapTo(window, QPoint(0, 0)).y()
+    # The label and keyboard both operate the single project-backed checkbox.
+    qtbot.mouseClick(checkbox, Qt.MouseButton.LeftButton, pos=QPoint(55, checkbox.height()//2))
+    assert project.record_presentation
+    window.save()
+    assert Project.load(project.manifest).record_presentation
+    checkbox.setFocus()
+    qtbot.keyClick(checkbox, Qt.Key.Key_Space)
+    assert not project.record_presentation
+    window.transport.state = 'paused'
+    window.refresh()
+    assert not checkbox.isEnabled()
+    assert not window.options.recording_widget.isEnabled()
+    window.transport.stop()
+    window.refresh()
+    assert checkbox.isEnabled()
+
+
+def test_recording_selection_disabled_without_project(qtbot):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    assert not window.options.record.isEnabled()
+
+
+def test_recording_indicator_uses_recorded_time_and_clears_after_stop(qtbot, project):
+    import numpy as np
+    from autotalk.media import Capture, RATE
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.adopt(project)
+    capture = Capture(project)
+    try:
+        window.transport.capture = capture
+        capture.append(np.zeros((RATE, 2), dtype=np.int16), 1)
+        window.update_timing()
+        assert window.options.record.text() == 'Recording video • 0:01'
+        assert window.transport.elapsed == 0  # Recording time is not narration time.
+    finally:
+        capture.close()
+        window.transport.capture = None
+    window.update_timing()
+    assert window.options.record.text() == 'Record presentation as a video'
+
+
+def test_controls_and_pdf_selector_follow_palette_changes(qtbot, qapp, project):
+    from PySide6.QtGui import QColor, QPalette
+    from PySide6.QtWidgets import QFileDialog, QLineEdit, QStyle, QStyleOptionButton
+    previous_palette, previous_style = qapp.palette(), qapp.styleSheet()
+    try:
+        window = MainWindow()
+        qtbot.addWidget(window)
+        window.adopt(project)
+        window.show()
+        dialog = QFileDialog(window, 'Choose PDF', str(project.root))
+        qtbot.addWidget(dialog)
+        dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+        dialog.show()
+        # Existing widgets must adopt palette updates, including a visible dialog.
+        for background, foreground in [('#eff0f1', '#232627'), ('#31363b', '#eff0f1'), ('#eff0f1', '#232627')]:
+            palette = QPalette(previous_palette)
+            for role in (QPalette.ColorRole.Window, QPalette.ColorRole.Base, QPalette.ColorRole.Button):
+                palette.setColor(role, QColor(background))
+            for role in (QPalette.ColorRole.WindowText, QPalette.ColorRole.Text, QPalette.ColorRole.ButtonText):
+                palette.setColor(role, QColor(foreground))
+            qapp.setPalette(palette)
+            qtbot.waitUntil(lambda: window.palette().color(QPalette.ColorRole.Window) == QColor(background))
+            qapp.processEvents()
+            for widget in (window, window.options.record, window.start_button, window.play_image,
+                           dialog, *dialog.findChildren(QLineEdit)):
+                assert widget.palette().color(QPalette.ColorRole.Window) == QColor(background)
+                assert widget.palette().color(QPalette.ColorRole.WindowText) == QColor(foreground)
+                assert widget.palette().color(QPalette.ColorRole.Base) == QColor(background)
+                assert widget.palette().color(QPalette.ColorRole.Text) == QColor(foreground)
+            checkbox = window.options.record
+            option = QStyleOptionButton()
+            checkbox.initStyleOption(option)
+            indicator = checkbox.style().subElementRect(QStyle.SubElement.SE_CheckBoxIndicator, option, checkbox)
+            assert indicator.width() > 0 and indicator.height() > 0
+            checkbox.setChecked(False)
+            unchecked = checkbox.grab().toImage()
+            checkbox.setChecked(True)
+            assert checkbox.grab().toImage() != unchecked
+        dialog.close()
+    finally:
+        qapp.setPalette(previous_palette)
+        qapp.setStyleSheet(previous_style)
+
+
 def test_user_can_change_language_and_edit_narration(qtbot, project):
     make_audio(project)
     window = MainWindow()
@@ -89,6 +192,7 @@ def test_quick_autostart_respects_timing_policy(qtbot, project, monkeypatch, pol
     window = MainWindow()
     qtbot.addWidget(window)
     project.mode, project.quick_timing = "Quick", policy
+    project.accept_script()  # This test starts from a reviewed existing script.
     window.adopt(project)
     presented = []
     monkeypatch.setattr(window, "present", lambda: presented.append(True))

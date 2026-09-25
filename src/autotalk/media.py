@@ -8,17 +8,19 @@ import wave
 from fractions import Fraction
 from pathlib import Path
 
-import av
 import numpy as np
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QColor, QImage, QPainter
+from PySide6.QtPdf import QPdfDocument
+from shiboken6 import delete
 
 from .project import Clip, file_hash
 
-RATE = 24000
+RATE = 48000
 
 
 def import_clip(project, source, task, placement="before"):
+    import av
     directory = project.asset("media")
     directory.mkdir(exist_ok=True)
     temporary = directory / (uuid.uuid4().hex + ".tmp.wav")
@@ -26,8 +28,8 @@ def import_clip(project, source, task, placement="before"):
         with av.open(str(source)) as container, wave.open(str(temporary), "wb") as output:
             if not container.streams.audio:
                 raise ValueError("The selected file has no audio track.")
-            output.setparams((1, 2, RATE, 0, "NONE", "not compressed"))
-            resampler = av.AudioResampler(format="s16", layout="mono", rate=RATE)
+            output.setparams((2, 2, RATE, 0, "NONE", "not compressed"))
+            resampler = av.AudioResampler(format="s16", layout="stereo", rate=RATE)
             frames = 0
             for frame in container.decode(audio=0):
                 task.check()
@@ -48,43 +50,103 @@ def import_clip(project, source, task, placement="before"):
 
 
 class AudioFile:
-    """Read short frame ranges, keeping long talks and background tracks on disk."""
+    """One open asset; reads use absolute 48 kHz stereo frame coordinates."""
     def __init__(self, path, *, frames=None, offset=None, gain=1.0, loop=False):
-        self.path = Path(path)
-        self.gain = gain
-        self.loop = loop
+        self.path, self.gain, self.loop = Path(path), gain, loop
+        self.stream = self.path.open("rb")
         if offset is None:
-            with self.path.open("rb") as stream, wave.open(stream, "rb") as wav:
-                if (wav.getnchannels(), wav.getsampwidth(), wav.getframerate()) != (1, 2, RATE):
-                    raise ValueError("Playback needs normalized 24 kHz mono PCM audio.")
-                self.frames = wav.getnframes()
-                self.offset = stream.tell()
+            with wave.open(self.stream, "rb") as wav:
+                self.source_rate, self.channels = wav.getframerate(), wav.getnchannels()
+                if wav.getsampwidth() != 2 or self.channels not in (1, 2):
+                    raise ValueError("Audio assets must be mono or stereo PCM16 WAV.")
+                self.source_frames, self.offset = wav.getnframes(), self.stream.tell()
         else:
-            self.frames, self.offset = frames, offset
+            self.source_frames, self.offset, self.source_rate, self.channels = frames, offset, 24000, 1
+        self.frames = round(self.source_frames * RATE / self.source_rate)
+
+    def __del__(self):
+        if hasattr(self, "stream"):
+            self.stream.close()
 
     def read(self, start, count):
         if count <= 0 or self.frames <= 0:
-            return np.empty(0, dtype=np.int16)
+            return np.empty((0, 2), dtype=np.int16)
         parts = []
-        with self.path.open("rb") as stream:
-            while count > 0:
-                if start >= self.frames:
-                    if not self.loop:
-                        break
-                    start %= self.frames
-                take = min(count, self.frames - start)
-                stream.seek(self.offset + start * 2)
-                raw = stream.read(take * 2)
-                samples = np.frombuffer(raw, dtype="<i2").copy()
-                if not samples.size:
+        while count > 0:
+            if start >= self.frames:
+                if not self.loop:
                     break
-                parts.append(samples)
-                count -= samples.size
-                start += samples.size
+                start %= self.frames
+            take = min(count, self.frames-start)
+            positions = np.arange(start, start+take) * self.source_rate / RATE
+            first, last = int(positions[0]), min(self.source_frames, int(positions[-1])+2)
+            self.stream.seek(self.offset + first*self.channels*2)
+            raw = np.frombuffer(self.stream.read((last-first)*self.channels*2), dtype="<i2").reshape(-1, self.channels)
+            if not len(raw):
+                break
+            # Absolute positions plus a lookahead sample preserve interpolation
+            # across read boundaries and seeks (no per-chunk resampler reset).
+            samples = np.column_stack([np.interp(positions-first, np.arange(len(raw)), raw[:, c]) for c in range(self.channels)])
+            if self.channels == 1:
+                samples = np.repeat(samples, 2, axis=1)
+            parts.append(samples)
+            start += take
+            count -= take
         if not parts:
-            return np.empty(0, dtype=np.int16)
-        result = np.concatenate(parts)
-        return np.clip(result.astype(np.float32) * self.gain, -32768, 32767).astype("<i2")
+            return np.empty((0, 2), dtype=np.int16)
+        return np.clip(np.concatenate(parts)*self.gain, -32768, 32767).astype("<i2")
+
+
+class Mix:
+    """The shared prepared/live timeline used by playback and offline export."""
+    def __init__(self, project):
+        self.project = project
+        self.parts = [[] for _ in project.slides]
+        self.complete = [False for _ in project.slides]
+        self.background = None
+        self.update()
+
+    def update(self, index=None, event=None):
+        p = self.project
+        if index is None:
+            self.background = AudioFile(p.asset(p.background.file), gain=p.background.gain, loop=p.background.loop) if p.background else None
+        for i in range(len(p.slides)) if index is None else [index]:
+            slide = p.slides[i]
+            current = slide.narration_context == p.context_key()
+            ready = current and p.ready(slide)
+            parts = [AudioFile(p.asset(c.file), gain=c.gain) for c in slide.clips if c.placement == "before"]
+            if ready:
+                parts.append(AudioFile(p.audio(slide)))
+            elif event and current and event["key"] == p.speech_key(slide):
+                parts.append(AudioFile(event["path"], frames=event["frames"], offset=event["offset"]))
+            if ready:
+                parts.extend(AudioFile(p.asset(c.file), gain=c.gain) for c in slide.clips if c.placement == "after")
+            self.parts[i], self.complete[i] = parts, ready
+
+    def frames(self, index):
+        return sum(part.frames for part in self.parts[index])
+
+    def read(self, index, start, count):
+        values, offset = [], start
+        for part in self.parts[index]:
+            if offset >= part.frames:
+                offset -= part.frames
+                continue
+            samples = part.read(offset, count)
+            values.append(samples)
+            count -= len(samples)
+            offset = 0
+            if not count:
+                break
+        result = np.concatenate(values) if values else np.empty((0, 2), dtype=np.int16)
+        if self.background and len(result):
+            prior = sum(self.frames(i) for i in range(index))
+            extra = self.background.read(prior + start, len(result))
+            if len(extra):
+                mixed = result.astype(np.int32)
+                mixed[:len(extra)] += extra.astype(np.int32)
+                result = np.clip(mixed, -32768, 32767).astype("<i2")
+        return result
 
 
 class Capture:
@@ -103,12 +165,12 @@ class Capture:
         self.audio = (self.root / "audio.pcm").open("wb")
         self.journal = (self.root / "events.jsonl").open("w", encoding="utf-8")
         (self.root / "session.json").write_text(json.dumps({
+            "version": 2, "channels": 2, "format": "s16le", "status": "recording",
             "destination": self.destination, "policy": self.policy, "rate": RATE,
             "slides": len(project.slides), "export_rate": project.export_rate,
             "export_bitrate": project.export_bitrate}, indent=2), encoding="utf-8")
         # Recording remains exportable after the talk is moved or edited.
-        for slide in project.slides:
-            shutil.copy2(project.image(slide), self.root / f"{slide.page:04d}.png")
+        shutil.copy2(project.asset("slides.pdf"), self.root / "slides.pdf")
 
     def append(self, samples, slide):
         if self.audio.closed or not len(samples):
@@ -117,7 +179,10 @@ class Capture:
             self.journal.write(json.dumps({"frame": self.frames, "slide": slide}) + "\n")
             self.journal.flush()
             self.last_slide = slide
-        self.audio.write(np.asarray(samples, dtype="<i2").tobytes())
+        samples = np.asarray(samples, dtype="<i2")
+        if samples.ndim == 1:
+            samples = np.repeat(samples[:, None], 2, axis=1)
+        self.audio.write(samples.tobytes())
         self.audio.flush()
         self.frames += len(samples)
 
@@ -129,14 +194,20 @@ class Capture:
         if not self.audio.closed:
             self.audio.close()
             self.journal.close()
+            info = json.loads((self.root / "session.json").read_text())
+            info["status"] = "pending"
+            (self.root / "session.json").write_text(json.dumps(info, indent=2))
         return self.root
 
 
 def export_recording(root, task, destination=None):
     """Render only committed PCM; interrupted recording/export can be retried."""
+    import av
     root = Path(root)
     info = json.loads((root / "session.json").read_text(encoding="utf-8"))
     destination = Path(destination or info["destination"])
+    info.update(destination=str(destination.resolve()), status="pending")
+    (root / "session.json").write_text(json.dumps(info, indent=2))
     events = []
     lines = (root / "events.jsonl").read_text(encoding="utf-8").splitlines()
     for i, line in enumerate(lines):
@@ -145,31 +216,46 @@ def export_recording(root, task, destination=None):
         except json.JSONDecodeError:
             if i != len(lines)-1:
                 raise ValueError("The recording journal is damaged.")
-    samples = (root / "audio.pcm").stat().st_size // 2
+    channels, rate = info.get("channels", 1), info.get("rate", 24000)
+    layout = "stereo" if channels == 2 else "mono"
+    samples = (root / "audio.pcm").stat().st_size // (2*channels)
     if not samples or not events:
         raise ValueError("This session contains no recorded presentation.")
     destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary = destination.with_name(destination.stem + ".partial.mp4")
-    frames = math.ceil(samples / RATE * 30)
+    if destination.suffix.lower() not in (".mp4", ".wav", ".m4a"):
+        raise ValueError("Choose MP4 video, WAV audio, or M4A audio.")
+    stage = "Export video" if destination.suffix.lower() == ".mp4" else "Export audio"
+    temporary = destination.with_name(destination.stem + ".partial" + destination.suffix)
+    frames = math.ceil(samples / rate * 30)
+    document = QPdfDocument()
     container = None
     try:
-        container = av.open(str(temporary), "w", format="mp4")
-        video = container.add_stream("libx264", rate=30)
-        video.width, video.height, video.pix_fmt = 1920, 1080, "yuv420p"
-        video.options = {"preset": "veryfast", "crf": "20"}
-        audio = container.add_stream("aac", rate=info.get("export_rate", RATE))
-        audio.layout = "mono"
+        if (root / "slides.pdf").exists() and document.load(str(root / "slides.pdf")) != QPdfDocument.Error.None_:
+            raise ValueError("The recorded source PDF cannot be opened.")
+        container = av.open(str(temporary), "w", format="wav" if destination.suffix.lower() == ".wav" else "mp4")
+        video = None
+        if destination.suffix.lower() == ".mp4":
+            video = container.add_stream("libx264", rate=30)
+            video.width, video.height, video.pix_fmt = 1920, 1080, "yuv420p"
+            video.options = {"preset": "veryfast", "crf": "20"}
+        audio = container.add_stream("pcm_s16le" if destination.suffix.lower() == ".wav" else "aac", rate=info.get("export_rate", RATE))
+        audio.layout = layout
         audio.bit_rate = info.get("export_bitrate", 128000)
         event_index, picture, last_page, audio_position = 0, None, None, 0
         with (root / "audio.pcm").open("rb") as source:
             for i in range(frames):
                 task.check()
-                at = i * RATE // 30
+                at = i * rate // 30
                 while event_index + 1 < len(events) and events[event_index + 1]["frame"] <= at:
                     event_index += 1
                 page = events[event_index]["slide"]
-                if page != last_page:
-                    image = QImage(str(root / f"{page:04d}.png"))
+                if video and page != last_page:
+                    size = document.pagePointSize(page-1)
+                    if not size.isEmpty():
+                        scale = min(1920/size.width(), 1080/size.height())
+                        image = document.render(page-1, QSize(round(size.width()*scale), round(size.height()*scale)))
+                    else:
+                        image = QImage(str(root / f"{page:04d}.png"))
                     if image.isNull():
                         raise ValueError(f"Recorded slide {page} is missing.")
                     canvas = QImage(1920, 1080, QImage.Format.Format_RGB888)
@@ -181,32 +267,55 @@ def export_recording(root, task, destination=None):
                     painter.end()
                     picture = np.frombuffer(canvas.bits(), dtype=np.uint8).reshape(1080, canvas.bytesPerLine())[:, :1920*3].reshape(1080, 1920, 3).copy()
                     last_page = page
-                frame = av.VideoFrame.from_ndarray(picture, format="rgb24")
-                frame.pts, frame.time_base = i, Fraction(1, 30)
-                for packet in video.encode(frame):
-                    container.mux(packet)
+                if video:
+                    frame = av.VideoFrame.from_ndarray(picture, format="rgb24")
+                    frame.pts, frame.time_base = i, Fraction(1, 30)
+                    for packet in video.encode(frame):
+                        container.mux(packet)
                 # Interleave audio and video to keep muxing bounded for long talks.
-                target = min(samples, (i + 1) * RATE // 30)
+                target = min(samples, (i + 1) * rate // 30)
                 if target > audio_position:
-                    raw = source.read((target-audio_position)*2)
+                    raw = source.read((target-audio_position)*2*channels)
                     pcm = np.frombuffer(raw, dtype="<i2").reshape(1, -1)
-                    aframe = av.AudioFrame.from_ndarray(pcm, format="s16", layout="mono")
-                    aframe.sample_rate = RATE
-                    aframe.pts, aframe.time_base = audio_position, Fraction(1, RATE)
+                    aframe = av.AudioFrame.from_ndarray(pcm, format="s16", layout=layout)
+                    aframe.sample_rate = rate
+                    aframe.pts, aframe.time_base = audio_position, Fraction(1, rate)
                     for packet in audio.encode(aframe):
                         container.mux(packet)
                     audio_position = target
                 if i % 30 == 0:
-                    task.event({"type": "progress", "stage": "Export video", "completed": i, "total": frames})
-            for stream in (video, audio):
+                    task.event({"type": "progress", "stage": stage, "completed": i, "total": frames})
+            for stream in ([video] if video else []) + [audio]:
                 for packet in stream.encode():
                     container.mux(packet)
         container.close()
         container = None
         temporary.replace(destination)
-        task.event({"type": "progress", "stage": "Export video", "completed": frames, "total": frames})
+        info.update(status="exported", output=str(destination.resolve()))
+        (root / "session.json").write_text(json.dumps(info, indent=2))
+        task.event({"type": "progress", "stage": stage, "completed": frames, "total": frames})
         return destination
     finally:
+        delete(document)
         if container:
             container.close()
         temporary.unlink(missing_ok=True)
+
+
+def export_prepared(project, task, destination):
+    if not project.prepared:
+        raise ValueError("Accept the current script and generate all audio before exporting.")
+    mix = Mix(project)
+    capture = Capture(project)
+    try:
+        for index in range(len(project.slides)):
+            for start in range(0, mix.frames(index), RATE):
+                task.check()
+                capture.append(mix.read(index, start, min(RATE, mix.frames(index)-start)), index+1)
+            task.event({"type": "progress", "stage": "Mix audio", "completed": index+1, "total": len(project.slides)})
+    except BaseException:
+        capture.close()
+        shutil.rmtree(capture.root)
+        raise
+    root = capture.close()
+    return export_recording(root, task, destination)

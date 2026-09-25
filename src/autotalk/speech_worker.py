@@ -267,7 +267,9 @@ def main():
             emit({"type": "measurement", "stage": "Model load", "seconds": time.monotonic()-started})
             emit({"type": "ready"})
             for line in sys.stdin:
-                generate_items(backend, json.loads(line), config)
+                request = json.loads(line)
+                backend.config = {**config, **{k: request[k] for k in ("speaker", "sampling") if k in request}}
+                generate_items(backend, request, backend.config)
     except Exception as error:
         import traceback
         traceback.print_exc(file=sys.stderr)

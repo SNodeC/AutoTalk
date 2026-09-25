@@ -12,7 +12,7 @@ import wave
 from functools import partial
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QMicrophonePermission, QThread, QTimer, QUrl, Signal
+from PySide6.QtCore import QSettings, Qt, QMicrophonePermission, QThread, QTimer, QUrl, Signal
 from PySide6.QtGui import QAction, QDesktopServices, QFont, QKeySequence, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QSplitter,
+    QScrollArea,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -41,47 +42,18 @@ from .codex import Codex
 from .playback import Playback, Presentation
 from .project import LANGUAGES, SPEAKERS, Project, Voice, wav_duration
 from .recording import Recorder
-from .runtime import Cancelled, Task, child_env, data_dir, ensure_codex, ensure_speech
+from .runtime import SpeechSession, Cancelled, Task, child_env, data_dir
 from .services import extract_scope, import_pdf, narrate, prepare, preview_text, synthesize, workflow
 from .options import SettingsPanel
-from .media import export_recording, import_clip
+from .media import RATE, export_prepared, export_recording, import_clip
 from .voices import library, load_voice, save_voice
-
-STYLE = """
-QWidget { background: #101722; color: #e7edf5; font-size: 14px; }
-QToolBar { background: #172231; border: none; padding: 8px; spacing: 12px; }
-QToolButton { padding: 8px 12px; border-radius: 5px; }
-QToolButton:hover { background: #2b3d52; }
-QPushButton { background: #26384d; border: 1px solid #38516b; padding: 9px 15px; border-radius: 6px; }
-QPushButton:hover { background: #344b65; }
-QPushButton:disabled, QToolButton:disabled { color: #748397; background: #1b2634; }
-QPushButton[primary="true"] { background: #ed9a4c; border-color: #ed9a4c; color: #101722; font-weight: 600; }
-QPushButton[primary="true"]:disabled { background: #715033; color: #baa18a; }
-QLineEdit, QPlainTextEdit, QDoubleSpinBox, QComboBox { background: #172231; border: 1px solid #34465c; border-radius: 5px; padding: 7px; selection-background-color: #466889; }
-QListWidget { background: #131e2c; border: 1px solid #2b3b50; border-radius: 6px; padding: 6px; }
-QListWidget::item { padding: 12px 8px; border-radius: 4px; }
-QListWidget::item:selected { background: #31465e; color: #fff; }
-QTabWidget::pane { border: 1px solid #2b3b50; border-radius: 6px; }
-QTabBar::tab { background: #172231; padding: 12px 20px; margin-right: 3px; }
-QTabBar::tab:selected { background: #30455f; }
-QProgressBar { background: #172231; border: 0; border-radius: 3px; min-height: 6px; }
-QProgressBar::chunk { background: #ed9a4c; }
-QProgressBar#slideProgress { min-height: 24px; max-height: 24px; text-align: center; }
-QProgressBar#slideProgress::chunk { background: #38516b; }
-QLabel#muted { color: #a7b5c6; }
-QLabel#brand { font-size: 30px; font-weight: 700; }
-QLabel#talkTitle { font-size: 19px; }
-QLabel#duration { font-size: 23px; }
-QLabel#voiceName { font-size: 19px; }
-QStatusBar { background: #172231; }
-QScrollArea { border: none; background: transparent; }
-QMessageBox { background: #172231; }
-"""
-
 
 def button(text, function, primary=False):
     widget = QPushButton(text)
-    widget.setProperty("primary", primary)
+    if primary:
+        font = widget.font()
+        font.setBold(True)
+        widget.setFont(font)
     widget.clicked.connect(lambda: function())
     return widget
 
@@ -89,7 +61,6 @@ def button(text, function, primary=False):
 def description(text):
     label = QLabel(text)
     label.setWordWrap(True)
-    label.setObjectName("muted")
     return label
 
 
@@ -109,16 +80,20 @@ class Job(QThread):
     def __init__(self, function, parent):
         super().__init__(parent)
         self.function = function
+        self.outcome = "running"
         self.task = Task(self.message.emit, self.url.emit, self.detail.emit, self.event.emit)
 
     def run(self):
         try:
             result = self.function(self.task)
             self.task.check()
+            self.outcome = "completed"
             self.succeeded.emit(result)
         except Cancelled as error:
+            self.outcome = "cancelled"
             self.message.emit(str(error))
         except Exception as error:  # noqa: BLE001 - report any worker failure at the UI boundary
+            self.outcome = "failed"
             self.failed.emit(str(error))
 
 
@@ -127,7 +102,6 @@ class SlideImage(QLabel):
         super().__init__("Open a PDF slide deck to begin")
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setMinimumSize(320, 210)
-        self.setStyleSheet("background: #090e16; border-radius: 8px; color: #91a4ba;")
         self.original = QPixmap()
 
     def show_file(self, path):
@@ -148,6 +122,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.project = None
+        self.preferences = QSettings()
+        self.speech = SpeechSession(Task(), {})
         self.job = None
         self.job_live = False
         self.job_started = 0
@@ -159,8 +135,8 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(940, 680)
         self.transport = Playback(self, producer_active=lambda: bool(self.job and self.job_live))
         self.transport.slide_changed.connect(self.show_slide)
-        self.transport.changed.connect(self.update_timing)
-        self.transport.state_changed.connect(self.refresh)
+        # Audio feeds independently; human-readable timing updates at 4 Hz.
+        self.transport.state_changed.connect(self.playback_state_changed)
         self.transport.failed.connect(self.error)
         self.transport.finished.connect(lambda: self.log_message("Presentation finished."))
         self.model_catalog = []
@@ -174,9 +150,12 @@ class MainWindow(QMainWindow):
         self.record_timer.setSingleShot(True)
         self.record_timer.timeout.connect(self.toggle_recording)
         self.elapsed_timer = QTimer(self)
-        self.elapsed_timer.setInterval(1000)
+        self.elapsed_timer.setInterval(250)
         self.elapsed_timer.timeout.connect(self.update_timing)
         self._build()
+        self.retention_changed()
+        self.refresh_recordings()
+        self.elapsed_timer.start()
         self.refresh()
 
     def _build(self):
@@ -188,7 +167,7 @@ class MainWindow(QMainWindow):
             ("Open talk", self.open_project, "Ctrl+O"),
             ("Save", self.save, "Ctrl+S"),
             ("Connect ChatGPT", self.connect_chatgpt, ""),
-            ("Prepare runtime", self.setup_runtime, ""),
+            ("Release GPU", self.release_gpu, ""),
             ("Export recorded session", self.recover_recording, "")]:
             action = QAction(title, self)
             action.triggered.connect(lambda checked=False, f=handler: f())
@@ -203,16 +182,14 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(24, 20, 24, 14)
         header = QHBoxLayout()
         brand = QLabel("AutoTalk")
-        brand.setObjectName("brand")
-        brand.setFont(QFont("sans-serif", 27, QFont.Weight.Bold))
+        brand.setFont(QFont(brand.font().family(), 23, QFont.Weight.Bold))
         header.addWidget(brand)
         header.addWidget(description("Your slides. Your voice. A talk that fits."), 1)
         self.connection = description("ChatGPT subscription • Local speech")
         header.addWidget(self.connection)
         layout.addLayout(header)
         self.title_label = QLabel("Create a presentation from an existing PDF")
-        self.title_label.setObjectName("talkTitle")
-        self.title_label.setFont(QFont("sans-serif", 16))
+        self.title_label.setFont(QFont(self.title_label.font().family(), 14))
         layout.addWidget(self.title_label)
         mode_row = QHBoxLayout()
         self.mode = QComboBox()
@@ -228,15 +205,22 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs, 1)
         self._details_tab()
-        self._narration_tab()
         self._voice_tab()
-        self._presentation_tab()
         self.options = SettingsPanel()
         self.options.changed.connect(self.configuration_changed)
-        self.tabs.addTab(self.options, "5  Delivery & recording")
+        mode_row.insertWidget(2, self.options.record)
+        self.setup_page.layout().addWidget(self.options)
+        self._narration_tab()
+        self._presentation_tab()
+        for page, title in ((self.setup_page, "Setup"), (self.script_page, "Script"), (self.present_page, "Present & Export")):
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setWidget(page)
+            self.tabs.addTab(scroll, title.replace("&", "&&"))
 
+        self.narration_progress = QProgressBar()
+        layout.addWidget(self.narration_progress)
         self.slide_progress = QProgressBar()
-        self.slide_progress.setObjectName("slideProgress")
         self.slide_progress.setRange(0, 1)
         self.slide_progress.setFormat("Slide progress")
         layout.addWidget(self.slide_progress)
@@ -261,7 +245,7 @@ class MainWindow(QMainWindow):
         self.log.setPlaceholderText("Preparation progress appears here.")
         self.log.hide()
         layout.addWidget(self.log)
-        self.statusBar().showMessage("AutoTalk 0.2 • " + platform.system())
+        self.statusBar().showMessage("AutoTalk 0.3 • " + platform.system())
 
     def _details_tab(self):
         page = QWidget()
@@ -316,18 +300,19 @@ class MainWindow(QMainWindow):
         box.addWidget(QLabel("Conference scope — enter directly or edit the website summary"))
         self.scope = QPlainTextEdit()
         self.scope.setPlaceholderText("Conference themes, relevant tracks, typical topics, and the edition/year…")
-        box.addWidget(self.scope, 1)
+        self.scope.setFixedHeight(110)
+        box.addWidget(self.scope)
         self.sources = description("")
         self.sources.setOpenExternalLinks(True)
         box.addWidget(self.sources)
         box.addWidget(description("Generation sends slide images, text and conference context to Codex using your ChatGPT allowance. Voice recordings remain local."))
-        box.addWidget(button("Create narration", self.create_narration, True))
-        self.tabs.addTab(page, "1  Talk details")
+
+        self.setup_page = page
         for widget in (self.talk_title, self.audience, self.objective, self.url):
             widget.textChanged.connect(self.details_changed)
         for widget in (self.minutes, self.tolerance, self.pause):
             widget.valueChanged.connect(self.details_changed)
-        self.language.currentTextChanged.connect(self.details_changed)
+        self.language.currentTextChanged.connect(self.language_selected)
         self.scope.textChanged.connect(self.details_changed)
 
     def _narration_tab(self):
@@ -390,9 +375,9 @@ class MainWindow(QMainWindow):
         controls = QHBoxLayout()
         controls.addWidget(button("Regenerate narration", self.create_narration))
         controls.addStretch()
-        controls.addWidget(button("Generate speech", self.generate_speech, True))
+        controls.addWidget(button("Accept script for current context", self.accept_script))
         box.addLayout(controls)
-        self.tabs.addTab(page, "2  Review narration")
+        self.script_page = page
 
     def _voice_tab(self):
         page = QWidget()
@@ -425,8 +410,7 @@ class MainWindow(QMainWindow):
         library_row.addWidget(button("Save reusable voice", self.save_personal_voice))
         box.addLayout(library_row)
         self.voice_label = QLabel("Built-in voice: Ryan")
-        self.voice_label.setObjectName("voiceName")
-        self.voice_label.setFont(QFont("sans-serif", 17))
+        self.voice_label.setFont(QFont(self.voice_label.font().family(), 14))
         box.addWidget(self.voice_label)
         row = QHBoxLayout()
         row.addWidget(button("Use built-in voice", self.default_voice))
@@ -439,31 +423,39 @@ class MainWindow(QMainWindow):
         self.transcript = QPlainTextEdit()
         self.transcript.setPlaceholderText("Enter what you said in the recording. If empty, Qwen uses speaker identity alone.")
         self.transcript.textChanged.connect(self.voice_changed)
-        box.addWidget(self.transcript, 1)
+        self.transcript.setFixedHeight(85)
+        box.addWidget(self.transcript)
         box.addWidget(description("Speech is synthesized on your local GPU. Designed voices are saved as a reference before the talk to keep one identity. The first use downloads the selected model and its runtime. Presentations should disclose that the narration is AI-generated."))
         row = QHBoxLayout()
         row.addWidget(button("Preview voice", self.preview_voice, True))
         row.addWidget(button("Stop preview", self.transport.stop))
+        row.addWidget(button("Accept designed voice", self.accept_designed_voice))
         row.addStretch()
         box.addLayout(row)
-        self.tabs.addTab(page, "3  Voice")
+        retention = QHBoxLayout()
+        retention.addWidget(QLabel("Keep speech model loaded"))
+        self.gpu_retention = QComboBox()
+        for label, value in (("Until exit", "session"), ("Five idle minutes", "idle"), ("During each operation", "operation")):
+            self.gpu_retention.addItem(label, value)
+        self.gpu_retention.setCurrentIndex(max(0, self.gpu_retention.findData(self.preferences.value("gpu_retention", "session"))))
+        self.gpu_retention.currentIndexChanged.connect(self.retention_changed)
+        retention.addWidget(self.gpu_retention)
+        box.addLayout(retention)
+        self.setup_page.layout().addWidget(page)
 
     def _presentation_tab(self):
         page = QWidget()
         box = QVBoxLayout(page)
         box.setContentsMargins(22, 22, 22, 22)
         self.duration_label = QLabel("Prepare speech to measure the talk")
-        self.duration_label.setObjectName("duration")
-        self.duration_label.setFont(QFont("sans-serif", 22))
+        self.duration_label.setFont(QFont(self.duration_label.font().family(), 17))
         box.addWidget(self.duration_label)
         self.fit_label = description("")
         box.addWidget(self.fit_label)
         self.play_image = SlideImage()
         box.addWidget(self.play_image, 1)
         row = QHBoxLayout()
-        self.prepare_button = button("Generate / update audio", self.generate_speech)
         self.fit_button = button("Fit narration to duration", self.fit_duration)
-        row.addWidget(self.prepare_button)
         row.addWidget(self.fit_button)
         row.addStretch()
         box.addLayout(row)
@@ -496,7 +488,7 @@ class MainWindow(QMainWindow):
         self.present_button = button("Present fullscreen", self.present, True)
         self.continue_button = button("Continue presentation", self.continue_presentation)
         self.restart_button = button("Restart from beginning", self.restart_presentation)
-        for widget in (self.previous_button, self.play_button, self.next_button, button("Stop", self.stop_presentation)):
+        for widget in (self.previous_button, self.play_button, self.next_button, button("Stop and edit", self.stop_presentation)):
             row.addWidget(widget)
         box.addLayout(row)
         row = QHBoxLayout()
@@ -505,8 +497,22 @@ class MainWindow(QMainWindow):
         box.addLayout(row)
         self.play_time = description("Elapsed 0:00 • Remaining 0:00")
         box.addWidget(self.play_time)
-        box.addWidget(description("Fullscreen controls: Space pauses/resumes • Arrow keys change slides • Esc pauses and returns to the editor; Continue preserves your position. Playback uses saved audio and works offline."))
-        self.tabs.addTab(page, "4  Present")
+        box.addWidget(description("Space: pause/resume • Arrows: slides • Esc: return, then Continue. Stop and edit unlocks authoring. Prepared audio plays offline; Realtime writing needs a connection."))
+        box.insertWidget(2, self.options.recording_widget)
+        self.recordings = QComboBox()
+        box.addWidget(self.recordings)
+        exports = QHBoxLayout()
+        self.export_button = button("Export prepared talk…", self.export_talk, True)
+        exports.addWidget(self.export_button)
+        exports.addWidget(button("Recover recording…", self.recover_recording))
+        self.output_button = button("Open saved file", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.output_path)))
+        self.folder_button = button("Open folder", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(Path(self.output_path).parent))))
+        self.output_button.setEnabled(False)
+        self.folder_button.setEnabled(False)
+        exports.addWidget(self.output_button)
+        exports.addWidget(self.folder_button)
+        box.insertLayout(2, exports)
+        self.present_page = page
 
     def error(self, message):
         self.log_message(message)
@@ -528,10 +534,11 @@ class MainWindow(QMainWindow):
         self.log_message(title)
         self.tabs.setEnabled(live)
         for i in range(self.tabs.count()):
-            self.tabs.setTabEnabled(i, not live or i == 3)
-        self.mode.setEnabled(False)
-        self.start_button.setEnabled(False)
-        self.measurements = {}
+            self.tabs.setTabEnabled(i, not live or i == 2)
+        for widget in (self.mode, self.start_button, self.options.record, self.options.recording_widget):
+            widget.setEnabled(False)
+        if not title.startswith(("Saving", "Export")):
+            self.measurements = {}
         self.slide_progress.setRange(0, len(self.project.slides) if self.project else 1)
         self.slide_progress.setValue(0)
         for action in self.actions:
@@ -544,18 +551,29 @@ class MainWindow(QMainWindow):
         self.cancel_button.setEnabled(True)
         self.job_live = live
         self.job = Job(function, self)
+        self.job.title = title
+        self.job.task.speech = self.speech
         self.job.message.connect(self.log_message)
         self.job.detail.connect(self.log.appendPlainText)
         self.job.url.connect(lambda url: QDesktopServices.openUrl(QUrl(url)))
         self.job.failed.connect(self.job_error)
-        self.job.event.connect(self.job_event)
+        self.job.event.connect(lambda value, job=self.job: self.job_event(value) if self.job is job else None)
         if callback:
             self.job.succeeded.connect(callback)
         self.job.finished.connect(self.job_finished)
         self.job.start()
 
     def job_finished(self):
-        self.elapsed_timer.stop()
+        if self.project:
+            try:
+                directory = self.project.asset("runs")
+                directory.mkdir(exist_ok=True)
+                (directory / f"{time.time_ns()}.json").write_text(json.dumps({
+                    "operation": self.job.title, "outcome": self.job.outcome,
+                    "elapsed": time.monotonic()-self.job_started,
+                    "measurements": self.measurements}, indent=2))
+            except OSError as error:
+                self.log_message(f"Could not save timing summary: {error}")
         self.job.deleteLater()
         self.job = None
         self.job_live = False
@@ -566,7 +584,10 @@ class MainWindow(QMainWindow):
         self.refresh()
         if self.project:
             self.show_slide(self.transport.index)
-        if self.close_requested:
+        self.refresh_recordings()
+        if self.close_requested == "saving" and self.pending_exports:
+            self.export_next()
+        elif self.close_requested:
             self.close()
         elif self.after_job:
             callback, self.after_job = self.after_job, None
@@ -625,6 +646,10 @@ class MainWindow(QMainWindow):
         self.transport.load(project)
         self.refresh()
         self.log_message(f"Talk loaded: {project.title}")
+        recent = self.preferences.value("recent_projects", [])
+        recent = recent if isinstance(recent, list) else [recent]
+        self.preferences.setValue("recent_projects", [str(project.root)] + [v for v in recent if v != str(project.root)][:9])
+        self.refresh_recordings()
 
     def new_project(self):
         if not self.save():
@@ -641,7 +666,12 @@ class MainWindow(QMainWindow):
         while destination.exists():
             destination = base.with_name(f"{base.name}-{index}")
             index += 1
-        self.start_job("Importing PDF…", lambda task: import_pdf(Path(pdf), destination, task), self.adopt)
+        def imported(project):
+            project.quick_timing = self.preferences.value("quick_timing", "once")
+            project.speech_priority = self.preferences.value("speech_priority", "consistency")
+            project.buffer_seconds = 2 if project.speech_priority == "earliest" else 5
+            self.adopt(project)
+        self.start_job("Importing PDF…", lambda task: import_pdf(Path(pdf), destination, task), imported)
 
     def open_project(self, path=None):
         if not self.save():
@@ -658,10 +688,11 @@ class MainWindow(QMainWindow):
         p = self.project
         p.title, p.scope = self.talk_title.text(), self.scope.toPlainText()
         p.target_minutes, p.tolerance_seconds = self.minutes.value(), self.tolerance.value()
-        p.pause_seconds, p.language = self.pause.value(), self.language.currentText()
+        p.pause_seconds = self.pause.value()
         p.audience, p.objective = self.audience.text(), self.objective.text()
         p.conference_url = self.url.text().strip()
         self.options.load(p)
+        self.transport.refresh_audio()
         self.refresh()
 
     def narration_changed(self):
@@ -704,23 +735,35 @@ class MainWindow(QMainWindow):
         self.tabs.setEnabled(p is not None and (self.job is None or live))
         editable = self.job is None and not self.transport.active and self.presentation is None
         for i in range(self.tabs.count()):
-            self.tabs.setTabEnabled(i, i == 3 or editable)
+            self.tabs.setTabEnabled(i, i == 2 or editable)
         self.mode.setEnabled(editable)
-        self.start_button.setEnabled(p is not None and editable)
+        self.options.record.setEnabled(p is not None and editable)
+        self.options.recording_widget.setEnabled(editable)
+        resumable = bool(p and p.mode == "Realtime" and not p.prepared and self.transport.state == "paused" and self.presentation is None and not self.job)
+        self.start_button.setEnabled(p is not None and (editable or resumable))
         for action in self.actions:
             action.setEnabled(editable)
         if not p:
             return
         self.title_label.setText(p.title or "Untitled talk")
         self.voice_label.setText(f"Qwen3-TTS 1.7B {p.effective_voice.source} • {p.effective_voice.name}")
-        self.tabs.setTabEnabled(2, editable and p.mode != "Quick")
+        self.speaker.parentWidget().setVisible(p.mode != "Quick")
         self.codex_model.setEnabled(p.mode != "Quick")
         self.codex_effort.setEnabled(p.mode != "Quick")
         self.voice_source.setEnabled(p.mode != "Quick")
         self.speaker.setEnabled(p.voice.source == "CustomVoice" and p.mode != "Quick")
         self.voice_description.setEnabled(p.voice.source == "VoiceDesign" and p.mode != "Quick")
         self.slide_directions.setEnabled(p.voice.source != "Base" and p.mode != "Quick")
-        self.start_button.setText("Prepare talk" if p.mode == "Prepared" else "Start " + p.mode)
+        label = "Start " + p.mode
+        if p.mode == "Prepared":
+            label = "Create script" if not any(s.passages for s in p.slides) else "Review script" if not p.script_current else "Generate audio" if not p.prepared else "Start presentation"
+        elif any(s.passages for s in p.slides) and not p.prepared:
+            label = "Resume " + p.mode
+        if resumable:
+            label = "Resume preparation"
+        if p.manual_review_required:
+            label = "Review script"
+        self.start_button.setText(label)
         for widget in (self.url, self.scope, self.audience, self.objective, self.conference_button):
             widget.setEnabled(p.mode != "Quick")
         self.audio_test_button.setEnabled(editable)
@@ -731,14 +774,18 @@ class MainWindow(QMainWindow):
         self.transcript.setEnabled(bool(p.voice_file))
         self.sources.setText("Sources: " + " · ".join(
             f'<a href="{html.escape(url, quote=True)}">{html.escape(url)}</a>' for url in p.sources) if p.sources else "")
+        context = p.context_key()
+        self.narration_progress.setRange(0, len(p.slides))
+        self.narration_progress.setValue(sum(bool(s.passages) and s.narration_context == context for s in p.slides))
+        self.narration_progress.setFormat("Accepted script: %v / %m")
         ready = sum(p.ready(s) for s in p.slides)
         self.duration_label.setText(f"{clock(p.total_seconds)} prepared  /  {clock(p.target_minutes*60)} target")
         self.fit_label.setText(f"{ready}/{len(p.slides)} slides have current audio. " +
             ("Within requested tolerance." if p.within_target else
              f"Difference: {p.total_seconds-p.target_minutes*60:+.1f} seconds (tolerance ±{p.tolerance_seconds:g}s)." if p.prepared
-             else "Generate audio to measure the complete talk."))
+             else "Review and accept the script." if not p.script_current else "Generate audio to measure the complete talk."))
         self.context_warning.setText("Conference context or timing has changed since narration generation. Review or regenerate the script."
-            if p.narration_context and p.narration_context != p.context_key() else "Review each slide's narration before generating speech.")
+            if not p.script_current else "Script accepted for the current context.")
         for i, slide in enumerate(p.slides):
             item = self.slide_list.item(i)
             if item:
@@ -757,18 +804,26 @@ class MainWindow(QMainWindow):
             self.slide_progress.setRange(0, len(p.slides))
             self.slide_progress.setValue(ready)
             self.slide_progress.setFormat("Prepared slides: %v / %m")
-        self.prepare_button.setEnabled(editable)
-        self.fit_button.setEnabled(editable)
+        self.fit_button.setEnabled(editable and bool(p.slides) and all(s.passages for s in p.slides))
+        self.export_button.setEnabled(editable and p.prepared)
         self.update_timing()
 
     def update_timing(self):
         if not hasattr(self, "play_time"):
             return
-        total = self.project.total_seconds if self.project else 0
+        capture = self.transport.capture
+        self.options.record.setText(f"Recording video • {clock(capture.frames / RATE)}" if capture else "Record presentation as a video")
+        total = self.transport.total_seconds
         elapsed = self.transport.elapsed
-        self.play_time.setText(f"{self.transport.state.capitalize()} • Elapsed {clock(elapsed)} • Remaining {clock(total-elapsed)} • Buffered {self.transport.buffered_seconds:.1f}s")
+        remaining = clock(total-elapsed) if self.transport.complete else "estimating…"
+        self.play_time.setText(f"{self.transport.state.capitalize()} • Elapsed {clock(elapsed)} • Remaining {remaining} • Buffered {self.transport.buffered_seconds:.1f}s")
         if self.job:
             self.statusBar().showMessage(f"Operation elapsed: {clock(time.monotonic()-self.job_started)}")
+
+    def playback_state_changed(self):
+        if self.job_live and self.transport.state == "playing":
+            self.measurements.setdefault("First playback", time.monotonic()-self.job_started)
+        self.refresh()
 
     def connect_chatgpt(self):
         def connect(task):
@@ -780,13 +835,6 @@ class MainWindow(QMainWindow):
             self.model_catalog = result["models"]
             self.refresh_models()
         self.start_job("Connecting to ChatGPT…", connect, connected)
-
-    def setup_runtime(self):
-        def setup(task):
-            ensure_codex(task)
-            ensure_speech(task)
-            task.report("Runtime installed. Preview a voice to download its model and verify GPU synthesis.")
-        self.start_job("Preparing AutoTalk runtimes…", setup)
 
     def read_conference(self):
         if not self.url.text().strip():
@@ -901,7 +949,7 @@ class MainWindow(QMainWindow):
         self.presentation.setScreen(screen)
         self.presentation.setGeometry(screen.geometry())
         self.presentation.closed.connect(self.presentation_closed)
-        self.tabs.setCurrentIndex(3)
+        self.tabs.setCurrentIndex(2)
         for action in self.actions:
             action.setEnabled(False)
         self.transport.fullscreen = True
@@ -937,6 +985,9 @@ class MainWindow(QMainWindow):
         if self.loading or not self.project:
             return
         self.transport.stop()
+        self.transport.refresh_audio()
+        for name in ("quick_timing", "speech_priority"):
+            self.preferences.setValue(name, getattr(self.project, name))
         self.refresh()
 
     def mode_changed(self, value):
@@ -949,9 +1000,25 @@ class MainWindow(QMainWindow):
     def start_mode(self):
         if not self.project or self.job:
             return
-        if self.project.mode == "Prepared" and not all(s.passages for s in self.project.slides):
-            self.create_narration()
+        if self.project.manual_review_required:
+            self.tabs.setCurrentIndex(1)
+            self.log_message("Review and accept your edited script, or explicitly regenerate it.")
             return
+        if self.project.mode == "Prepared":
+            if not any(s.passages for s in self.project.slides):
+                self.create_narration()
+            elif not self.project.script_current:
+                self.tabs.setCurrentIndex(1)
+                self.log_message("Review the script, then accept it for this context.")
+            elif not self.project.prepared:
+                self.generate_speech()
+            else:
+                self.present()
+            return
+        if self.transport.state != "paused":
+            self.transport.select(0)
+        else:
+            self.log_message("Resuming preparation; an unfinished slide restarts from its beginning.")
         snapshot = copy.deepcopy(self.project)
         self.live_autostart = snapshot.mode == "Realtime"
         def done(result):
@@ -962,13 +1029,14 @@ class MainWindow(QMainWindow):
                 else:
                     self.after_job = self.present
             elif result.mode == "Realtime" and self.live_autostart:
-                self.after_job = self.present
+                self.after_job = partial(self.present, resume=True)
         self.start_job("Preparing " + snapshot.mode + " presentation…", partial(workflow, snapshot), done,
                        live=snapshot.mode == "Realtime")
 
     def accept_result(self, project):
         if self.transport.active or self.presentation:
             self.project = self.transport.project = project
+            self.transport.refresh_audio()
             self.options.load(project)
             self.show_slide(self.transport.index)
         else:
@@ -976,6 +1044,7 @@ class MainWindow(QMainWindow):
         self.refresh()
 
     def job_error(self, message):
+        self.close_requested = False
         self.live_autostart = False
         if self.transport.active:
             self.transport.pause()
@@ -986,9 +1055,10 @@ class MainWindow(QMainWindow):
             return
         kind = value.get("type")
         if kind == "progress":
-            self.slide_progress.setRange(0, max(1, value["total"]))
-            self.slide_progress.setValue(value["completed"])
-            self.slide_progress.setFormat(value["stage"] + ": %v / %m")
+            progress = self.narration_progress if value["stage"] == "Narration" else self.slide_progress
+            progress.setRange(0, max(1, value["total"]))
+            progress.setValue(value["completed"])
+            progress.setFormat(value["stage"] + ": %v / %m")
         elif kind == "measurement":
             stage = value["stage"]
             self.measurements[stage] = self.measurements.get(stage, 0) + value["seconds"]
@@ -1007,22 +1077,23 @@ class MainWindow(QMainWindow):
                 self.adopt(self.project)
             elif kind == "narration":
                 self.project.title = value["title"]
-                self.project.narration_context = value["context"]
                 for slide in value["slides"]:
                     self.project.slides[slide.page-1] = slide
+                    self.transport.refresh_audio(slide.page-1)
                 self.show_slide(self.transport.index)
             elif kind == "slide_ready":
                 slide = value["slide"]
                 if slide.audio_key == self.project.speech_key(slide):
                     self.project.slides[slide.page-1] = slide
+                    self.transport.refresh_audio(slide.page-1)
                     self.refresh()
             elif kind == "audio":
+                self.measurements.setdefault("First audio", time.monotonic()-self.job_started)
                 self.transport.receive_audio(value)
             if self.live_autostart:
                 buffered = self.transport.buffered_seconds
-                first_ready = self.project.ready(self.project.slides[0])
-                if buffered >= self.project.buffer_seconds or (first_ready and buffered > 0):
-                    self.present()
+                if buffered >= self.transport.required_buffer or (self.project.prepared and buffered > 0):
+                    self.present(resume=True)
 
     def refresh_models(self):
         previous = self.loading
@@ -1077,7 +1148,7 @@ class MainWindow(QMainWindow):
     def add_version(self):
         language, ok = QInputDialog.getItem(self, "New language version", "Language", LANGUAGES, editable=False)
         if ok:
-            self.project.add_version(language)
+            self.project.add_version(language, translate=True)
             self.adopt(self.project)
             self.save()
 
@@ -1132,17 +1203,9 @@ class MainWindow(QMainWindow):
                 self.save()
             except (OSError, ValueError) as error:
                 self.error(str(error))
-        if self.project.voice.source == "VoiceDesign":
-            snapshot = copy.deepcopy(self.project)
-            def designed(path):
-                self.project.set_voice(path, preview_text(snapshot))
-                self.project.voice.name = name
-                save_current()
-                self.adopt(self.project)
-                self.log_message("Designed identity saved as a reference voice. Future speech reuses this identity through Base cloning.")
-            self.start_job("Creating a reusable voice identity…", partial(synthesize, snapshot, preview=True), designed)
-        else:
+        if self.project.voice.source != "VoiceDesign" or self.accept_designed_voice():
             save_current()
+
 
     def show_clip(self, *_):
         if not self.project:
@@ -1193,6 +1256,7 @@ class MainWindow(QMainWindow):
                 clip.gain = self.background_gain.value()
                 clip.loop = self.background_loop.isChecked()
                 self.project.background = clip
+                self.transport.refresh_audio()
                 self.refresh()
                 self.save()
             self.start_job("Importing background track…", partial(import_clip, self.project, Path(path), placement="background"), done)
@@ -1241,24 +1305,124 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(0, self.export_next)
 
     def export_next(self):
-        if self.job or self.transport.active or not self.pending_exports or self.close_requested:
+        if self.job or self.transport.active or not self.pending_exports or self.close_requested is True:
             return
         root = self.pending_exports.pop(0)
         self.start_job("Saving presentation video…", partial(export_recording, root),
-                       lambda path: self.log_message("Video saved: " + str(path)))
+                       self.export_saved)
+
+    def refresh_recordings(self):
+        self.recordings.clear()
+        roots = self.preferences.value("recent_projects", [])
+        roots = roots if isinstance(roots, list) else [roots]
+        for root in roots:
+            for path in sorted(Path(root).glob("recordings/*/session.json")):
+                try:
+                    info = json.loads(path.read_text())
+                    if info.get("status") != "exported" and (path.parent / "audio.pcm").stat().st_size:
+                        self.recordings.addItem(f"Unfinished: {Path(root).name} / {path.parent.name[:8]}", str(path))
+                except (OSError, ValueError):
+                    continue
+        if not self.recordings.count():
+            self.recordings.addItem("No unfinished recordings", "")
 
     def recover_recording(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Export a recorded session", "", "Recording metadata (session.json)")
+        path = self.recordings.currentData()
+        if not path:
+            path, _ = QFileDialog.getOpenFileName(self, "Export a recorded session", "", "Recording metadata (session.json)")
         if path:
-            destination, _ = QFileDialog.getSaveFileName(self, "Export recording", "presentation.mp4", "MP4 video (*.mp4)")
+            destination, _ = QFileDialog.getSaveFileName(self, "Export recording", "presentation.mp4", "Video (*.mp4);;WAV audio (*.wav);;M4A audio (*.m4a)")
             if destination:
-                self.start_job("Exporting recorded session…", partial(export_recording, Path(path).parent, destination=destination),
-                               lambda result: self.log_message("Video saved: " + str(result)))
+                self.start_job("Exporting recorded session…", partial(export_recording, Path(path).parent, destination=destination), self.export_saved)
+
+    def accept_script(self):
+        try:
+            self.project.accept_script()
+            self.save()
+            self.transport.refresh_audio()
+            self.refresh()
+        except ValueError as error:
+            self.error(str(error))
+
+    def language_selected(self, language):
+        if self.loading or not self.project or language == self.project.language:
+            return
+        existing = next((key for key, version in self.project.versions.items() if version.language == language), None)
+        if existing:
+            self.project.active_version = existing
+        elif not any(s.passages for s in self.project.slides):
+            self.project.language = language
+        else:
+            self.project.add_version(language, translate=True)
+            self.log_message("New language version created. Create its script to translate the talk; your original version is preserved.")
+        self.adopt(self.project)
+        self.save()
+
+    def accept_designed_voice(self):
+        if self.project.voice.source != "VoiceDesign":
+            return False
+        from .project import Slide
+        sample = Slide(0)
+        sample.narration = preview_text(self.project)
+        path = data_dir() / "previews" / (self.project.speech_key(sample) + ".wav")
+        if not path.exists():
+            self.error("Preview this design first, then accept the voice you heard.")
+            return False
+        try:
+            self.project.set_voice(path, sample.narration)
+        except (OSError, ValueError) as error:
+            self.error(str(error))
+            return False
+        self.project.voice.name = "Designed voice"
+        self.adopt(self.project)
+        self.save()
+        return True
+
+    def retention_changed(self):
+        policy = self.gpu_retention.currentData()
+        self.preferences.setValue("gpu_retention", policy)
+        self.speech.set_retention(policy)
+
+    def release_gpu(self):
+        if not self.job and self.speech.process:
+            self.start_job("Releasing speech GPU…", lambda task: self.speech.release())
+
+    def export_talk(self):
+        destination, _ = QFileDialog.getSaveFileName(self, "Export prepared talk", "presentation.mp4", "Video (*.mp4);;WAV audio (*.wav);;M4A audio (*.m4a)")
+        if destination:
+            self.start_job("Exporting prepared talk…", partial(export_prepared, copy.deepcopy(self.project), destination=destination), self.export_saved)
+
+    def export_saved(self, path):
+        self.output_path = str(Path(path).resolve())
+        self.output_button.setEnabled(True)
+        self.folder_button.setEnabled(True)
+        self.log_message("Saved: " + self.output_path)
+        self.refresh_recordings()
 
     def closeEvent(self, event):
+        if not self.close_requested and (self.transport.capture or self.pending_exports or (self.job and self.job.title.startswith(("Saving", "Export")))):
+            dialog = QMessageBox(self)
+            dialog.setWindowTitle("Save presentation")
+            dialog.setText("A recording or export is unfinished.")
+            finish = dialog.addButton("Finish saving and close", QMessageBox.ButtonRole.AcceptRole)
+            later = dialog.addButton("Close and save later", QMessageBox.ButtonRole.DestructiveRole)
+            dialog.addButton(QMessageBox.StandardButton.Cancel)
+            dialog.exec()
+            if dialog.clickedButton() not in (finish, later):
+                event.ignore()
+                return
+            self.close_requested = "saving" if dialog.clickedButton() == finish else True
+            if self.job_live:
+                self.cancel()
+            self.transport.stop()
+        if self.close_requested == "saving":
+            if not self.job and self.pending_exports:
+                self.export_next()
+            if self.job:
+                event.ignore()
+                return
         self.close_requested = True
         if self.job:
-            self.close_requested = True
             self.cancel()
             event.ignore()
             return
@@ -1268,6 +1432,7 @@ class MainWindow(QMainWindow):
             self.presentation.close()
         self.transport.stop()
         if self.save():
+            self.speech.release()
             event.accept()
         else:
             self.close_requested = False
@@ -1282,8 +1447,6 @@ def main():
     app = QApplication(sys.argv[:1])
     app.setApplicationName("AutoTalk")
     app.setOrganizationName("SNodeC")
-    app.setStyle("Fusion")
-    app.setStyleSheet(STYLE)
     window = MainWindow()
     window.show()
     if args.project:

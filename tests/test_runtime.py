@@ -19,6 +19,14 @@ def test_run_drains_output_and_reports_failure():
         runtime.run([sys.executable, "-c", "import sys; print('useful failure'); sys.exit(3)"], task)
 
 
+def test_run_normalizes_newlines_and_decodes_utf8():
+    lines = []
+    script = "import sys; sys.stdout.buffer.write(b'Gr\\xc3\\xbc\\xc3\\x9fe\\r\\nprogress\\rfinal\\ninvalid \\xff')"
+    result = runtime.run([sys.executable, "-c", script], runtime.Task(log=lines.append))
+    assert result == "Grüße\nprogress\nfinal\ninvalid \ufffd"
+    assert lines == ["Grüße", "progress", "final", "invalid \ufffd"]
+
+
 def test_verified_zip_extracts_only_named_executable(tmp_path, monkeypatch):
     monkeypatch.setenv("AUTOTALK_DATA_DIR", str(tmp_path / "data"))
     archive = tmp_path / "tool.zip"

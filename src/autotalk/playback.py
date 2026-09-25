@@ -14,7 +14,7 @@ from PySide6.QtMultimedia import QtAudio, QAudioFormat, QAudioSink, QMediaDevice
 from PySide6.QtPdf import QPdfDocument
 from PySide6.QtWidgets import QWidget
 
-from .media import AudioFile, Capture, RATE
+from .media import AudioFile, Capture, Mix, RATE
 
 
 class Playback(QObject):
@@ -37,7 +37,9 @@ class Playback(QObject):
         self.state = "stopped"
         self.fullscreen = False
         self.preview_path = None
-        self.streams = {}
+        self.mix = None
+        self.preview_audio = None
+        self.production_samples = deque(maxlen=32)
         self.capture = None
         self.sink = None
         self.device = None
@@ -79,35 +81,41 @@ class Playback(QObject):
     def elapsed(self):
         if not self.project or self.preview_path:
             return self.position
-        return sum(s.duration + sum(c.seconds for c in s.clips) for s in self.project.slides[:self.index]) + self.position
+        return sum(self.mix.frames(i) for i in range(self.index)) / RATE + self.position
 
     def load(self, project):
         self.stop()
         self.project = project
-        self.streams.clear()
+        self.mix = Mix(project)
+        self.production_samples.clear()
         self.preview_path = None
         self.index = 0
         self.slide_changed.emit(0)
         self.changed.emit()
 
+    @property
+    def total_seconds(self):
+        return sum(self.mix.frames(i) for i in range(len(self.mix.parts))) / RATE if self.mix else 0
+
+    @property
+    def complete(self):
+        return bool(self.mix and all(self.mix.complete))
+
+    def refresh_audio(self, index=None):
+        if self.project:
+            if self.mix:
+                self.mix.project = self.project
+                self.mix.update(index)
+            else:
+                self.mix = Mix(self.project)
+
     def _parts(self, index=None):
         if self.preview_path:
-            audio = AudioFile(self.preview_path)
-            return [audio], True
-        if not self.project:
+            return [self.preview_audio], True
+        if not self.mix:
             return [], False
-        slide = self.project.slides[self.index if index is None else index]
-        parts = [AudioFile(self.project.asset(c.file), gain=c.gain) for c in slide.clips if c.placement == "before"]
-        complete = self.project.ready(slide)
-        if complete:
-            parts.append(AudioFile(self.project.audio(slide)))
-        else:
-            stream = self.streams.get(slide.page)
-            if stream and stream["key"] == self.project.speech_key(slide) and Path(stream["path"]).exists():
-                parts.append(AudioFile(stream["path"], frames=stream["frames"], offset=stream["offset"]))
-        if complete:
-            parts.extend(AudioFile(self.project.asset(c.file), gain=c.gain) for c in slide.clips if c.placement == "after")
-        return parts, complete
+        index = self.index if index is None else index
+        return self.mix.parts[index], self.mix.complete[index]
 
     @property
     def buffered_seconds(self):
@@ -121,6 +129,21 @@ class Playback(QObject):
                 break
         return max(0, available)
 
+    @property
+    def required_buffer(self):
+        if not self.project or self.preview_path:
+            return 0
+        minimum = self.project.buffer_seconds
+        if self.project.speech_priority == "earliest" or len(self.production_samples) < 2:
+            return minimum
+        start, amount = self.production_samples[0]
+        elapsed = time.monotonic() - start
+        if elapsed < 1:
+            return minimum
+        rate = max(0, self.production_samples[-1][1]-amount) / elapsed
+        remaining = max(0, self.project.target_minutes*60-self.elapsed)
+        return min(max(minimum, remaining), minimum + max(0, 1-rate)*remaining)
+
     def receive_audio(self, event):
         if not self.project or event.get("version") != self.project.active_version:
             return
@@ -129,7 +152,8 @@ class Playback(QObject):
             return
         if event["key"] != self.project.speech_key(self.project.slides[page-1]):
             return
-        self.streams[page] = event
+        self.mix.update(page-1, event)
+        self.production_samples.append((time.monotonic(), self.total_seconds))
         self.changed.emit()
 
     def _consume(self):
@@ -166,7 +190,7 @@ class Playback(QObject):
                 self.sink.deleteLater()
             fmt = QAudioFormat()
             fmt.setSampleRate(RATE)
-            fmt.setChannelConfig(QAudioFormat.ChannelConfig.ChannelConfigMono)
+            fmt.setChannelConfig(QAudioFormat.ChannelConfig.ChannelConfigStereo)
             fmt.setSampleFormat(QAudioFormat.SampleFormat.Int16)
             if not device.isFormatSupported(fmt):
                 fmt = device.preferredFormat()
@@ -200,36 +224,18 @@ class Playback(QObject):
 
     def _read(self, start, count):
         parts, complete = self._parts()
-        values = []
-        offset = start
-        for part in parts:
-            if offset >= part.frames:
-                offset -= part.frames
-                continue
-            samples = part.read(offset, count)
-            values.append(samples)
-            count -= len(samples)
-            offset = 0
-            if not count:
-                break
-        result = np.concatenate(values) if values else np.empty(0, dtype=np.int16)
-        if self.project and self.project.background and not self.preview_path and len(result):
-            background = self.project.background
-            asset = AudioFile(self.project.asset(background.file), gain=background.gain, loop=background.loop)
-            prior = sum(s.duration + sum(c.seconds for c in s.clips) for s in self.project.slides[:self.index])
-            extra = asset.read(round(prior * RATE) + start, len(result))
-            if len(extra):
-                mixed = result.astype(np.int32)
-                mixed[:len(extra)] += extra.astype(np.int32)
-                result = np.clip(mixed, -32768, 32767).astype("<i2")
-        return result, sum(p.frames for p in parts), complete
+        samples = self.preview_audio.read(start, count) if self.preview_path else self.mix.read(self.index, start, count)
+        return samples, sum(p.frames for p in parts), complete
 
     def _encode_output(self, samples):
         fmt = self.sink.format()
         if fmt.sampleRate() != RATE:
             count = round(len(samples) * fmt.sampleRate() / RATE)
-            samples = np.interp(np.arange(count) * RATE / fmt.sampleRate(), np.arange(len(samples)), samples)
-        samples = np.repeat(samples[:, None], fmt.channelCount(), axis=1)
+            samples = np.column_stack([np.interp(np.arange(count) * RATE / fmt.sampleRate(), np.arange(len(samples)), samples[:, c]) for c in range(2)])
+        if fmt.channelCount() == 1:
+            samples = samples.mean(axis=1)
+        elif fmt.channelCount() > 2:
+            samples = np.pad(samples, ((0, 0), (0, fmt.channelCount()-2)))
         if fmt.sampleFormat() == QAudioFormat.SampleFormat.Float:
             return (samples.astype(np.float32) / 32768).tobytes()
         if fmt.sampleFormat() == QAudioFormat.SampleFormat.Int32:
@@ -252,8 +258,8 @@ class Playback(QObject):
             available = sum(p.frames for p in parts)
             if self.state == "buffering":
                 current = round(self.position * RATE)
-                threshold = RATE * (self.project.buffer_seconds if self.project and not self.preview_path else 0)
-                if available <= current or (available-current < threshold and not complete):
+                threshold = RATE * self.required_buffer
+                if available <= current or (self.buffered_seconds*RATE < threshold and not complete):
                     if not self.producer_active():
                         raise RuntimeError("Preparation has stopped before this slide finished. Stop playback and prepare the remaining slides.")
                     self.changed.emit()
@@ -337,6 +343,7 @@ class Playback(QObject):
     def preview(self, path):
         self.stop()
         self.preview_path = Path(path)
+        self.preview_audio = AudioFile(path)
         self.play()
 
     def _finalize_capture(self):
@@ -351,6 +358,7 @@ class Playback(QObject):
         self.state = "stopped"
         self._offset = 0
         self.preview_path = None
+        self.preview_audio = None
         self.changed.emit()
 
     def _finish(self):
@@ -376,6 +384,7 @@ class Presentation(QWidget):
         self.document.load(str(transport.project.asset("slides.pdf")))
         self.rendered = None
         transport.slide_changed.connect(self.refresh)
+        transport.state_changed.connect(self.update)
 
     def refresh(self, *_):
         self.rendered = None
@@ -397,6 +406,11 @@ class Presentation(QWidget):
         if self.rendered is None:
             self.rendered = self.document.render(page, target)
         painter.drawImage((self.width()-target.width())//2, (self.height()-target.height())//2, self.rendered)
+        if self.transport.state != "playing":
+            painter.fillRect(0, 0, self.width(), 48, QColor(0, 0, 0, 190))
+            painter.setPen(QColor("white"))
+            painter.drawText(self.rect().adjusted(16, 8, -16, -8), Qt.AlignmentFlag.AlignTop,
+                             self.transport.state.capitalize() + " • Space: resume • Esc: return")
 
     def keyPressEvent(self, event: QKeyEvent):
         if event.key() == Qt.Key.Key_Escape:

@@ -6,7 +6,7 @@ AutoTalk is a Python/PySide6 desktop application. Codex app-server writes narrat
 using your ChatGPT sign-in; Qwen3-TTS **1.7B** generates speech on your local GPU.
 The executable is `autotalk` (`autotalk.exe` on Windows).
 
-The expanded 0.2 prototype implements the [agreed feature list](docs/ROADMAP.md).
+The 0.3 refinement prototype implements the [agreed feature and refinement plan](docs/ROADMAP.md).
 Read [verification results and platform limitations](docs/VERIFICATION.md) before
 relying on it for a conference.
 
@@ -16,10 +16,13 @@ Extract the native package and open `autotalk`, `autotalk.exe`, or `AutoTalk.app
 Keep the accompanying files together. In this checkout, `./autotalk` launches the
 local Linux bundle at `dist/autotalk/autotalk`.
 
+AutoTalk follows the system light/dark appearance through Qt, including theme
+changes while it is open. Controls, dialogs, and checkboxes use the system palette.
+
 | Platform | Speech backend | Qualification |
 | --- | --- | --- |
 | Linux x86_64, NVIDIA GPU | vLLM-Omni streaming | Tested locally on an RTX 2000 Ada laptop, 8 GB VRAM |
-| Windows 11 x64, NVIDIA GPU | Qwen/PyTorch CUDA, sentence chunks | Implemented; native build and GPU testing pending |
+| Windows 11 x64, NVIDIA GPU | Qwen/PyTorch CUDA, grouped passages | Implemented; native build and GPU testing pending |
 | macOS 14+, Apple Silicon | MLX Audio, Metal streaming | Implemented; native build and GPU testing pending |
 
 The application packages Python, Qt, and audio/video libraries. Speech setup
@@ -42,15 +45,31 @@ Runtime/model data stays in the user's application-data directory.
    measured duration with up to three revision passes. Start fullscreen explicitly.
 2. **Quick:** choose the PDF, language, and duration, then Start. AutoTalk uses Ryan,
    professional delivery, default Codex settings, and no conference context.
-   The default policy attempts duration fitting, then presents even if a visible
-   mismatch remains. Alternatives generate once or require a timing match.
+   The default generates once and starts, with the measured duration shown.
+   Alternatives attempt duration fitting or require a timing match before playback.
 3. **Realtime:** prepare the opening audio buffer and start presenting while later
-   audio is generated. Choose a complete script first, or a whole-deck outline
-   followed by two-slide writing batches overlapping synthesis. Buffer underruns
-   wait visibly. Final duration remains approximate until preparation finishes.
+   audio is generated. By default one request plans the deck and writes the first
+   slide while the speech model loads; subsequent slides are written ahead of
+   synthesis. A complete-script-first alternative remains available. Consistency
+   first groups sentences and adapts the buffer to observed production speed;
+   Earliest playback prioritizes a short first speech unit. Buffer underruns wait
+   visibly. Final duration remains approximate until preparation finishes.
 
 First-time downloads and model loading precede speech in every mode. Streaming
 reduces waiting for audio; it does not guarantee uninterrupted playback on every GPU.
+
+The three workspaces are **Setup**, **Script**, and **Present & Export**. The primary
+action follows the selected mode and script state. Prepared keeps review and
+acceptance explicit. Manual edits require acceptance or explicit regeneration.
+Use **Stop and edit** to return from playback; **Resume preparation** reuses
+completed work and restarts an unfinished slide from its beginning. Escape and
+Continue presentation preserve the current playback position.
+
+Speech models remain loaded until exit by default. Select five idle minutes or
+one operation instead, or use **Release GPU**. A compatible preview warms the
+next generation; changing model variant or deployment sampling settings reloads
+the worker. GPU retention, Quick timing, and Realtime priority are remembered.
+A retained Linux worker uses roughly 6 GiB of GPU memory on the tested machine.
 
 ## Configure the talk
 
@@ -65,7 +84,9 @@ reduces waiting for audio; it does not guarantee uninterrupted playback on every
   used. Slide images, extracted text, and supplied context are sent to Codex;
   reference recordings remain local.
 - Select English, German, French, Spanish, Italian, Portuguese, Russian, Chinese,
-  Japanese, or Korean. Add language versions to retain independent scripts/audio.
+  Japanese, or Korean. Selecting a language opens its existing version or creates
+  a translation draft from the current script, preserving the original. Generate
+  the translation with Codex before accepting it; synthesis alone cannot translate.
   `[German]` and similar paragraph markers allow mixed passages. Choose mixed
   passages, one language per slide, or a single language per version in settings.
 
@@ -80,20 +101,29 @@ without one, conditioning uses speaker identity alone. No fine-tuning is needed.
 Save named voices for reuse; project copies retain their own references, organized
 by language, with a shared reference available for cross-language use.
 
-**Design a voice** uses VoiceDesign for a preview/reference. Save an accepted voice
-or prepare the talk to freeze one reference and reuse it through Base. This avoids
+**Design a voice** uses VoiceDesign for a preview/reference. Preview, then accept
+the exact sample you heard to reuse it through Base. Saving or starting never
+redesigns an accepted sample. This avoids
 independently redesigning the speaker on every slide. Base inherits the reference's
 identity/delivery and does not accept CustomVoice/VoiceDesign vocal instructions.
 
 Choose Professional, Conversational, Energetic, Calm and understated, Lightly
 humorous, Academic, Storytelling, or Inspirational. Customize acoustic attributes,
 voice-design age, persona, gradual progression, and per-slide directions. Save
-named delivery presets. Unsupported controls are disabled. Dialect and expressive
+named delivery presets. Style and attributes are combined; explicit slide directions
+take precedence over custom global directions, then structured attributes/style.
+These are natural-language instructions, so adherence still needs preview.
+Common vocal guidance requests a steady pace, restrained expression and consistent
+voice character; selected style and explicit directions take precedence. Base
+does not receive unsupported instructions. Updated effective directions require
+audio regeneration, while the accepted script and previous files are preserved.
+Unsupported controls are disabled. Dialect and expressive
 cues are model requests requiring preview, not guaranteed effects or sound tags.
 Use imported clips for precisely controlled singing, music, or nonverbal effects.
 
 Advanced settings expose sampling temperature, top-k, top-p, repetition penalty,
-and an output token limit. They are not reasoning efforts or guaranteed quality
+and an output token limit for the main speech generator. The Linux acoustic-code
+generator retains its separate defaults. These are not reasoning efforts or guaranteed quality
 levels. Synthesis stays at native 24 kHz; export resampling and AAC bitrate are
 separate compatibility/encoding choices.
 
@@ -111,13 +141,27 @@ PCM transport. Slide advancement follows consumed audio rather than word estimat
 Attach clips before/after slides and adjust their gain. Add a background track,
 gain, and looping. Fixed clips and pauses count toward duration fitting.
 
-Enable **Record presentation as a video** under Delivery & recording. Export uses
+Use **Export prepared talk** in **Present & Export** for MP4 with sound, WAV, or
+M4A without playing the talk in real time or opening an audio device. The same
+mixer supplies direct export and live playback: mono narration is centered,
+while imported clips/backgrounds retain stereo in a 48 kHz internal mix.
+Qwen speech assets remain native 24 kHz; choose 48 kHz export to retain imported
+music bandwidth. Video renders the source PDF at 1080p rather than enlarging
+editor previews.
+
+Enable **Record presentation as a video** beside the main Start button, visible on
+every tab. Select the destination near the top of **Present & Export**. During
+capture the checkbox label displays **Recording video** and the recorded duration.
+This records the slide performance, including navigation and configured waits. Export uses
 AutoTalk's own audio mix and slide timeline, without recording other desktop sound.
 MP4 output is 1080p/30 fps with AAC at 24, 44.1, or 48 kHz. Recording policies retain
 fullscreen pauses only (default), all elapsed waiting, or content only. Configured
 filenames receive a session suffix to preserve earlier recordings. Export runs
 after playback; **Export recorded session** can recover a saved session after a
-cancelled export or interrupted application session.
+cancelled export or interrupted application session. Unfinished sessions from
+recent projects are listed automatically. On close, choose finish saving, save
+later, or cancel closing. Failed/cancelled encoding retains the recording and
+destination; successful exports offer **Open file** and **Open folder**.
 
 ## Projects and persistence
 
@@ -128,10 +172,13 @@ Save with Ctrl+S and copy the entire project folder to move a talk:
 - `voice/<language>/`: reference snapshots.
 - `audio/<version>/<language>/`: generated speech, keyed by effective synthesis inputs.
 - `media/`: normalized imported clips/background tracks.
-- `recordings/<session>/`: recoverable PCM, slide images, timeline, and exported video.
+- `recordings/<session>/`: recoverable stereo PCM, source PDF snapshot, timeline, and export.
+- `runs/`: operation outcome, elapsed time, and stage measurements.
 
-Version-1 projects migrate on save with an untouched `.v1-backup.json`. Verified
-legacy audio remains playable with its original model provenance. Regeneration
+Version-1/2 projects migrate on save with an untouched version-specific backup.
+Review and accept imported scripts once because old version-wide acceptance cannot
+establish each slide's context. Verified legacy audio is preserved with its original
+model provenance; default grouped synthesis does not erase existing audio. Regeneration
 uses 1.7B. Changed inputs invalidate affected audio; damaged files are detected on
 reopening. Old artifacts are retained; automatic disk cleanup is not implemented.
 
@@ -154,8 +201,10 @@ locally; remaining tests run in the native CI matrix. Signing hooks accept
 `project.py` owns configuration and artifact validity. `services.py` operates on
 job snapshots and publishes validated results to Qt. `runtime.py` owns managed
 processes; `speech_worker.py` adapts the three native synthesis backends.
-`playback.py` owns presentation position and consumed PCM; `media.py` records and
-exports that same stream. The old separate media-player path has been removed.
+`playback.py` owns presentation position and consumed PCM; `media.py` owns the
+shared mix, recording, and direct/captured exports. Script acceptance is per slide,
+and the application leases the existing single speech process across operations.
+No second playback engine or speech service is introduced.
 
 See [third-party notices](THIRD_PARTY.md). This is a development build; public
 release licensing, native signing, and broader hardware qualification remain open.

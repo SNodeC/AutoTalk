@@ -1,12 +1,20 @@
 import wave
 
 import pytest
-from PySide6.QtCore import QRectF
+from PySide6.QtCore import QRectF, QSettings
 from PySide6.QtGui import QColor, QFont, QPainter, QPdfWriter
 
 from autotalk.project import file_hash, wav_duration
 from autotalk.runtime import Task
 from autotalk.services import import_pdf
+
+
+@pytest.fixture(autouse=True)
+def isolated_preferences(tmp_path):
+    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+    QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
+    yield
+    QSettings.setDefaultFormat(QSettings.Format.NativeFormat)
 
 
 @pytest.fixture
@@ -42,6 +50,7 @@ def project(sample_pdf, tmp_path):
 
 
 def make_audio(project, seconds=0.3):
+    project.accept_script()
     for slide in project.slides:
         slide.audio_key = project.speech_key(slide)
         slide.audio_file = project.audio_name(slide)
