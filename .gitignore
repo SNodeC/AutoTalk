@@ -6,4 +6,5 @@ build/
 dist/
 *.egg-info/
 *.spec
+!packaging/*.spec
 artifacts/

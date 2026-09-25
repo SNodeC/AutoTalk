@@ -20,8 +20,15 @@ The packaged prototype uses dynamically loaded Qt libraries. Speech dependencies
 and model weights are downloaded into the user's private application data
 directory; they are not included in the application archive. Their distribution
 metadata and license files remain in that environment. The exact speech package
-versions are recorded in `src/autotalk/speech-requirements.txt`.
+versions are recorded in the platform-specific `src/autotalk/speech-*.txt` lock files.
 
 The prototype is a development build. Before publishing a distributable release,
 select AutoTalk's license and complete the applicable Qt/PDF and third-party
 notice/source distribution requirements.
+
+Additional 0.2 dependencies: vLLM / vLLM-Omni (Apache-2.0), MLX / MLX Audio
+(MIT), Zig (MIT), NumPy (BSD), and PyAV (BSD). PyAV bundles its own FFmpeg
+libraries, including the H.264 encoder used for recording. Those libraries have
+their own licensing terms; the Qt Multimedia LGPL notice does not describe the
+entire video-export stack. Preserve the wheel distribution notices and review
+the exact bundled libraries before public redistribution.

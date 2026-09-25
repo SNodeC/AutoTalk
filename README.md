@@ -1,157 +1,161 @@
 # AutoTalk
 
-**Turn existing PDF slides into a timed presentation in your own voice.**
+**Turn PDF slides into a timed, spoken presentation.**
 
-AutoTalk is a Python/PySide6 desktop prototype for Linux. It uses **Codex
-app-server with ChatGPT sign-in** to write the talk and **Qwen3-TTS on your
-NVIDIA GPU** to generate speech locally. The executable is **`autotalk`**.
+AutoTalk is a Python/PySide6 desktop application. Codex app-server writes narration
+using your ChatGPT sign-in; Qwen3-TTS **1.7B** generates speech on your local GPU.
+The executable is `autotalk` (`autotalk.exe` on Windows).
 
-## Start the application
+The expanded 0.2 prototype implements the [agreed feature list](docs/ROADMAP.md).
+Read [verification results and platform limitations](docs/VERIFICATION.md) before
+relying on it for a conference.
 
-Extract the packaged `AutoTalk-0.1.0-linux-x86_64.tar.gz` archive and open the
-`autotalk` executable inside its `autotalk` directory. Keep the accompanying
-`_internal` directory beside it. The package contains Python and Qt: users do
-not install Python, PySide6, PyTorch, a CUDA toolkit, or command-line tools.
+## Start
 
-For this development checkout, the built application is available through
-`./autotalk` and directly at `dist/autotalk/autotalk`. Release archives are
-build outputs and are not committed to Git.
+Extract the native package and open `autotalk`, `autotalk.exe`, or `AutoTalk.app`.
+Keep the accompanying files together. In this checkout, `./autotalk` launches the
+local Linux bundle at `dist/autotalk/autotalk`.
 
-The first speech operation automatically downloads a private Python speech
-runtime, pinned dependencies, and the selected model. Downloads show progress,
-can be cancelled, and reuse completed/cached files when retried. Tools and model
-files are verified against pinned upstream hashes. A built-in voice and voice
-cloning use different Qwen models; each is downloaded only when needed.
+| Platform | Speech backend | Qualification |
+| --- | --- | --- |
+| Linux x86_64, NVIDIA GPU | vLLM-Omni streaming | Tested locally on an RTX 2000 Ada laptop, 8 GB VRAM |
+| Windows 11 x64, NVIDIA GPU | Qwen/PyTorch CUDA, sentence chunks | Implemented; native build and GPU testing pending |
+| macOS 14+, Apple Silicon | MLX Audio, Metal streaming | Implemented; native build and GPU testing pending |
 
-**Current target:** Linux x86_64 with a working NVIDIA driver. The prototype was
-verified on an RTX 2000 Ada laptop GPU with 8 GB VRAM. NPU and CPU inference are
-not supported by this first build. AutoTalk does not replace system drivers.
-Allow roughly 15–20 GB of free disk space for runtime, models, and download
-caches; the application archive itself is much smaller. The locally built Qt
-bundle still relies on ordinary Linux desktop/system libraries. Compatibility
-with other distributions needs separate testing.
+The application packages Python, Qt, and audio/video libraries. Speech setup
+privately downloads its Python runtime, pinned dependencies, models, and any
+required compiler. Users do not install Python, a CUDA toolkit, or speech servers.
+A supported GPU with a working compatible OS driver is required for synthesis.
+CPU/NPU inference and Intel Macs are outside this prototype. Prepared playback
+does not require the speech runtime or a GPU capable of synthesis.
 
-## Create a talk
+First setup requires internet access and several GB of downloads. Allow roughly
+40 GB of free space for the Linux runtime, model, and installation caches; more
+for additional models and projects. Downloads are cached and verified. Cancelling
+retains completed slide audio; an interrupted slide is regenerated on retry.
+Runtime/model data stays in the user's application-data directory.
 
-1. **New from PDF:** select a PDF and a parent directory for a portable project.
-   AutoTalk creates a new project folder without overwriting an existing one.
-   The prototype supports unencrypted decks of 1–80 pages.
-2. **Talk details:** set the duration in minutes, timing tolerance, pause between
-   slides, spoken language, audience, and objective.
-3. **Conference scope:** enter a description directly, or give a conference URL
-   and select **Read conference website**. Review the extracted scope and source
-   links. The reader handles static HTML and a small number of relevant pages
-   on the same site; login-protected or JavaScript-only sites may need manual
-   scope entry.
-4. **Connect ChatGPT:** use an existing Codex ChatGPT login or complete the
-   supported browser sign-in flow. No API key is needed. Your subscription's
-   limits apply; AutoTalk does not switch to paid API access automatically.
-5. **Create narration:** Codex receives the deck's rendered pages and extracted
-   text, plus your conference context. Review and edit each slide's narration.
-   Notes identify uncertainties rather than inventing supporting facts.
-6. **Voice:** use the built-in Ryan voice, or import/record your own reference
-   voice. Recordings are PCM WAV, 3–60 seconds; in-app recording stops after
-   30 seconds. Entering the recording's exact transcript improves conditioning.
-   Preview the voice before generating the whole talk. Reference-based cloning
-   requires no fine-tuning; AutoTalk prepares the conditioning automatically.
-7. **Generate speech:** synthesize the reviewed script as written. AutoTalk
-   measures the audio files, including the configured inter-slide pauses.
-   **Fit narration to duration** can revise the script and regenerate audio for
-   up to three passes. It reports if the result is still outside your tolerance;
-   it never silently claims that an unmet target has been reached.
-8. **Present:** select the display and start fullscreen playback. Audio completion
-   advances the slides. Use the presenter controls or Space to pause/resume,
-   arrow keys to navigate, and Esc to leave fullscreen. Prepared playback is
-   offline. The measured content duration excludes user pauses and small device
-   loading delays between audio files.
+## Three modes
 
-The spoken language is selectable: **English, German, French, Spanish, Italian,
-Portuguese, Russian, Chinese, Japanese, and Korean**. The selection is sent to
-both Codex and Qwen. Changing it invalidates generated audio and flags existing
-narration for review/regeneration. The UI itself is currently English.
+1. **Prepared:** import a PDF, choose language, duration, conference context and
+   voice, create and review narration, then generate audio. Optionally fit its
+   measured duration with up to three revision passes. Start fullscreen explicitly.
+2. **Quick:** choose the PDF, language, and duration, then Start. AutoTalk uses Ryan,
+   professional delivery, default Codex settings, and no conference context.
+   The default policy attempts duration fitting, then presents even if a visible
+   mismatch remains. Alternatives generate once or require a timing match.
+3. **Realtime:** prepare the opening audio buffer and start presenting while later
+   audio is generated. Choose a complete script first, or a whole-deck outline
+   followed by two-slide writing batches overlapping synthesis. Buffer underruns
+   wait visibly. Final duration remains approximate until preparation finishes.
 
-## Save and reopen
+First-time downloads and model loading precede speech in every mode. Streaming
+reduces waiting for audio; it does not guarantee uninterrupted playback on every GPU.
 
-Use **Save** or Ctrl+S. AutoTalk also saves before operations, after completed
-preparation steps, and on normal exit. Editing alone is not crash-safe autosave.
-A project directory contains:
+## Configure the talk
 
-- `talk.autotalk.json`: settings, narration, notes, budgets, and audio metadata.
-- `slides.pdf` and `slides/`: the original deck and rendered page previews.
-- `voice/`: an imported/recorded reference voice, when used.
-- `audio/`: generated PCM WAV files keyed by their generation inputs.
+- Import an unencrypted PDF of 1–80 slides into a new project directory.
+- Select duration in minutes, tolerance, inter-slide pause, audience, and objective.
+- Enter conference scope directly, read it from a URL, or combine both. Review
+  the editable extraction and its source links. JavaScript-only and authenticated
+  websites may need a manually supplied explanation.
+- Use **Connect ChatGPT** for subscription sign-in and model discovery. The model
+  selector lists account-available models accepting slide images; reasoning choices
+  come from the selected model. Subscription limits apply. No paid API fallback is
+  used. Slide images, extracted text, and supplied context are sent to Codex;
+  reference recordings remain local.
+- Select English, German, French, Spanish, Italian, Portuguese, Russian, Chinese,
+  Japanese, or Korean. Add language versions to retain independent scripts/audio.
+  `[German]` and similar paragraph markers allow mixed passages. Choose mixed
+  passages, one language per slide, or a single language per version in settings.
 
-Move or copy the complete folder to keep the talk portable. **Open talk** loads
-its `talk.autotalk.json`. Original PDF/reference hashes are checked on load;
-missing or damaged audio is marked for regeneration. Completed slide audio is
-saved even when a later generation is cancelled. Superseded audio files remain
-in the folder; automatic disk cleanup is not implemented.
+## Voices and delivery
 
-## Architecture and invariants
+**Predefined** voices use CustomVoice: Ryan, Aiden, Vivian, Serena, Uncle_Fu, Dylan,
+Eric, Ono_Anna, and Sohee. Preview in the selected talk language.
 
-- `project.py` owns project state and derives whether audio matches its narration,
-  language, voice, and pause settings. There is no independent mutable ready flag.
-- `codex.py` speaks JSON-RPC over app-server stdio, supports ChatGPT login,
-  structured output, errors, and cancellation. Generation disables shell tools,
-  web search, app connectors, and configured MCP servers. It supplies document
-  content explicitly and does not send voice recordings.
-- `services.py` imports PDFs, extracts conference context, generates narration,
-  synthesizes audio, and performs bounded duration adjustment.
-- `runtime.py` provisions verified tools and an isolated speech environment.
-  `speech_worker.py` loads the official Qwen runtime in a separate process,
-  retaining the model and voice prompt across slides in that job. Process exit
-  releases its GPU resources.
-- `playback.py` is the single authority for slide index and audio position.
-- `app.py` provides the Qt interface and cancellable background jobs.
+**My voice** uses Base with a clean 3–60 second WAV recording. Record directly
+(up to 30 seconds), or import a recording. Its exact transcript is recommended;
+without one, conditioning uses speaker identity alone. No fine-tuning is needed.
+Save named voices for reuse; project copies retain their own references, organized
+by language, with a shared reference available for cross-language use.
 
-Conference URL extraction and manual entry populate the same editable scope.
-Narration/audio/timing belong to one consistent project version. Editing a
-narration or changing voice/language/pause settings makes affected audio stale;
-playback requires current audio for every slide. A scope change flags narration
-for review but does not rewrite it without a generation request.
+**Design a voice** uses VoiceDesign for a preview/reference. Save an accepted voice
+or prepare the talk to freeze one reference and reuse it through Base. This avoids
+independently redesigning the speaker on every slide. Base inherits the reference's
+identity/delivery and does not accept CustomVoice/VoiceDesign vocal instructions.
 
-## Data and costs
+Choose Professional, Conversational, Energetic, Calm and understated, Lightly
+humorous, Academic, Storytelling, or Inspirational. Customize acoustic attributes,
+voice-design age, persona, gradual progression, and per-slide directions. Save
+named delivery presets. Unsupported controls are disabled. Dialect and expressive
+cues are model requests requiring preview, not guaranteed effects or sound tags.
+Use imported clips for precisely controlled singing, music, or nonverbal effects.
 
-Voice reference recordings and generated speech stay local. Slide images, text,
-narration, and conference context are sent to Codex for preparation, under the
-user's configured ChatGPT account. Source websites are accessed when requested.
-Preparation is therefore not fully offline; playing an already prepared talk is.
+Advanced settings expose sampling temperature, top-k, top-p, repetition penalty,
+and an output token limit. They are not reasoning efforts or guaranteed quality
+levels. Synthesis stays at native 24 kHz; export resampling and AAC bitrate are
+separate compatibility/encoding choices.
 
-Speech has no OpenAI API charge. Codex uses an eligible ChatGPT subscription and
-its usage allowance. First-run downloads, disk storage, and local computation
-are still required. Synthesized narration should be identified as AI-generated.
+## Present, route audio, and record
 
-Application data normally lives in `~/.local/share/autotalk`, respecting
-`XDG_DATA_HOME`. Developers can override it with `AUTOTALK_DATA_DIR`. Existing
-Codex authentication is reused through app-server; otherwise the application
-provisions Codex and opens its login flow.
+Choose the fullscreen display. Use **System audio settings** and **Test audio**
+to select AutoTalk's output through Plasma, Windows Sound settings, or macOS Sound.
+The operating system owns routing; projects do not store audio-device bindings.
 
-## Development
+Space pauses/resumes; arrows navigate. **Esc pauses and leaves fullscreen**, keeping
+the slide and position. Use **Continue presentation**, **Restart from beginning**,
+or **Stop**. Previews, narration, imported clips, and background tracks share one
+PCM transport. Slide advancement follows consumed audio rather than word estimates.
 
-These commands are for contributors, not end-user preparation:
+Attach clips before/after slides and adjust their gain. Add a background track,
+gain, and looping. Fixed clips and pauses count toward duration fitting.
+
+Enable **Record presentation as a video** under Delivery & recording. Export uses
+AutoTalk's own audio mix and slide timeline, without recording other desktop sound.
+MP4 output is 1080p/30 fps with AAC at 24, 44.1, or 48 kHz. Recording policies retain
+fullscreen pauses only (default), all elapsed waiting, or content only. Configured
+filenames receive a session suffix to preserve earlier recordings. Export runs
+after playback; **Export recorded session** can recover a saved session after a
+cancelled export or interrupted application session.
+
+## Projects and persistence
+
+Save with Ctrl+S and copy the entire project folder to move a talk:
+
+- `talk.autotalk.json`: versioned configuration, language versions, and artifact metadata.
+- `slides.pdf`, `slides/`: source PDF and rendered previews.
+- `voice/<language>/`: reference snapshots.
+- `audio/<version>/<language>/`: generated speech, keyed by effective synthesis inputs.
+- `media/`: normalized imported clips/background tracks.
+- `recordings/<session>/`: recoverable PCM, slide images, timeline, and exported video.
+
+Version-1 projects migrate on save with an untouched `.v1-backup.json`. Verified
+legacy audio remains playable with its original model provenance. Regeneration
+uses 1.7B. Changed inputs invalidate affected audio; damaged files are detected on
+reopening. Old artifacts are retained; automatic disk cleanup is not implemented.
+
+## Development and native builds
 
 ```sh
-uv venv --python 3.12
-uv pip install -e '.[dev]'
-.venv/bin/autotalk
+python3 -m venv .venv
+.venv/bin/python -m pip install -e '.[dev]'
 QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest -q
 .venv/bin/python tools/build.py
 ```
 
-The build produces a standalone application directory and a compressed archive
-under `dist/`. Unit/UI tests use a generated two-page PDF and short WAV fixtures;
-normal test runs do not invoke paid APIs, Codex generation, or model downloads.
-GitHub Actions runs these checks on Ubuntu 24.04. Its remote run is separate
-from local verification.
+On Windows use `.venv\Scripts\python.exe`; build on each target OS. The native CI
+matrix builds Linux archives, Windows ZIP packages, and Apple Silicon DMGs.
+Tests marked `audio_device` need a working physical/virtual audio output and run
+locally; remaining tests run in the native CI matrix. Signing hooks accept
+`AUTOTALK_SIGN_IDENTITY` / `AUTOTALK_NOTARY_PROFILE` on macOS and
+`AUTOTALK_SIGN_CERT` / `AUTOTALK_TIMESTAMP_URL` on Windows.
 
-See [verification results](docs/VERIFICATION.md) for what was actually exercised
-and remaining limitations. AutoTalk is a prototype, not yet a broadly qualified
-Linux distribution. Its own license remains to be selected; see
-[third-party components](THIRD_PARTY.md).
+`project.py` owns configuration and artifact validity. `services.py` operates on
+job snapshots and publishes validated results to Qt. `runtime.py` owns managed
+processes; `speech_worker.py` adapts the three native synthesis backends.
+`playback.py` owns presentation position and consumed PCM; `media.py` records and
+exports that same stream. The old separate media-player path has been removed.
 
-## Upstream references
-
-- [Codex app-server](https://learn.chatgpt.com/docs/app-server)
-- [Codex authentication](https://learn.chatgpt.com/docs/auth)
-- [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS)
-- [Qt for Python](https://doc.qt.io/qtforpython-6/)
+See [third-party notices](THIRD_PARTY.md). This is a development build; public
+release licensing, native signing, and broader hardware qualification remain open.

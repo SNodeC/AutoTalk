@@ -20,7 +20,7 @@ def test_model_gets_language_scope_and_every_slide(project, monkeypatch):
         def __init__(self, task): pass
         def __enter__(self): return self
         def __exit__(self, *args): pass
-        def generate(self, prompt, schema, images):
+        def generate(self, prompt, schema, images, **options):
             seen.update(prompt=prompt, images=images)
             return {"title": "A German talk", "slides": [
                 {"page": i, "narration": "Guten Tag.", "notes": "", "budget_seconds": 10}
@@ -39,11 +39,22 @@ def test_incomplete_model_response_leaves_current_script_intact(project, monkeyp
         def __init__(self, task): pass
         def __enter__(self): return self
         def __exit__(self, *args): pass
-        def generate(self, *args): return {"slides": []}
+        def generate(self, *args, **kwargs): return {"slides": []}
     monkeypatch.setattr(services, "Codex", Client)
     original = [s.narration for s in project.slides]
     with pytest.raises(ValueError):
         services.narrate(project, Task())
+    assert [s.narration for s in project.slides] == original
+
+
+def test_invalid_language_in_later_slide_does_not_partially_replace_script(project):
+    project.language_policy = "version"
+    original = [s.narration for s in project.slides]
+    result = {"title": "Rejected", "slides": [
+        {"page": 1, "narration": "Changed text.", "notes": "", "budget_seconds": 10},
+        {"page": 2, "narration": "[German] Guten Tag.", "notes": "", "budget_seconds": 10}]}
+    with pytest.raises(ValueError, match="permits only"):
+        services.apply_narration(project, result, Task())
     assert [s.narration for s in project.slides] == original
 
 
@@ -61,9 +72,16 @@ def test_cancellation_keeps_completed_audio(project, monkeypatch):
 
 
 def test_duration_adjustment_has_a_bound(project, monkeypatch):
+    from contextlib import nullcontext
     calls = []
-    monkeypatch.setattr(services, "synthesize", lambda p, t: make_audio(p))
-    monkeypatch.setattr(services, "narrate", lambda p, t, fit: calls.append(fit))
+    monkeypatch.setattr(services, "synthesize", lambda p, t, **kwargs: make_audio(p))
+    monkeypatch.setattr(services, "SpeechSession", lambda *args: nullcontext(None))
+    monkeypatch.setattr(services, "Codex", lambda *args: nullcontext(None))
+    def revision(p, t, client, fit=False):
+        calls.append(fit)
+        return {"title": p.title, "slides": [{"page": s.page, "narration": s.narration,
+                "notes": "", "budget_seconds": 1} for s in p.slides]}
+    monkeypatch.setattr(services, "narration_result", revision)
     services.prepare(project, Task(lambda _: None), fit=True)
     assert calls == [True, True, True]
     assert not project.within_target

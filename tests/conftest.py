@@ -44,8 +44,9 @@ def project(sample_pdf, tmp_path):
 def make_audio(project, seconds=0.3):
     for slide in project.slides:
         slide.audio_key = project.speech_key(slide)
+        slide.audio_file = project.audio_name(slide)
         path = project.audio(slide)
-        path.parent.mkdir(exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
         with wave.open(str(path), "wb") as wav:
             wav.setnchannels(1)
             wav.setsampwidth(2)

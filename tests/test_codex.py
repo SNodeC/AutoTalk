@@ -1,6 +1,7 @@
 """Contract tests use an actual subprocess with scripted app-server messages."""
 
 import sys
+import os
 
 import pytest
 
@@ -10,6 +11,8 @@ from autotalk.runtime import Task
 
 @pytest.fixture
 def fake_server(tmp_path, monkeypatch):
+    if os.name == "nt":
+        pytest.skip("POSIX executable fake server; native Windows smoke coverage is separate")
     path = tmp_path / "codex"
     path.write_text(f"#!{sys.executable}\n" + '''
 import json,sys
@@ -22,6 +25,8 @@ for line in sys.stdin:
   result={'account':{'type':'chatgpt','planType':'plus'}}
  elif method=='thread/start':
   result={'thread':{'id':'thread-test'}}
+ elif method=='model/list':
+  result={'data':[{'model':'test-vision','displayName':'Vision','isDefault':True,'inputModalities':['text','image'], 'supportedReasoningEfforts':[{'reasoningEffort':'high'}]}],'nextCursor':None}
  elif method=='turn/start':
   # Events may arrive before the request response.
   send({'method':'item/completed','params':{'threadId':'thread-test','item':{'type':'agentMessage','text':json.dumps({'scope':'Engineering'})}}})
@@ -41,3 +46,12 @@ def test_app_server_keeps_early_events_and_structured_output(fake_server):
         assert client.login() == "Connected to ChatGPT (plus)"
         result = client.generate("Summarize scope", codex.SCOPE_SCHEMA)
     assert result == {"scope": "Engineering"}
+
+
+def test_discovery_and_effort_validation(fake_server):
+    with codex.Codex(Task()) as client:
+        assert client.models()[0]["model"] == "test-vision"
+        assert client.generate("Scope", codex.SCOPE_SCHEMA, model="test-vision", effort="high")["scope"] == "Engineering"
+        with pytest.raises(ValueError, match="effort"):
+            client.generate("Scope", codex.SCOPE_SCHEMA, model="test-vision", effort="invalid")
+        assert client.generate("Revise", codex.SCOPE_SCHEMA)["scope"] == "Engineering"

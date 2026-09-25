@@ -27,7 +27,7 @@ def test_changes_never_reuse_stale_audio(project, change):
     elif change == "language":
         project.language = "German"
     elif change == "voice":
-        project.voice_hash = "different-reference"
+        project.voice.speaker = "Aiden"
     else:
         project.pause_seconds = 1.5
     assert not project.prepared

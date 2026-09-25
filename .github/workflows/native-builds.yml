@@ -1,0 +1,47 @@
+name: Native builds
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install development dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0 libxcb-cursor0 libxkbcommon-x11-0
+      - name: Tests independent of physical audio devices
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest -q -m "not audio_device"
+      - name: Build native package
+        run: python tools/build.py
+      - name: Native packaged launch
+        env:
+          QT_QPA_PLATFORM: offscreen
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            dist/AutoTalk.app/Contents/MacOS/autotalk --smoke-test
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            dist/autotalk/autotalk.exe --smoke-test
+          else
+            dist/autotalk/autotalk --smoke-test
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AutoTalk-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            dist/AutoTalk-*.tar.gz
+            dist/AutoTalk-*.zip
+            dist/AutoTalk-*.dmg
+            dist/AutoTalk-*.sha256
