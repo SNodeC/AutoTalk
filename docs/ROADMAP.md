@@ -14,6 +14,12 @@ measurements and all existing product/platform requirements.
 
 Implemented in the working tree:
 
+- The local Linux bundle includes system Qt 6.10.2, Plasma integration and Breeze.
+  The platform selects the style; isolated tests cover other styles and live
+  palette/style changes. Build-time staging replaces the wheel's Qt module sources
+  with installed counterparts, retaining matching optional modules when absent.
+  This does not implement the proposed menu-bar UI redesign.
+
 - Linux CI includes `libpulse0` so QtMultimedia can import.
 - Subprocess output uses UTF-8 text mode with universal newline handling.
 - PDF import and export destroy their operation-owned Qt documents on every exit,
@@ -32,7 +38,7 @@ Implemented in the working tree:
 
 The user approved the narrow PDF/UI additions. They add 20 net production lines
 relative to the prior follow-up changes, within the estimated 15–25 lines. Linux
-verification passes 97 tests after the system-theme refinement, with minimum-size
+verification passes 99 tests after the platform-style refinement, with minimum-size
 UI checks in light/dark appearance at normal/150% scaling.
 
 Screen capture has a successful video-only feasibility result through Qt's portal

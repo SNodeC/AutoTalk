@@ -1,5 +1,80 @@
 # 0.3 refinement verification — Linux only
 
+## Packaged native file navigation — 2026-09-26
+
+The previous native chooser inspection ran from source and missed a packaging
+dependency. A frozen reproduction showed an empty directory view and KIO's
+`Unknown protocol 'file'` error. PyInstaller collected the Plasma dialog but not
+its dynamically discovered local filesystem plugin. The package specification now
+collects `kf6/kio/kio_file.so` from the selected Qt distribution as a binary, so
+its dependencies are also analysed. Application filters and native dialog
+selection are unchanged; ordinary Qt distributions without this plugin are
+unaffected.
+
+- **4 build tests passed**, covering matching/mismatched Qt bindings and package
+  collection with/without the filesystem backend.
+- A frozen probe built with the same specification verified visible folders,
+  PDF filtering, keyboard entry into a subdirectory, Alt-Up parent navigation,
+  and acceptance of the exact PDF path. Directory-only and save dialogs also
+  displayed subdirectories.
+- The same checks passed with isolated preferences and an empty PATH. Runtime
+  mappings confirmed the filesystem plugin came from the bundle. A child-exec
+  trace showed no external `kioworker` execution with this machine's KIO version.
+- Evidence, the frozen probe and its logs are in ignored `artifacts/file-dialog/`.
+  This verification is Linux-only. No application behavior or speech defaults
+  changed, and the application test suite was not repeated for this packaging fix.
+
+This fix adds **3 packaging lines and 22 test lines**, with no application-code
+growth. It completes the already approved native Qt bundling by declaring its
+missing runtime backend; it adds no application state or fallback implementation.
+
+## Bundled platform style — 2026-09-25
+
+The Linux package now includes the build machine's Qt 6.10.2 libraries, Plasma
+integration and Breeze. Qt chooses the style from desktop settings. There is no
+new application style resolver, forced style, stylesheet or theme callback.
+
+The initial Qt 6.11.2 probe loaded Breeze but rejected the machine's Qt 6.10
+platform integration plugin. An alternate Plasma style selection exposed that
+incomplete integration. Matching the Qt version and collecting the native plugins
+restores the actual platform selection boundary. Build staging ensures the
+bindings' embedded library search paths cannot select wheel modules ahead of
+installed counterparts. Qt PDF is absent on the host and uses the matching 6.10.2
+binding-package module; all other collected Qt libraries match installed files.
+
+- **99 tests passed in 25.74 s** using the staged system libraries with Plasma's
+  platform theme, including the four audio-device tests. Build tests reject Qt /
+  binding mismatches before collection and verify native-module precedence and
+  the matching optional-module source. The checkbox visual test now waits for
+  native check-mark animation; the visible-state assertion remains intact.
+- Hash verification covered **27 Qt libraries and style/integration plugins**.
+  Runtime inspection after Breeze loaded found **17 Qt libraries**, all within
+  the bundle. Opening an isolated saved PDF project passed with an empty PATH.
+  The installed checkout launcher also loaded the bundled Plasma/Breeze plugins.
+- The packaged application loaded its own Plasma integration and Breeze plugins.
+  An alternate isolated Plasma configuration selected the Windows widget style;
+  Breeze was not forced. A separate isolated D-Bus session verified existing
+  AutoTalk controls following Windows → Breeze and light → dark → light changes.
+  The user's desktop preferences and notifications were not changed.
+- Source-run native Breeze controls and the native KDE PDF chooser were visually inspected
+  in light mode at 100% and dark mode at 150%. The 940×680 workspaces had no
+  horizontal overflow. Evidence is in ignored `artifacts/platform-style/`.
+- Five source launches before/after had medians **0.500 / 0.688 s** and means
+  **0.868 / 1.058 s**; the first run in each batch took **2.334 / 2.558 s**.
+  These measure import through the first visible-window event, not speech startup.
+  The roughly 0.19-second median increase is a measured native-integration cost.
+- The uncompressed native bundle is approximately **538 MiB**, versus **374 MiB**
+  previously. It includes KDE dependencies. This host build is not a qualification
+  of older Linux distributions; Windows/macOS were not tested. The ordinary CI
+  build retains the wheel-based Qt distribution unless `--system-qt` is requested.
+
+Production build code changes are **+21 / −1 (net +20)**. Tests are **+68 / −1
+(net +67)**; the dependency manifest adds one net line. Growth implements the
+approved bundling of this machine's Qt, including isolated binding/library staging
+and a version guard, rather than only the initially estimated plugin discovery.
+The application itself adds no production lines. Source and bundled notices
+identify the native FFmpeg/KDE components; public-release licensing remains open.
+
 ## System appearance — 2026-09-25
 
 The global dark stylesheet and forced Fusion selection are removed. Qt owns the

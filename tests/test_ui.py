@@ -100,9 +100,10 @@ def test_controls_and_pdf_selector_follow_palette_changes(qtbot, qapp, project):
             indicator = checkbox.style().subElementRect(QStyle.SubElement.SE_CheckBoxIndicator, option, checkbox)
             assert indicator.width() > 0 and indicator.height() > 0
             checkbox.setChecked(False)
+            qtbot.wait(300)  # Native styles animate the check mark; let unchecking finish.
             unchecked = checkbox.grab().toImage()
             checkbox.setChecked(True)
-            assert checkbox.grab().toImage() != unchecked
+            qtbot.waitUntil(lambda: checkbox.grab().toImage() != unchecked)
         dialog.close()
     finally:
         qapp.setPalette(previous_palette)

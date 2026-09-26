@@ -14,8 +14,28 @@ system = platform.system()
 machine = platform.machine().lower()
 if (system, machine) not in (("Linux", "x86_64"), ("Windows", "amd64"), ("Darwin", "arm64")):
     raise SystemExit("Build on Linux x86_64, Windows x64, or Apple Silicon macOS.")
+build_env = os.environ.copy()
+if sys.argv[1:] == ["--system-qt"] and system == "Linux":
+    from PySide6 import __version__ as binding_version, __file__ as binding_file
+    qt = dict(line.split(":", 1) for line in subprocess.check_output(["qtpaths6", "--query"], text=True).splitlines())
+    if qt["QT_VERSION"] != binding_version:
+        raise SystemExit(f"System Qt {qt['QT_VERSION']} requires matching PySide6; found {binding_version}.")
+    native = root / "build" / "system-qt" / "PySide6"
+    shutil.copytree(Path(binding_file).parent, native, ignore=shutil.ignore_patterns("Qt", "__pycache__"), dirs_exist_ok=True)
+    (native / "Qt/lib").mkdir(parents=True, exist_ok=True)
+    for library in Path(binding_file).with_name("Qt").joinpath("lib").glob("libQt6*.so.6"):
+        installed = Path(qt["QT_INSTALL_LIBS"]) / library.name
+        shutil.copy2(installed if installed.exists() else library, native / "Qt/lib" / library.name)
+    for directory, key in (("plugins", "PLUGINS"), ("translations", "TRANSLATIONS")):
+        target = native / "Qt" / directory
+        target.unlink(missing_ok=True)
+        target.symlink_to(qt["QT_INSTALL_" + key], target_is_directory=True)
+    build_env.update(PYTHONPATH=os.pathsep.join([str(native.parent), *sys.path]),
+                     LD_LIBRARY_PATH=os.pathsep.join(filter(None, (str(native / "Qt/lib"), build_env.get("LD_LIBRARY_PATH")))))
+elif sys.argv[1:]:
+    raise SystemExit("Usage: build.py [--system-qt (Linux only)]")
 subprocess.run([sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean",
-                str(root / "packaging/autotalk.spec")], cwd=root, check=True)
+                str(root / "packaging/autotalk.spec")], cwd=root, env=build_env, check=True)
 bundle = root / "dist" / ("AutoTalk.app" if system == "Darwin" else "autotalk")
 documents = bundle / "Contents/Resources" if system == "Darwin" else bundle
 for name in ("README.md", "THIRD_PARTY.md"):

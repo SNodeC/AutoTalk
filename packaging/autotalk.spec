@@ -1,11 +1,14 @@
 import os
 import sys
 from pathlib import Path
+from PySide6.QtCore import QLibraryInfo
 
 root = Path(SPECPATH).parent
 assets = ["speech_worker.py", "compiler.py", "models.json", "speech-linux.yaml",
           "speech-linux.txt", "speech-windows.txt", "speech-macos.txt"]
 a = Analysis([str(root / "tools/entry.py")], pathex=[str(root / "src")],
+             binaries=[(str(worker), "PySide6/Qt/plugins/kf6/kio") for worker in
+                       Path(QLibraryInfo.path(QLibraryInfo.PluginsPath)).glob("kf6/kio/kio_file.so")],
              datas=[(str(root / "src/autotalk" / name), "autotalk") for name in assets],
              hiddenimports=[], excludes=["tkinter"])
 pyz = PYZ(a.pure)

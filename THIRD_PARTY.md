@@ -7,7 +7,8 @@ weights retain their licenses. Redistribution must retain the applicable notices
 | --- | --- |
 | Qt / PySide6 / Shiboken | LGPL/GPL/commercial, depending on module; [Qt licensing](https://doc.qt.io/qt-6/licensing.html) |
 | Qt PDF / PDFium | Includes third-party PDFium code; [Qt PDF licenses](https://doc.qt.io/qt-6/qtpdf-index.html#licenses-and-attributions) |
-| Qt Multimedia / FFmpeg | Bundled Qt multimedia reports FFmpeg under LGPL 2.1 or later; [Qt Multimedia](https://doc.qt.io/qt-6/qtmultimedia-index.html#licenses-and-attributions) |
+| Qt Multimedia / FFmpeg | Depends on the chosen Qt distribution. The current system-Qt Linux build reports FFmpeg 8.1.2 under GPL 2 or later; earlier wheel builds reported LGPL 2.1 or later. [Qt Multimedia](https://doc.qt.io/qt-6/qtmultimedia-index.html#licenses-and-attributions) |
+| KDE Breeze / Plasma integration / KDE Frameworks | Component-specific GPL/LGPL licenses; see [Breeze](https://invent.kde.org/plasma/breeze), [Plasma integration](https://invent.kde.org/plasma/plasma-integration), and the bundled system copyright notices. |
 | CPython | Python Software Foundation License; [Python](https://docs.python.org/3/license.html) |
 | PyInstaller | GPL with a bundling exception; [PyInstaller](https://pyinstaller.org/en/stable/license.html) |
 | uv | MIT or Apache-2.0; [uv](https://github.com/astral-sh/uv) |

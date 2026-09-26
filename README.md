@@ -18,6 +18,9 @@ local Linux bundle at `dist/autotalk/autotalk`.
 
 AutoTalk follows the system light/dark appearance through Qt, including theme
 changes while it is open. Controls, dialogs, and checkboxes use the system palette.
+The current Linux bundle also includes this build machine's Qt 6.10.2, Plasma
+integration, and Breeze widget style. Plasma selects the appearance; AutoTalk
+does not force Breeze. Other styles require a compatible included style plugin.
 
 | Platform | Speech backend | Qualification |
 | --- | --- | --- |
@@ -190,6 +193,22 @@ python3 -m venv .venv
 QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest -q
 .venv/bin/python tools/build.py
 ```
+
+To bundle a Linux build machine's Qt libraries and desktop style plugins, use
+`.venv/bin/python tools/build.py --system-qt`. This build option requires
+`qtpaths6` and a system Qt version matching the Linux PySide6 dependency (currently
+6.10.2). It stages the bindings with installed Qt modules and discovers the system
+plugins through the existing PyInstaller hooks. The packaging recipe also includes
+KDE's local filesystem plugin when present, so native file dialogs can browse
+directories. Missing optional modules, such as
+Qt PDF on this machine, come from the same-version binding package. The original
+Python environment and system installation are not modified by staging.
+
+This is a build-host requirement, not an end-user setup step. The resulting bundle
+contains the collected libraries/plugins. Its Linux/glibc baseline follows the
+build host; it is not qualified for arbitrary older distributions. The default
+build command continues to use the binding package's Qt distribution, including
+in the existing CI workflow. Windows/macOS dependency selection is unchanged.
 
 On Windows use `.venv\Scripts\python.exe`; build on each target OS. The native CI
 matrix builds Linux archives, Windows ZIP packages, and Apple Silicon DMGs.
