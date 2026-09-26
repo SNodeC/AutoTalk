@@ -3,6 +3,7 @@
 import json
 import math
 import shutil
+import time
 import uuid
 import wave
 from fractions import Fraction
@@ -112,6 +113,9 @@ class Mix:
             self.background = AudioFile(p.asset(p.background.file), gain=p.background.gain, loop=p.background.loop) if p.background else None
         for i in range(len(p.slides)) if index is None else [index]:
             slide = p.slides[i]
+            if not slide.included:
+                self.parts[i], self.complete[i] = [], True
+                continue
             current = slide.narration_context == p.context_key()
             ready = current and p.ready(slide)
             parts = [AudioFile(p.asset(c.file), gain=c.gain) for c in slide.clips if c.placement == "before"]
@@ -167,6 +171,7 @@ class Capture:
         (self.root / "session.json").write_text(json.dumps({
             "version": 2, "channels": 2, "format": "s16le", "status": "recording",
             "destination": self.destination, "policy": self.policy, "rate": RATE,
+            "title": project.title, "started_at": time.time(),
             "slides": len(project.slides), "export_rate": project.export_rate,
             "export_bitrate": project.export_bitrate}, indent=2), encoding="utf-8")
         # Recording remains exportable after the talk is moved or edited.
@@ -208,7 +213,8 @@ def export_recording(root, task, destination=None):
     destination = Path(destination or info["destination"])
     info.update(destination=str(destination.resolve()), status="pending")
     (root / "session.json").write_text(json.dumps(info, indent=2))
-    events = []
+    desktop = info.get("source") == "screen"
+    events = [{"frame": 0, "slide": 0}] if desktop else []
     lines = (root / "events.jsonl").read_text(encoding="utf-8").splitlines()
     for i, line in enumerate(lines):
         try:
@@ -228,10 +234,19 @@ def export_recording(root, task, destination=None):
     temporary = destination.with_name(destination.stem + ".partial" + destination.suffix)
     frames = math.ceil(samples / rate * 30)
     document = QPdfDocument()
-    container = None
+    container = screen_input = microphone = None
     try:
         if (root / "slides.pdf").exists() and document.load(str(root / "slides.pdf")) != QPdfDocument.Error.None_:
             raise ValueError("The recorded source PDF cannot be opened.")
+        if desktop:
+            screen_input = av.open(str(root / "screen.mkv"))
+            pictures = iter(screen_input.decode(video=0))
+            upcoming = next(pictures, None)
+            current_picture = upcoming
+            if upcoming is None:
+                raise ValueError("No screen frames were recorded.")
+            if (root / "microphone.pcm").exists():
+                microphone = (root / "microphone.pcm").open("rb")
         container = av.open(str(temporary), "w", format="wav" if destination.suffix.lower() == ".wav" else "mp4")
         video = None
         if destination.suffix.lower() == ".mp4":
@@ -249,15 +264,21 @@ def export_recording(root, task, destination=None):
                 while event_index + 1 < len(events) and events[event_index + 1]["frame"] <= at:
                     event_index += 1
                 page = events[event_index]["slide"]
-                if video and page != last_page:
-                    size = document.pagePointSize(page-1)
-                    if not size.isEmpty():
-                        scale = min(1920/size.width(), 1080/size.height())
-                        image = document.render(page-1, QSize(round(size.width()*scale), round(size.height()*scale)))
-                    else:
-                        image = QImage(str(root / f"{page:04d}.png"))
+                if video and desktop:
+                    while upcoming is not None and float(upcoming.time or 0) <= i / 30:
+                        current_picture, upcoming = upcoming, next(pictures, None)
+                    pixels = np.ascontiguousarray(current_picture.to_ndarray(format="rgb24"))
+                    image = QImage(pixels.data, pixels.shape[1], pixels.shape[0], pixels.strides[0], QImage.Format.Format_RGB888)
+                if video and (desktop or page != last_page):
+                    if not desktop:
+                        size = document.pagePointSize(page-1)
+                        if not size.isEmpty():
+                            scale = min(1920/size.width(), 1080/size.height())
+                            image = document.render(page-1, QSize(round(size.width()*scale), round(size.height()*scale)))
+                        else:
+                            image = QImage(str(root / f"{page:04d}.png"))
                     if image.isNull():
-                        raise ValueError(f"Recorded slide {page} is missing.")
+                        raise ValueError(f"Recorded image {page} is missing.")
                     canvas = QImage(1920, 1080, QImage.Format.Format_RGB888)
                     canvas.fill(QColor("black"))
                     scaled = image.scaled(QSize(1920, 1080), Qt.AspectRatioMode.KeepAspectRatio,
@@ -277,6 +298,11 @@ def export_recording(root, task, destination=None):
                 if target > audio_position:
                     raw = source.read((target-audio_position)*2*channels)
                     pcm = np.frombuffer(raw, dtype="<i2").reshape(1, -1)
+                    if microphone:
+                        mic = np.frombuffer(microphone.read(len(raw)), dtype="<i2")
+                        mixed = pcm.astype(np.int32)
+                        mixed[0, :len(mic)] += mic.astype(np.int32)
+                        pcm = np.clip(mixed, -32768, 32767).astype("<i2")
                     aframe = av.AudioFrame.from_ndarray(pcm, format="s16", layout=layout)
                     aframe.sample_rate = rate
                     aframe.pts, aframe.time_base = audio_position, Fraction(1, rate)
@@ -297,8 +323,9 @@ def export_recording(root, task, destination=None):
         return destination
     finally:
         delete(document)
-        if container:
-            container.close()
+        for resource in (container, screen_input, microphone):
+            if resource:
+                resource.close()
         temporary.unlink(missing_ok=True)
 
 

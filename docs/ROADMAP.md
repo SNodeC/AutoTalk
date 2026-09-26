@@ -5,6 +5,23 @@ complete agreed product scope below. Implementation targets 0.3. Testing for
 this refinement pass is **Linux only**; Windows/macOS support is retained.
 See [behavior](../README.md) and [measured verification](VERIFICATION.md).
 
+## Ordinary-user usability pass — implemented
+
+The nine original review groups and all **15 findings from the fresh walkthrough**
+are implemented in [the individual acceptance list](design/USABILITY.md).
+The second pass fixes voice prerequisites, translation approval, old-video versus
+new-recording state, fullscreen mouse controls and completion, and preview waiting.
+It also exposes basic setup and duration fitting, describes voices, separates
+recording discovery from new exports, and opens slides in the system image viewer.
+
+Cumulative usability accounting is **118 net production lines**, within the
+approved 120-line limit, and **409 net test lines**. The second pass contributes
+48 production and 188 test lines. Linux verification includes 144 passing tests,
+native Breeze walkthroughs, real Qwen preview, recording/export and system-viewer
+checks. The earlier real Realtime/MP4 run remains separate evidence. Model loading
+is still the main cold-start wait; this UI pass does not claim to accelerate it.
+Earlier product/platform requirements and deferred qualifications below remain.
+
 ## Current follow-up — implementation started
 
 The current scope is checkbox visibility, recording discovery, Linux screen/audio
@@ -18,7 +35,8 @@ Implemented in the working tree:
   The platform selects the style; isolated tests cover other styles and live
   palette/style changes. Build-time staging replaces the wheel's Qt module sources
   with installed counterparts, retaining matching optional modules when absent.
-  This does not implement the proposed menu-bar UI redesign.
+  The desktop UI refinement now follows the approved clickable prototype; see
+  [design and acceptance](design/UI-REDESIGN.md).
 
 - Linux CI includes `libpulse0` so QtMultimedia can import.
 - Subprocess output uses UTF-8 text mode with universal newline handling.
@@ -26,9 +44,9 @@ Implemented in the working tree:
   before staging moves/cleanup; exception tracebacks cannot retain native handles.
 - Native Qt controls follow the system light/dark appearance, including live changes;
   the forced dark stylesheet and custom checkbox asset are removed.
-- Shared checkboxes have visible native states. Recording selection stays beside
-  Start on all tabs; active capture shows recorded time. Destination and saved-file
-  actions are near the top of Present & Export. Settings lock during presentation.
+- Shared checkboxes have visible native states. Recording selection stays below
+  the editor, Quick and presenter views; active capture shows recorded time.
+  Destination is under Talk settings → Recording; outputs are in Export / recordings. Settings lock during presentation.
 - The existing delivery resolver supplies steady-pace, restrained-expression and
   consistent-character guidance. Style/custom/slide overrides remain explicit;
   Base receives no unsupported vocal instruction and Quick uses its default voice.
@@ -41,16 +59,20 @@ relative to the prior follow-up changes, within the estimated 15–25 lines. Lin
 verification passes 99 tests after the platform-style refinement, with minimum-size
 UI checks in light/dark appearance at normal/150% scaling.
 
-Screen capture has a successful video-only feasibility result through Qt's portal
-capture and the existing PyAV/libx264 encoder. A separate isolated stereo monitor
-probe succeeded using the installed PulseAudio library. These probes are not an
-implemented recording feature. The proposed integration reuses these boundaries,
-consolidates encoding, and gives recording one owner independent of narration.
-Estimated net production growth is 350–500 lines; the separate approval request
-is pending. It includes background encoding, selected audio sources, recovery and
-UI integration. Desktop audio and direct narration capture must not be duplicated.
-Audio/video synchronization, microphone mixing, recovery and simultaneous active
-Qwen performance remain acceptance work.
+The clickable-prototype refinement now includes a dedicated voice library, real
+preview waveform, per-slide regeneration/timing/inclusion/after-slide controls,
+menu commands and saved/unfinished recording discovery. Old tabs are removed.
+Linux screen capture uses Qt's desktop chooser, a bounded encoder queue and the
+PulseAudio system monitor, with optional default microphone. Recording survives
+narration pauses and the final slide, and uses the existing session/export path.
+Slides/narration capture remains available on all platforms. The latest Linux
+regressions and live checks are recorded in VERIFICATION.md.
+
+A new real Codex/Qwen Realtime run completed both slides and produced its MP4.
+Desktop capture passed on both an isolated Linux X11 display and native Wayland
+with user-granted Plasma sharing. Stereo monitor capture and microphone mixing
+have separate checks. Physical microphone, permission revocation and simultaneous
+desktop capture under sustained Qwen load remain qualification work. Do not treat these as already accepted.
 
 The running user's speech session was not interrupted for synthesis comparisons;
 the normal exclusive GPU lease rejected the comparison attempt. The reproducible
@@ -100,7 +122,7 @@ limits and measured results are tracked below.
 | 3. Realtime serial startup | Load speech concurrently with Codex. A single first request plans the deck and writes its opening slide; later slide requests overlap synthesis and use the same thread/context. |
 | 4. Repeated cold model loads | Lease the existing speech process across preview/preparation; reload incompatible configurations, release on error/exit or selected idle policy. No separate model service. |
 | 5. Inconsistent sentence delivery | Group compatible sentences within paragraphs and the existing 300-character bound. Retain Earliest playback as a selectable tradeoff. Preserve voice and effective delivery settings, and record segmentation provenance. Listening acceptance remains separate. |
-| 6. Confusing/clipped UI | Setup, Script, Present & Export; scrollable workspaces; one contextual primary action; technical controls under Advanced; mode-specific options; recording beside presentation. |
+| 6. Confusing/clipped UI | Menu bar, compact toolbar, slide editor/inspector, Quick and presenter views; sectioned Talk settings and Preferences; one contextual primary action; visible recording control. See design/UI-REDESIGN.md. |
 | 7. Lost style/redesigned preview | Combine style and attributes with explicit instruction precedence. Accept the exact VoiceDesign preview and explain the transition to Base controls. |
 | 8. Expensive timing updates | Audio descriptors change at project/audio transitions. Timing labels read descriptors at 4 Hz; audio feeding performs no full-deck file/hash traversal. |
 | 9. Buffering/misleading timing | Show incomplete remaining time as estimating, expose buffered audio and fullscreen state, adapt consistency-first buffering to observed production, persist stage/run measurements. |

@@ -6,6 +6,7 @@ import json
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 import shutil
 import tempfile
 import urllib.parse
@@ -124,7 +125,7 @@ def extract_scope(url, task, model="", effort=""):
 
 
 def narration_result(project, task, client, fit=False, pages=None, outline=None, opening=None):
-    pages = pages or [s.page for s in project.slides]
+    pages = pages if pages is not None else [s.page for s in project.included_slides]
     quick = project.mode == "Quick"
     data = {"scope": "" if quick else project.scope,
             "audience": "General conference audience" if quick else project.audience,
@@ -132,18 +133,19 @@ def narration_result(project, task, client, fit=False, pages=None, outline=None,
             "language": project.language, "language_policy": project.language_policy,
             "style": "Professional" if quick else project.delivery.style,
             "target_seconds": project.target_minutes*60, "transition_pause_seconds": project.pause_seconds,
-            "fixed_clip_seconds": sum(c.seconds for s in project.slides for c in s.clips),
+            "fixed_clip_seconds": sum(c.seconds for s in project.included_slides for c in s.clips),
             "requested_pages": pages, "outline": ({"instruction": "Follow the complete plan already in this thread", "slides": [s for s in outline["slides"] if s["page"] in pages]} if outline else None),
             "slides": [{"page": s.page, "source_text": s.source_text,
                         "current_narration": s.narration,
-                        "measured_seconds": s.duration if project.ready(s) else None} for s in project.slides if not outline or s.page in pages]}
+                        "measured_seconds": s.duration if project.ready(s) else None,
+                        "requested_seconds": s.budget_seconds if not fit and len(pages) == 1 and s.budget_seconds > 0 else None} for s in project.slides if not outline or s.page in pages]}
     if any(s.narration_origin == "translation" for s in project.slides):
         data["translation_instruction"] = "Translate the source narration into the requested language, preserving its meaning and approved factual content."
     instruction = ("Revise the existing talk to fit the target using measured slide durations. Preserve correct content."
                    if fit else "Write a coherent conference talk for the requested pages, following the complete deck's structure.")
     if opening:
         instruction = f"Plan this complete talk. Write FINAL natural spoken narration for slide {opening}; use short outlines in the other slides' narration fields."
-    prompt = instruction + " Allocate uneven time according to substance, including introduction and conclusion. Account for fixed clips and pauses. Write natural spoken language, not Markdown or stage directions. Preserve explicit [Language] paragraph markers for intentionally mixed passages; otherwise use the requested talk language. Never invent unsupported facts. Notes are for factual uncertainty or missing context. Use images and extracted text together. Return the requested pages in order, with time budgets in seconds.\nINPUT:\n" + json.dumps(data, ensure_ascii=False)
+    prompt = instruction + " Allocate uneven time according to substance, including introduction and conclusion. Account for fixed clips and pauses. Write natural spoken language, not Markdown or stage directions. Preserve explicit [Language] paragraph markers for intentionally mixed passages; otherwise use the requested talk language. Never invent unsupported facts. Notes are for factual uncertainty or missing context. Use images and extracted text together. Return the requested pages in order, with time budgets in seconds. Respect requested_seconds when supplied for a single slide.\nINPUT:\n" + json.dumps(data, ensure_ascii=False)
     started = time.monotonic()
     task.report("Planning the complete deck while loading speech…" if opening else "Codex is creating narration…")
     result = client.generate(prompt, NARRATION_SCHEMA, [project.image(project.slides[p-1]) for p in pages],
@@ -174,16 +176,16 @@ def apply_narration(project, result, task, fit=False):
     project.save()
     task.event({"type": "narration", "version": project.active_version, "title": project.title,
                 "slides": [copy.deepcopy(project.slides[v["page"]-1]) for v in result["slides"]]})
-    task.event({"type": "progress", "stage": "Narration", "completed": sum(bool(s.passages) and s.narration_context == project.context_key() for s in project.slides),
-                "total": len(project.slides)})
+    task.event({"type": "progress", "stage": "Narration", "completed": sum(bool(s.passages) and s.narration_context == project.context_key() for s in project.included_slides),
+                "total": len(project.included_slides)})
     return project
 
 
-def narrate(project, task, fit=False):
+def narrate(project, task, fit=False, pages=None):
     with Codex(task) as client:
-        result = narration_result(project, task, client, fit)
+        result = narration_result(project, task, client, fit, pages=pages)
     task.check()
-    return apply_narration(project, result, task, fit)
+    return apply_narration(project, result, task, fit or pages is not None)
 
 
 def speech_config(project):
@@ -234,6 +236,12 @@ def preview_text(project):
     return text + " " + text if project.effective_voice.source == "VoiceDesign" else text
 
 
+def preview_path(project):
+    sample = Slide(0)
+    sample.narration = preview_text(project)
+    return data_dir() / "previews" / f"{project.speech_key(sample)}.wav"
+
+
 def synthesize(project, task, preview=False, *, pages=None, session=None):
     voice = project.effective_voice
     items = []
@@ -243,6 +251,8 @@ def synthesize(project, task, preview=False, *, pages=None, session=None):
         sample.narration = preview_text(project)
         selected = [sample]
     for slide in selected:
+        if not preview and not slide.included:
+            continue
         if not slide.passages:
             raise ValueError(f"Slide {slide.page} has no narration.")
         if not preview and project.ready(slide):
@@ -262,9 +272,9 @@ def synthesize(project, task, preview=False, *, pages=None, session=None):
                 passages.append({"text": text, "language": passage.language, "reference": reference,
                                  "instructions": project.directions(slide)})
         key = project.speech_key(slide)
-        output = data_dir() / "previews" / f"{key}.wav" if preview else project.asset(project.audio_name(slide, key))
+        output = preview_path(project) if preview else project.asset(project.audio_name(slide, key))
         items.append({"page": slide.page, "key": key, "passages": passages, "output": str(output),
-                      "pause": project.pause_seconds if 0 < slide.page < len(project.slides) else 0})
+                      "pause": project.pause_after(slide)})
     if not items:
         return project
     config = speech_config(project)
@@ -296,8 +306,8 @@ def synthesize(project, task, preview=False, *, pages=None, session=None):
                 task.event({"type": "slide_ready", "version": project.active_version, "slide": copy.deepcopy(slide)})
                 task.event({"type": "measurement", "stage": "Speech", "seconds": value["generation_seconds"],
                             "audio_seconds": slide.duration})
-                task.event({"type": "progress", "stage": "Speech", "completed": sum(project.ready(s) for s in project.slides),
-                            "total": len(project.slides)})
+                task.event({"type": "progress", "stage": "Speech", "completed": sum(project.ready(s) for s in project.included_slides),
+                            "total": len(project.included_slides)})
             else:
                 task.event({**value, "version": project.active_version})
         else:
@@ -325,23 +335,22 @@ def freeze_designed_voice(project, task):
 def prepare(project, task, fit=False):
     if not project.script_current and not fit:
         raise ValueError("Review and accept the script for the current context before generating audio.")
-    fixed = sum(c.seconds for s in project.slides for c in s.clips) + project.pause_seconds * (len(project.slides)-1)
+    fixed = sum(c.seconds for s in project.included_slides for c in s.clips) + project.pause_seconds * (len(project.included_slides)-1)
     if fit and fixed > project.target_minutes * 60 + project.tolerance_seconds:
         raise ValueError("Clips and fixed pauses already exceed the requested duration.")
     if project.prepared and (not fit or project.within_target):
         return project
     freeze_designed_voice(project, task)
-    with speech_session(task, speech_config(project)) as session:
+    with (Codex(task) if fit else nullcontext()) as client, speech_session(task, speech_config(project)) as session:
         synthesize(project, task, session=session)
         if fit:
-            with Codex(task) as client:
-                for attempt in range(3):
-                    if project.within_target:
-                        break
-                    task.report(f"Duration {project.total_seconds:.1f}s; adjustment {attempt+1}/3…")
-                    result = narration_result(project, task, client, fit=True)
-                    apply_narration(project, result, task, fit=True)
-                    synthesize(project, task, session=session)
+            for attempt in range(3):
+                if project.within_target:
+                    break
+                task.report(f"Duration {project.total_seconds:.1f}s; adjustment {attempt+1}/3…")
+                result = narration_result(project, task, client, fit=True)
+                apply_narration(project, result, task, fit=True)
+                synthesize(project, task, session=session)
             if not project.within_target:
                 task.report("The talk remains outside the requested tolerance. The measured duration is shown.")
     return project
@@ -356,40 +365,40 @@ def workflow(project, task):
     if project.manual_review_required:
         raise ValueError("Review and accept your edited script, or explicitly regenerate it, before Start.")
     freeze_designed_voice(project, task)
+    missing = [s.page for s in project.included_slides if s.narration_context != project.context_key() or not s.passages]
+    needs_codex = missing or project.mode == "Quick" and project.quick_timing != "once"
     context = speech_session(task, speech_config(project))
-    with ThreadPoolExecutor(max_workers=2) as workers:
+    with (Codex(task) if needs_codex else nullcontext()) as client, ThreadPoolExecutor(max_workers=2) as workers:
         loading = workers.submit(context.__enter__)
         try:
-            with Codex(task) as client:
-                missing = [s.page for s in project.slides if s.narration_context != project.context_key() or not s.passages]
-                ahead = project.mode == "Realtime" and project.realtime_script == "ahead"
-                outline = None
-                if missing and ahead:
-                    outline = narration_result(project, task, client, opening=missing[0])
-                batches = [[page] for page in missing] if ahead else ([missing] if missing else [])
-                if batches:
-                    first = ({"title": outline["title"], "slides": [s for s in outline["slides"] if s["page"] in batches[0]]}
-                             if outline else narration_result(project, task, client, pages=batches[0]))
-                    apply_narration(project, first, task)
-                session = loading.result()
-                future = None
-                for i, pages in enumerate(batches or [[]]):
-                    if future:
-                        apply_narration(project, future.result(), task)
-                    future = workers.submit(narration_result, copy.deepcopy(project), task, client,
-                                            pages=batches[i+1], outline=outline) if i+1 < len(batches) else None
-                    # Current scripts before this batch may only need their audio resumed.
-                    through = pages[-1] if pages else len(project.slides)
-                    eligible = [s.page for s in project.slides[:through] if s.narration_context == project.context_key()]
-                    synthesize(project, task, pages=eligible, session=session)
-                synthesize(project, task, session=session)
-                if project.mode == "Quick" and project.quick_timing != "once":
-                    for attempt in range(3):
-                        if project.within_target:
-                            break
-                        task.report(f"Fitting duration: revision {attempt+1}/3…")
-                        apply_narration(project, narration_result(project, task, client, fit=True), task, fit=True)
-                        synthesize(project, task, session=session)
+            ahead = project.mode == "Realtime" and project.realtime_script == "ahead"
+            outline = None
+            if missing and ahead:
+                outline = narration_result(project, task, client, opening=missing[0])
+            batches = [[page] for page in missing] if ahead else ([missing] if missing else [])
+            if batches:
+                first = ({"title": outline["title"], "slides": [s for s in outline["slides"] if s["page"] in batches[0]]}
+                         if outline else narration_result(project, task, client, pages=batches[0]))
+                apply_narration(project, first, task)
+            session = loading.result()
+            future = None
+            for i, pages in enumerate(batches or [[]]):
+                if future:
+                    apply_narration(project, future.result(), task)
+                future = workers.submit(narration_result, copy.deepcopy(project), task, client,
+                                        pages=batches[i+1], outline=outline) if i+1 < len(batches) else None
+                # Current scripts before this batch may only need their audio resumed.
+                through = pages[-1] if pages else len(project.slides)
+                eligible = [s.page for s in project.slides[:through] if s.narration_context == project.context_key()]
+                synthesize(project, task, pages=eligible, session=session)
+            synthesize(project, task, session=session)
+            if project.mode == "Quick" and project.quick_timing != "once":
+                for attempt in range(3):
+                    if project.within_target:
+                        break
+                    task.report(f"Fitting duration: revision {attempt+1}/3…")
+                    apply_narration(project, narration_result(project, task, client, fit=True), task, fit=True)
+                    synthesize(project, task, session=session)
         except BaseException:
             failure = sys.exc_info()
             task.cancelled.set()

@@ -1,6 +1,7 @@
 """Regression tests at project, user-interaction and exported-media boundaries."""
 import copy
 import json
+import sys
 import time
 import wave
 from pathlib import Path
@@ -214,12 +215,17 @@ def test_recording_uses_source_pdf_and_is_recoverable(project,tmp_path):
 def test_recording_recovery_is_discovered_on_project_open(qtbot,project):
     capture=Capture(project);capture.append(np.zeros((100,2),dtype='<i2'),1);root=capture.close()
     w=MainWindow();qtbot.addWidget(w);w.adopt(project)
-    assert w.recordings.findData(str(root/'session.json'))>=0
+    assert any(w.recordings.item(i, 0).data(Qt.ItemDataRole.UserRole) == str(root/'session.json') for i in range(w.recordings.rowCount()))
 
 
-def test_three_workspaces_and_remembered_policy(qtbot,project):
+def test_desktop_workspaces_and_remembered_policy(qtbot,project):
     w=MainWindow();qtbot.addWidget(w);w.adopt(project)
-    assert [w.tabs.tabText(i).replace('&&', '&') for i in range(w.tabs.count())]==['Setup','Script','Present & Export']
+    assert [a.text() for a in w.menuBar().actions()]==['File', 'Edit', 'View', 'Talk', 'Presentation', 'Settings', 'Help']
+    assert w.workspace.currentWidget() is w.editor
+    w.mode.setCurrentText('Quick')
+    assert w.workspace.currentWidget() is w.quick_page
+    w.mode.setCurrentText('Realtime')
+    assert w.workspace.currentWidget() is w.editor
     w.gpu_retention.setCurrentIndex(w.gpu_retention.findData('idle'))
     assert w.speech.retention=='idle'
     w2=MainWindow();qtbot.addWidget(w2)
@@ -271,7 +277,7 @@ def test_closing_and_saving_later_keeps_recoverable_recording(qtbot,project,monk
     assert not Path(capture.destination).exists()
     assert (capture.root/'audio.pcm').stat().st_size==400
     w2=MainWindow();qtbot.addWidget(w2);w2.adopt(project)
-    assert w2.recordings.findData(str(capture.root/'session.json'))>=0
+    assert any(w2.recordings.item(i, 0).data(Qt.ItemDataRole.UserRole) == str(capture.root/'session.json') for i in range(w2.recordings.rowCount()))
 
 
 def test_finishing_export_before_close_creates_final_file(qtbot,project,monkeypatch):
@@ -362,8 +368,9 @@ def test_realtime_planning_receives_translation_style_and_timing(project):
 def test_accepted_designed_voice_uses_exact_preview(qtbot, project, monkeypatch, tmp_path):
     from autotalk import app
     from autotalk.project import Slide, file_hash
+    from autotalk import services
     from autotalk.services import preview_text
-    monkeypatch.setattr(app, 'data_dir', lambda: tmp_path)
+    monkeypatch.setattr(services, 'data_dir', lambda: tmp_path)
     project.voice.source = 'VoiceDesign'
     project.voice.description = 'A calm warm voice'
     sample = Slide(0)
@@ -383,9 +390,9 @@ def test_accepted_designed_voice_uses_exact_preview(qtbot, project, monkeypatch,
 def test_manual_edits_in_realtime_require_explicit_review(qtbot, project):
     project.mode = 'Realtime'
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project)
-    assert w.start_button.text() == 'Review script'
+    assert w.start_button.text() == 'Review talk text'
     w.start_mode()
-    assert w.tabs.currentIndex() == 1 and w.job is None
+    assert w.workspace.currentWidget() is w.editor and w.job is None
 
 
 def test_expired_idle_timer_cannot_release_a_new_model_lease(monkeypatch):
@@ -431,10 +438,183 @@ def test_writing_next_slide_preserves_current_stream_buffer(qtbot, project):
     updated = copy.deepcopy(project.slides[1])
     updated.narration = 'The next slide is now written.'
     updated.narration_context = project.context_key()
-    w.job = object()  # Deliver a producer event through the GUI's public handler.
+    from types import SimpleNamespace
+    w.job = SimpleNamespace(title="Preparing talk…")  # Deliver a producer event through the GUI's public handler.
     try:
         w.job_event({'type': 'narration', 'version': project.active_version,
                      'title': project.title, 'slides': [updated]})
         assert w.transport.buffered_seconds == before > 0
     finally:
         w.job = None
+
+
+def test_single_slide_generation_preserves_unset_timing_and_other_work(project):
+    from autotalk.services import narrate
+    make_audio(project)
+    old_title, second = project.title, copy.deepcopy(project.slides[1])
+    class Client:
+        def __init__(self, task): pass
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def generate(self, prompt, schema, images, **kwargs):
+            data = json.loads(prompt.split('INPUT:\n')[1])
+            assert data['requested_pages'] == [1]
+            assert data['slides'][0]['requested_seconds'] is None
+            assert schema['properties']['slides']['items']['properties']['budget_seconds']['minimum'] > 0
+            return {'title': 'Do not replace the talk title', 'slides': [
+                {'page': 1, 'narration': 'A revised opening.', 'notes': '', 'budget_seconds': 5}]}
+    with patch('autotalk.services.Codex', Client):
+        narrate(project, Task(), pages=[1])
+    assert project.title == old_title
+    assert project.slides[1] == second and project.ready(project.slides[1])
+    assert project.script_current and not project.ready(project.slides[0])
+
+
+def test_excluded_slides_are_preserved_but_not_synthesized_or_exported(project, tmp_path):
+    from autotalk.services import synthesize
+    make_audio(project)
+    project.slides[0].included = False
+    project.slides[0].narration = ''
+    project.slides[1].after = 'demo'
+    project.accept_script();project.save()
+    loaded = Project.load(project.manifest)
+    assert loaded.prepared and len(loaded.slides) == 2
+    assert loaded.slides[1].after == 'demo'
+    assert loaded.total_seconds == pytest.approx(.3)
+    requested = []
+    class Session:
+        def generate(self, request, on_event): requested.extend(request['items'])
+    loaded.slides[1].audio_key = ''
+    synthesize(loaded, Task(), session=Session())
+    assert [item['page'] for item in requested] == [2]
+    destination = export_prepared(project, Task(), tmp_path / 'included.mp4')
+    with av.open(str(destination)) as movie:
+        assert movie.duration / av.time_base == pytest.approx(.3, abs=.06)
+
+
+def test_after_slide_pause_continues_to_next_included_slide(qtbot, project):
+    from autotalk.playback import Playback
+    make_audio(project)
+    project.slides[0].after = 'pause'
+    player = Playback();player.timer.stop();player.load(project)
+    player._offset = round(.3 * RATE)
+    player.state = 'paused'
+    player.play()
+    assert player.index == 1 and player.state == 'buffering'
+    player.stop()
+    project.slides[0].included = False
+    project.accept_script();player.load(project);player.play()
+    assert player.index == 1
+    player.stop()
+
+
+def test_completed_desktop_recording_keeps_authoring_locked(qtbot, project):
+    make_audio(project)
+    w = MainWindow();qtbot.addWidget(w);w.adopt(project)
+    capture = Capture(project)
+    capture.ready = True
+    w.transport.capture = capture
+    w.transport._finish();w.refresh()
+    assert w.transport.active and w.narration.isReadOnly()
+    assert not w.talk_action.isEnabled()
+    capture.close();w.transport.capture = None
+    w.transport.stop()
+
+
+def test_voice_library_preview_selection_and_cancel(qtbot, project):
+    from autotalk.project import SPEAKERS
+    w = MainWindow();qtbot.addWidget(w);w.adopt(project);w.show()
+    original = project.voice.speaker
+    w.voice_dialog.show_section()
+    w.voice_library.selectRow(2)
+    selected = w.voice_library.item(2, 0).text()
+    assert selected in SPEAKERS
+    w.use_saved_voice()
+    assert w.project.voice.speaker == selected
+    assert w.voice_library.item(w.voice_library.currentRow(), 0).text() == selected
+    w.voice_dialog.reject()
+    assert w.project.voice.speaker == original
+
+
+def test_recording_sources_update_capabilities_and_restore_on_cancel(qtbot, project):
+    w = MainWindow();qtbot.addWidget(w);w.adopt(project);w.show()
+    w.talk_dialog.show_section(4)
+    w.options.fields['recording_source'].setCurrentIndex(1)
+    assert project.recording_source == 'screen'
+    assert w.options.fields['capture_microphone'].isEnabled()
+    assert not w.options.fields['recording_policy'].isEnabled()
+    w.talk_dialog.reject()
+    assert w.project.recording_source == 'slides'
+
+
+def test_desktop_export_preserves_aspect_timing_and_microphone(project, tmp_path):
+    from fractions import Fraction
+    capture = Capture(project)
+    capture.append(np.full((RATE//5, 2), 1000, dtype='<i2'), 1)
+    root = capture.close()
+    info = json.loads((root/'session.json').read_text());info['source'] = 'screen'
+    (root/'session.json').write_text(json.dumps(info))
+    (root/'events.jsonl').write_text('')
+    (root/'microphone.pcm').write_bytes(np.full((RATE//5, 2), 500, dtype='<i2').tobytes())
+    with av.open(str(root/'screen.mkv'), 'w') as container:
+        stream = container.add_stream('libx264', rate=10)
+        stream.width, stream.height, stream.pix_fmt = 320, 240, 'yuv420p'
+        for i, color in enumerate(((230, 20, 20), (20, 230, 20))):
+            pixels = np.zeros((240, 320, 3), dtype=np.uint8);pixels[:] = color
+            frame = av.VideoFrame.from_ndarray(pixels, format='rgb24')
+            frame.pts, frame.time_base = i, Fraction(1, 10)
+            for packet in stream.encode(frame): container.mux(packet)
+        for packet in stream.encode(): container.mux(packet)
+    output = export_recording(root, Task())
+    with av.open(str(output)) as movie:
+        frames = [f.to_ndarray(format='rgb24') for f in movie.decode(video=0)]
+        assert len(frames) == 6
+        assert frames[0][540, 960, 0] > 200 and frames[-1][540, 960, 1] > 200
+        assert frames[0][:, :200].max() < 10  # 4:3 is letterboxed, never stretched.
+    wav = export_recording(root, Task(), tmp_path/'mixed.wav')
+    with wave.open(str(wav)) as audio:
+        assert audio.getnchannels() == 2
+        assert audio.getnframes() / audio.getframerate() == pytest.approx(.2)
+        samples = np.frombuffer(audio.readframes(audio.getnframes()), dtype='<i2')
+        assert np.allclose(samples[64:-64], 1500, atol=1)
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Linux desktop capture")
+def test_stopping_before_desktop_permission_never_starts_capture(qtbot, project):
+    from autotalk.screen_capture import ScreenCapture
+    capture = ScreenCapture(project)
+    root = capture.close()
+    qtbot.wait(20)
+    assert not capture.screen.isActive() and not capture.workers
+    assert json.loads((root/'session.json').read_text())['duration'] == 0
+
+
+def test_saved_recordings_are_discoverable_and_selection_survives_refresh(qtbot, project, tmp_path):
+    w = MainWindow();qtbot.addWidget(w);w.adopt(project)
+    paths = []
+    for i in range(2):
+        capture = Capture(project);capture.append(np.zeros((RATE//10, 2), dtype='<i2'), 1)
+        paths.append(export_recording(capture.close(), Task(), tmp_path/f'recorded-{i}.wav'))
+    w.export_saved(paths[0])
+    assert w.recordings.rowCount() == 2
+    assert Path(w.output_path) == paths[0] and w.output_button.isEnabled()
+    w.refresh_recordings()
+    assert Path(w.output_path) == paths[0]
+
+
+def test_excluding_final_slide_updates_pause_audio_key_and_language_copy(project):
+    from autotalk.services import synthesize
+    make_audio(project)
+    previous_key = project.speech_key(project.slides[0])
+    project.slides[1].included = False
+    project.slides[0].after = 'demo'
+    project.accept_script()
+    assert project.speech_key(project.slides[0]) != previous_key
+    assert not project.ready(project.slides[0])
+    requests = []
+    class Session:
+        def generate(self, request, on_event): requests.extend(request['items'])
+    synthesize(project, Task(), session=Session())
+    assert [item['pause'] for item in requests] == [0]
+    project.add_version('German', translate=True)
+    assert not project.slides[1].included and project.slides[0].after == 'demo'

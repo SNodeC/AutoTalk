@@ -39,6 +39,7 @@ for line in sys.stdin:
 ''')
     path.chmod(0o755)
     monkeypatch.setattr(codex, "ensure_codex", lambda task: path)
+    return path
 
 
 def test_app_server_keeps_early_events_and_structured_output(fake_server):
@@ -55,3 +56,31 @@ def test_discovery_and_effort_validation(fake_server):
         with pytest.raises(ValueError, match="effort"):
             client.generate("Scope", codex.SCOPE_SCHEMA, model="test-vision", effort="invalid")
         assert client.generate("Revise", codex.SCOPE_SCHEMA)["scope"] == "Engineering"
+
+
+@pytest.mark.parametrize('cancel', [False, True])
+def test_missing_account_guides_signin_and_closes_on_cancellation(fake_server, cancel):
+    from autotalk.runtime import Cancelled
+    source = fake_server.read_text().replace("result={'account':{'type':'chatgpt','planType':'plus'}}", "result={'account':None}")
+    source = source.replace(" elif method=='thread/start':", """ elif method=='account/login/start':
+  send({'id':rid,'result':{'authUrl':'https://example.test/signin','loginId':'test-login'}})
+  send({'method':'account/login/completed','params':{'loginId':'test-login','success':True}})
+  continue
+ elif method=='thread/start':""")
+    fake_server.write_text(source)
+    urls = []
+    task = Task(lambda _: None)
+    def open_url(url):
+        urls.append(url)
+        if cancel: task.cancelled.set()
+    task.open_url = open_url
+    client = codex.Codex(task)
+    if cancel:
+        with pytest.raises(Cancelled):
+            with client:
+                pytest.fail('Cancelled sign-in must not continue')
+    else:
+        with client:
+            assert client.generate('Scope', codex.SCOPE_SCHEMA)['scope'] == 'Engineering'
+    assert urls == ['https://example.test/signin']
+    assert client.process.poll() is not None

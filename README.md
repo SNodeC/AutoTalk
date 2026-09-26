@@ -6,7 +6,7 @@ AutoTalk is a Python/PySide6 desktop application. Codex app-server writes narrat
 using your ChatGPT sign-in; Qwen3-TTS **1.7B** generates speech on your local GPU.
 The executable is `autotalk` (`autotalk.exe` on Windows).
 
-The 0.3 refinement prototype implements the [agreed feature and refinement plan](docs/ROADMAP.md).
+The 0.3 refinement prototype follows the [agreed feature and refinement plan](docs/ROADMAP.md), which distinguishes implemented work from remaining qualification.
 Read [verification results and platform limitations](docs/VERIFICATION.md) before
 relying on it for a conference.
 
@@ -61,12 +61,32 @@ Runtime/model data stays in the user's application-data directory.
 First-time downloads and model loading precede speech in every mode. Streaming
 reduces waiting for audio; it does not guarantee uninterrupted playback on every GPU.
 
-The three workspaces are **Setup**, **Script**, and **Present & Export**. The primary
+The main window has a **slide navigator**, **PDF/narration editor**, and **slide
+inspector**, matching the interactive UI prototype. Use **Talk settings** (Ctrl+T)
+for General, Conference, Voice, Delivery, Recording, and Advanced. **Settings → Preferences**
+holds application appearance information and speech-model retention. Model/reasoning,
+sampling, timing tolerance, language arrangement, and encoding belong to the current
+talk under **Talk settings → Advanced**. Dialogs have Save/Cancel; cancelling
+restores the talk configuration, including changes that an operation already saved.
+Explicitly saved reusable voice/delivery library entries remain available.
+The inspector controls slide timing, inclusion, delivery overrides, and automatic
+advance or a presenter/demo pause. Rewrite this slide replaces only its text.
+Use **Enlarge in viewer…** to open the current slide in the system image viewer
+for zoom. Navigator captions include headings extracted from the slide text.
+Talk → Voice library lists predefined and saved voices with language filtering.
+The preview waveform is calculated from the generated audio.
+
+**Quick** shows duration and language directly. **View → Presenter view** shows the
+current and next slides, narration, playback timing, and Continue controls. The primary
 action follows the selected mode and script state. Prepared keeps review and
-acceptance explicit. Manual edits require acceptance or explicit regeneration.
-Use **Stop and edit** to return from playback; **Resume preparation** reuses
+approval explicit. **Approve all slide text** approves the individual text on
+each slide; it does not copy one slide's words. **Write talk text** and **Prepare
+audio** are separate steps. Manual edits require approval or explicit rewriting.
+Use **End presentation** to return from playback; **Resume preparation** reuses
 completed work and restarts an unfinished slide from its beginning. Escape and
-Continue presentation preserve the current playback position.
+Continue presentation preserve the current playback position. Fullscreen has
+visible mouse controls. Once finished, **Return to editing** leaves presentation
+mode; Space cannot restart a finished talk.
 
 Speech models remain loaded until exit by default. Select five idle minutes or
 one operation instead, or use **Release GPU**. A compatible preview warms the
@@ -76,27 +96,39 @@ A retained Linux worker uses roughly 6 GiB of GPU memory on the tested machine.
 
 ## Configure the talk
 
-- Import an unencrypted PDF of 1–80 slides into a new project directory.
-- Select duration in minutes, tolerance, inter-slide pause, audience, and objective.
-- Enter conference scope directly, read it from a URL, or combine both. Review
+- Choose **Open PDF…** for an unencrypted PDF of 1–80 slides. AutoTalk saves it in
+  **Documents / AutoTalk**, choosing a unique folder without replacing an earlier talk.
+  **Open saved talk…** opens an AutoTalk project; **File → Save a copy…** changes location.
+- Import opens General in Prepared/Realtime so duration, language and audience
+  can be checked first. Quick shows duration/language directly. **Fit duration…**
+  sits beside target/measured time in the main window. Timing tolerance and
+  inter-slide pauses remain available under Advanced.
+- Optionally enter conference scope directly, read it from a URL, or combine both. Review
   the editable extraction and its source links. JavaScript-only and authenticated
   websites may need a manually supplied explanation.
-- Use **Connect ChatGPT** for subscription sign-in and model discovery. The model
+- Creating speech checks ChatGPT sign-in and opens browser sign-in when needed,
+  before expensive speech setup. **Talk settings → Advanced → Sign in to ChatGPT**
+  also connects and discovers models. The model
   selector lists account-available models accepting slide images; reasoning choices
   come from the selected model. Subscription limits apply. No paid API fallback is
   used. Slide images, extracted text, and supplied context are sent to Codex;
   reference recordings remain local.
 - Select English, German, French, Spanish, Italian, Portuguese, Russian, Chinese,
   Japanese, or Korean. Selecting a language opens its existing version or creates
-  a translation draft from the current script, preserving the original. Generate
-  the translation with Codex before accepting it; synthesis alone cannot translate.
+  a translation draft from the current text, preserving the original. **Translate
+  talk text** translates remaining drafts, preserving slides you already replaced
+  manually. Drafts cannot be approved until translated or replaced; synthesis
+  alone cannot translate.
   `[German]` and similar paragraph markers allow mixed passages. Choose mixed
   passages, one language per slide, or a single language per version in settings.
 
 ## Voices and delivery
 
 **Predefined** voices use CustomVoice: Ryan, Aiden, Vivian, Serena, Uncle_Fu, Dylan,
-Eric, Ono_Anna, and Sohee. Preview in the selected talk language.
+Eric, Ono_Anna, and Sohee. The picker and library describe voice character and
+native language. Preview in the selected talk language. During preparation, the
+voice dialog shows progress, elapsed time and Cancel. Engine loading can take
+about a minute even after downloads are installed.
 
 **My voice** uses Base with a clean 3–60 second WAV recording. Record directly
 (up to 30 seconds), or import a recording. Its exact transcript is recommended;
@@ -138,13 +170,13 @@ The operating system owns routing; projects do not store audio-device bindings.
 
 Space pauses/resumes; arrows navigate. **Esc pauses and leaves fullscreen**, keeping
 the slide and position. Use **Continue presentation**, **Restart from beginning**,
-or **Stop**. Previews, narration, imported clips, and background tracks share one
+or **End presentation**. Previews, narration, imported clips, and background tracks share one
 PCM transport. Slide advancement follows consumed audio rather than word estimates.
 
 Attach clips before/after slides and adjust their gain. Add a background track,
 gain, and looping. Fixed clips and pauses count toward duration fitting.
 
-Use **Export prepared talk** in **Present & Export** for MP4 with sound, WAV, or
+Use **Create slides-and-speech video or audio…** in **Export / recordings** for MP4 with sound, WAV, or
 M4A without playing the talk in real time or opening an audio device. The same
 mixer supplies direct export and live playback: mono narration is centered,
 while imported clips/backgrounds retain stereo in a 48 kHz internal mix.
@@ -152,19 +184,36 @@ Qwen speech assets remain native 24 kHz; choose 48 kHz export to retain imported
 music bandwidth. Video renders the source PDF at 1080p rather than enlarging
 editor previews.
 
-Enable **Record presentation as a video** beside the main Start button, visible on
-every tab. Select the destination near the top of **Present & Export**. During
+Enable **Record presentation as a video** in the main window’s bottom bar, visible
+in every workspace; its label identifies the recording source. Select its destination
+in **Talk settings → Recording**. During
 capture the checkbox label displays **Recording video** and the recorded duration.
-This records the slide performance, including navigation and configured waits. Export uses
-AutoTalk's own audio mix and slide timeline, without recording other desktop sound.
-MP4 output is 1080p/30 fps with AAC at 24, 44.1, or 48 kHz. Recording policies retain
-fullscreen pauses only (default), all elapsed waiting, or content only. Configured
-filenames receive a session suffix to preserve earlier recordings. Export runs
-after playback; **Export recorded session** can recover a saved session after a
-cancelled export or interrupted application session. Unfinished sessions from
-recent projects are listed automatically. On close, choose finish saving, save
-later, or cancel closing. Failed/cancelled encoding retains the recording and
-destination; successful exports offer **Open file** and **Open folder**.
+Choose a recording source:
+
+- **Slide video + narration:** captures AutoTalk's slides, navigation and audio mix.
+  Pause policies keep fullscreen waits, all waits, or content only.
+- **Screen + system audio (Linux):** records the desktop, including live demos.
+  On Wayland, grant access in the system screen-sharing chooser. Choose the system
+  audio output before starting; recording uses its monitor. Optionally include the
+  default microphone for live commentary. System audio already includes AutoTalk;
+  narration is not mixed in a second time. X11 captures the primary display.
+
+Screen recording continues when narration pauses, fullscreen is left, or the last
+slide finishes. The status explicitly says **Slides finished — recording continues**.
+Use **End presentation and save video** to stop it. The status then changes to
+**Saving video** and a dated **Saved** link to open the video or folder. That link
+remains separate from the next recording's on/off status.
+Slide-video recordings instead finish automatically after the last slide.
+MP4 output is 1080p/30 fps, retaining aspect ratio, with AAC at 24, 44.1, or 48 kHz.
+Configured filenames receive a session suffix to preserve earlier recordings.
+**Videos / recordings** lists the talk title, date, duration, and **Ready / Needs saving**
+status. Select a recording to open its output/folder or save it again. Opening the
+selected recording is the primary action; creating a separate slides-and-speech
+video is below it and does not include recorded live demos. An empty list
+explains how to make a recording; it never asks you to find an internal metadata file. Interrupted exports keep their inputs and
+can be retried. On close, choose finish saving, save later, or cancel closing.
+Prepared export remains available after a talk that was not recorded, but cannot
+reconstruct a live demonstration.
 
 ## Projects and persistence
 

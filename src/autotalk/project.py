@@ -13,7 +13,17 @@ from pathlib import Path
 
 LANGUAGES = ("English", "German", "French", "Spanish", "Italian", "Portuguese",
              "Russian", "Chinese", "Japanese", "Korean")
-SPEAKERS = ("Ryan", "Aiden", "Vivian", "Serena", "Uncle_Fu", "Dylan", "Eric", "Ono_Anna", "Sohee")
+SPEAKERS = {
+    "Ryan": "Energetic male · English native",
+    "Aiden": "Clear, upbeat male · American English",
+    "Vivian": "Bright female · Chinese native",
+    "Serena": "Gentle, warm female · Chinese native",
+    "Uncle_Fu": "Low, mellow male · Chinese native",
+    "Dylan": "Clear, youthful male · Beijing Chinese",
+    "Eric": "Lively, husky male · Sichuan Chinese",
+    "Ono_Anna": "Light, playful female · Japanese native",
+    "Sohee": "Warm, expressive female · Korean native",
+}
 STYLES = ("Professional", "Conversational", "Energetic", "Calm and understated",
           "Lightly humorous", "Academic", "Storytelling", "Inspirational")
 ENGINE = "qwen3-1.7b-v2"
@@ -107,6 +117,8 @@ class Slide:
     notes: str = ""
     budget_seconds: float = 0
     directions: str = ""
+    included: bool = True
+    after: str = "advance"
     narration_context: str = ""
     narration_origin: str = "manual"
     audio_key: str = ""
@@ -160,6 +172,8 @@ class Project:
     codex_model: str = ""
     codex_effort: str = ""
     record_presentation: bool = False
+    recording_source: str = "slides"
+    capture_microphone: bool = False
     recording_policy: str = "fullscreen"
     recording_destination: str = ""
     export_rate: int = 24000
@@ -175,6 +189,10 @@ class Project:
         return self.version.slides
 
     @property
+    def included_slides(self):
+        return [s for s in self.slides if s.included]
+
+    @property
     def language(self):
         return self.version.language
 
@@ -186,19 +204,21 @@ class Project:
     @property
     def script_current(self):
         context = self.context_key()
-        return bool(self.slides) and all(s.passages and s.narration_context == context for s in self.slides)
+        return bool(self.included_slides) and all(s.passages and s.narration_context == context for s in self.included_slides)
 
     @property
     def manual_review_required(self):
         context = self.context_key()
-        return any(s.passages and s.narration_origin == "manual" and s.narration_context != context for s in self.slides)
+        return any(s.passages and s.narration_origin == "manual" and s.narration_context != context for s in self.included_slides)
 
     def accept_script(self):
-        for slide in self.slides:
+        for slide in self.included_slides:
+            if slide.narration_origin == "translation":
+                raise ValueError(f"Translate or replace the text of slide {slide.page} before approving this language version.")
             self.effective_passages(slide)
             if not slide.passages:
                 raise ValueError(f"Slide {slide.page} has no narration.")
-        for slide in self.slides:
+        for slide in self.included_slides:
             slide.narration_context = self.context_key()
 
     def reference(self, language=None):
@@ -260,7 +280,8 @@ class Project:
         context = [self.scope, self.audience, self.objective, self.delivery.style, self.codex_model, self.codex_effort]
         return digest([self.pdf_hash, [] if self.mode == "Quick" else context,
                        self.language, self.language_policy, self.target_minutes, self.pause_seconds,
-                       [[c.seconds for c in s.clips] for s in self.slides]])
+                       [[c.seconds for c in s.clips] for s in self.slides]] +
+                      ([[s.page for s in self.included_slides]] if any(not s.included for s in self.slides) else []))
 
     def effective_passages(self, slide):
         values = [Passage(p.text, p.language or self.language) for p in slide.passages]
@@ -288,6 +309,9 @@ class Project:
             parts.insert(0, self.voice.description)
         return ". ".join(p.strip() for p in parts if p.strip())
 
+    def pause_after(self, slide):
+        return self.pause_seconds if 0 < slide.page < self.included_slides[-1].page else 0
+
     def speech_key(self, slide: Slide) -> str:
         passages = [asdict(p) for p in self.effective_passages(slide)]
         selected = self.effective_voice
@@ -298,7 +322,7 @@ class Project:
             voice["references"] = {p["language"]: [self.reference(p["language"]).sha256,
                                     self.reference(p["language"]).transcript] for p in passages}
         key = digest([ENGINE, passages, voice, self.directions(slide), {} if self.mode == "Quick" else self.delivery.sampling,
-                      self.pause_seconds if slide.page < len(self.slides) else 0])
+                      self.pause_after(slide)])
         return digest([key, "earliest"]) if self.speech_priority == "earliest" else key
 
     def ready(self, slide: Slide) -> bool:
@@ -310,11 +334,11 @@ class Project:
 
     @property
     def prepared(self):
-        return self.script_current and all(self.ready(s) for s in self.slides)
+        return self.script_current and all(self.ready(s) for s in self.included_slides)
 
     @property
     def total_seconds(self):
-        return sum(s.duration + sum(c.seconds for c in s.clips) for s in self.slides if self.ready(s))
+        return sum(s.duration + sum(c.seconds for c in s.clips) for s in self.included_slides if self.ready(s))
 
     @property
     def within_target(self):
@@ -340,7 +364,7 @@ class Project:
             raise ValueError("Unsupported language.")
         key = uuid.uuid4().hex[:12]
         # Source text is an immutable extraction snapshot from the common PDF.
-        slides = [Slide(s.page, s.source_text) for s in self.slides]
+        slides = [Slide(s.page, s.source_text, included=s.included, after=s.after, budget_seconds=s.budget_seconds) for s in self.slides]
         if translate:
             for source, slide in zip(self.slides, slides):
                 slide.narration = source.narration
@@ -444,6 +468,7 @@ class Project:
             (self.quick_timing, ("fit", "once", "require")),
             (self.realtime_script, ("whole", "ahead")),
             (self.speech_priority, ("consistency", "earliest")),
+            (self.recording_source, ("slides", "screen")),
             (self.recording_policy, ("fullscreen", "all", "content")),
             (self.delivery.style, STYLES),
             (self.export_rate, (24000, 44100, 48000)), (self.export_bitrate, (96000, 128000, 192000))):
@@ -466,7 +491,13 @@ class Project:
                 raise ValueError("Unsupported project language.")
             if [s.page for s in talk.slides] != list(range(1, len(self.slides) + 1)):
                 raise ValueError("The slide sequence is invalid.")
+            if not any(s.included for s in talk.slides):
+                raise ValueError("Include at least one slide in the presentation.")
             for slide in talk.slides:
+                if not isinstance(slide.included, bool) or slide.after not in ("advance", "pause", "demo"):
+                    raise ValueError("Invalid slide presentation policy.")
+                if not math.isfinite(slide.budget_seconds) or not 0 <= slide.budget_seconds <= 14400:
+                    raise ValueError("Invalid slide duration budget.")
                 if not self.image(slide).is_file():
                     raise ValueError(f"Slide image {slide.page} is missing.")
                 if any(p.language and p.language not in LANGUAGES for p in slide.passages):

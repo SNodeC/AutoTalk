@@ -6,7 +6,7 @@ from autotalk.app import MainWindow
 from autotalk.playback import Playback
 
 
-def test_recording_selection_visible_on_all_tabs_and_persisted(qtbot, project):
+def test_recording_selection_visible_in_workspaces_and_persisted(qtbot, project):
     from PySide6.QtCore import QPoint
     from autotalk.project import Project
     window = MainWindow()
@@ -15,13 +15,13 @@ def test_recording_selection_visible_on_all_tabs_and_persisted(qtbot, project):
     window.resize(940, 680)
     window.show()
     checkbox = window.options.record
-    for tab in range(window.tabs.count()):
-        window.tabs.setCurrentIndex(tab)
+    for page in (window.editor, window.presenter, window.quick_page):
+        window.workspace.setCurrentWidget(page)
         qtbot.wait(10)
         assert checkbox.isVisible() and checkbox.isEnabled()
         top = checkbox.mapTo(window, QPoint(0, 0))
         assert window.rect().contains(top)
-        assert top.y() + checkbox.height() <= window.tabs.mapTo(window, QPoint(0, 0)).y()
+        assert top.y() + checkbox.height() <= window.height()
     # The label and keyboard both operate the single project-backed checkbox.
     qtbot.mouseClick(checkbox, Qt.MouseButton.LeftButton, pos=QPoint(55, checkbox.height()//2))
     assert project.record_presentation
@@ -62,7 +62,7 @@ def test_recording_indicator_uses_recorded_time_and_clears_after_stop(qtbot, pro
         capture.close()
         window.transport.capture = None
     window.update_timing()
-    assert window.options.record.text() == 'Record presentation as a video'
+    assert window.options.record.text() == 'Record presentation as a video · Slide video + narration'
 
 
 def test_controls_and_pdf_selector_follow_palette_changes(qtbot, qapp, project):
@@ -88,7 +88,11 @@ def test_controls_and_pdf_selector_follow_palette_changes(qtbot, qapp, project):
             qapp.setPalette(palette)
             qtbot.waitUntil(lambda: window.palette().color(QPalette.ColorRole.Window) == QColor(background))
             qapp.processEvents()
-            for widget in (window, window.options.record, window.start_button, window.play_image,
+            # The prototype's primary action follows the system accent and its
+            # contrasting text role; other controls use normal system surfaces.
+            assert window.start_button.palette().color(QPalette.ColorRole.Button) == palette.color(QPalette.ColorRole.Highlight)
+            assert window.start_button.palette().color(QPalette.ColorRole.ButtonText) == palette.color(QPalette.ColorRole.HighlightedText)
+            for widget in (window, window.options.record, window.play_image,
                            dialog, *dialog.findChildren(QLineEdit)):
                 assert widget.palette().color(QPalette.ColorRole.Window) == QColor(background)
                 assert widget.palette().color(QPalette.ColorRole.WindowText) == QColor(foreground)
@@ -120,7 +124,7 @@ def test_user_can_change_language_and_edit_narration(qtbot, project):
     window.language.setCurrentText("German")
     assert project.language == "German"
     assert not window.present_button.isEnabled()
-    window.tabs.setCurrentIndex(1)
+    window.workspace.setCurrentWidget(window.editor)
     window.narration.setPlainText("Dies ist ein Vortrag.")
     assert project.slides[0].narration == "Dies ist ein Vortrag."
     window.save()
@@ -167,7 +171,7 @@ def test_fullscreen_escape_pauses_and_continue_preserves_position(qtbot, project
     window.continue_presentation()
     qtbot.waitUntil(lambda: window.transport.position > position, timeout=5000)
     window.stop_presentation()
-    assert window.tabs.isEnabled()
+    assert window.accept_button.isEnabled()
 
 
 @pytest.mark.audio_device
@@ -220,3 +224,155 @@ def test_incomplete_realtime_talk_cannot_wait_for_a_missing_producer(qtbot, proj
     assert not window.play_button.isEnabled()
     window.present()
     assert window.presentation is None
+
+
+def test_settings_open_and_save_preserve_selected_slide(qtbot, project):
+    from PySide6.QtWidgets import QDialogButtonBox
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.adopt(project)
+    window.show()
+    window.transport.select(1)
+    original = window.project
+    window.talk_action.trigger()
+    assert window.talk_dialog.isVisible()
+    assert window.project is original and window.transport.index == 1
+    window.minutes.setValue(14)
+    qtbot.mouseClick(window.talk_dialog.buttons.button(QDialogButtonBox.StandardButton.Save), Qt.MouseButton.LeftButton)
+    assert not window.talk_dialog.isVisible()
+    assert window.project is original and window.transport.index == 1
+    from autotalk.project import Project
+    assert Project.load(project.manifest).target_minutes == 14
+
+
+def test_cancel_settings_restores_project_and_manifest_after_eager_save(qtbot, project):
+    from autotalk.project import Project
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.adopt(project)
+    window.show()
+    window.transport.select(1)
+    window.talk_dialog.show_section()
+    window.minutes.setValue(19)
+    window.scope.setPlainText('A different conference')
+    window.language.setCurrentText('German')
+    window.save()  # Existing language/reference/worker handlers can save eagerly.
+    window.talk_dialog.reject()
+    restored = Project.load(project.manifest)
+    assert restored.target_minutes == 10 and restored.language == 'English'
+    assert restored.scope != 'A different conference'
+    assert len(restored.versions) == 1
+    assert window.project.language == 'English' and window.transport.index == 1
+    assert window.options.project is window.project
+    assert window.transport.project is window.project
+
+
+def test_preferences_cancel_restores_retention_and_sampling(qtbot, project):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.adopt(project)
+    window.show()
+    original = window.gpu_retention.currentData()
+    window.preferences_dialog.show_section(1)
+    window.gpu_retention.setCurrentIndex(window.gpu_retention.findData('operation'))
+    window.preferences_dialog.reject()
+    assert window.gpu_retention.currentData() == original
+    assert window.speech.retention == original
+    window.talk_dialog.show_section(5)
+    window.options.override.setChecked(True)
+    window.options.sampling['temperature'].setValue(.4)
+    window.talk_dialog.reject()
+    assert window.project.delivery.sampling == {}
+
+
+def test_quick_reuses_settings_fields_without_losing_edits(qtbot, project):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.adopt(project)
+    window.resize(940, 680)
+    window.show()
+    window.mode.setCurrentText('Quick')
+    qtbot.wait(30)
+    assert window.minutes.isVisible() and window.language.isVisible()
+    window.minutes.setValue(7)
+    assert project.target_minutes == 7
+    window.talk_dialog.show_section()
+    assert window.basics.parentWidget() is window.general_form
+    window.minutes.setValue(9)
+    window.talk_dialog.reject()
+    qtbot.wait(30)
+    assert window.basics.parentWidget() is window.quick_form
+    assert window.minutes.value() == window.project.target_minutes == 7
+    assert window.language.isVisible()
+    from PySide6.QtCore import QPoint
+    bottom = window.language.mapTo(window, QPoint(0, window.language.height()))
+    assert window.workspace.geometry().contains(bottom)
+
+
+def test_commands_and_dialogs_cannot_bypass_job_or_playback_lock(qtbot, project):
+    from threading import Event
+    window = MainWindow()
+    qtbot.addWidget(window)
+    make_audio(project)
+    window.adopt(project)
+    window.show()
+    window.talk_dialog.show_section(1)
+    release = Event()
+    window.start_job('Checking command availability', lambda task: release.wait(5))
+    try:
+        assert not window.talk_action.isEnabled()
+        assert window.narration.isReadOnly()
+        assert not window.talk_dialog.pages.isEnabled()
+        assert not window.present_button.isEnabled()
+        assert not window.welcome.isEnabled()
+        assert all(not a.isEnabled() for a in window.actions)
+        for action, control in window.control_actions:
+            assert action.isEnabled() == control.isEnabled()
+        window.talk_dialog.reject()
+        assert window.talk_dialog.isVisible()
+    finally:
+        release.set()
+        qtbot.waitUntil(lambda: window.job is None)
+    window.talk_dialog.reject()
+    window.transport.state = 'paused'
+    window.refresh()
+    assert window.narration.isReadOnly() and not window.talk_action.isEnabled()
+    assert window.continue_button.isEnabled()
+    assert not window.options.record.isEnabled()
+    window.stop_presentation()
+    assert not window.narration.isReadOnly() and window.talk_action.isEnabled()
+
+
+def test_minimum_editor_layout_keeps_inspector_controls_separate(qtbot, project):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.adopt(project)
+    window.resize(940, 680)
+    window.show()
+    qtbot.wait(30)
+    from PySide6.QtCore import QPoint
+    window.clip_gain.window().show()
+    qtbot.wait(30)
+    gain_bottom = window.clip_gain.mapToGlobal(QPoint(0, window.clip_gain.height()))
+    placement_top = window.clip_placement.mapToGlobal(QPoint(0, 0))
+    assert placement_top.y() >= gain_bottom.y()
+    assert window.image.height() >= 100
+    assert window.narration.height() >= 100
+
+
+def test_recording_dialog_uses_same_checkbox_and_cancel_restores_choice(qtbot, project):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.adopt(project)
+    window.show()
+    checkbox = window.options.record
+    window.talk_dialog.show_section(4)
+    qtbot.waitUntil(checkbox.isVisible)
+    assert checkbox.parentWidget() is window.recording_form
+    from PySide6.QtCore import QPoint
+    qtbot.mouseClick(checkbox, Qt.MouseButton.LeftButton, pos=QPoint(40, checkbox.height()//2))
+    assert window.project.record_presentation
+    window.talk_dialog.reject()
+    assert not window.project.record_presentation
+    qtbot.waitUntil(checkbox.isVisible)
+    assert checkbox.parentWidget() is window.record_footer

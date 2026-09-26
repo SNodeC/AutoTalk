@@ -54,25 +54,29 @@ class SettingsPanel(QWidget):
         buffer.setRange(2, 30)
         buffer.setSuffix(" seconds")
         self.bind("buffer_seconds", "Realtime startup/refill buffer", buffer, buffer.valueChanged)
+        main_form = self.form
+        self.delivery_widget = QWidget()
+        delivery_box = QVBoxLayout(self.delivery_widget)
+        self.form = QFormLayout()
+        delivery_box.addLayout(self.form)
         self.combo("delivery.style", "Writing / delivery style", [(s, s) for s in STYLES])
         self.presets = QComboBox()
         self.form.addRow("Saved delivery presets", self.presets)
         row = QHBoxLayout()
-        for title, callback in (("Save preset", self.save_preset), ("Use preset", self.use_preset)):
-            button = QPushButton(title)
+        self.use_preset_button = QPushButton("Use preset")
+        for button, callback in ((QPushButton("Save preset"), self.save_preset), (self.use_preset_button, self.use_preset)):
             button.clicked.connect(callback)
             row.addWidget(button)
         self.form.addRow(row)
         self.refresh_presets()
-        main_form = self.form
         advanced = QWidget()
         self.form = QFormLayout(advanced)
         advanced.hide()
-        toggle = QPushButton("Advanced delivery and synthesis ▾")
+        toggle = QPushButton("More vocal attributes ▾")
         toggle.setCheckable(True)
         toggle.toggled.connect(advanced.setVisible)
-        box.addWidget(toggle)
-        box.addWidget(advanced)
+        delivery_box.addWidget(toggle)
+        delivery_box.addWidget(advanced)
         for name, values in ATTRIBUTES.items():
             widget = self.combo("delivery.attributes." + name, name.capitalize(),
                                 [("Model default", "")] + [(v, v) for v in values])
@@ -88,6 +92,8 @@ class SettingsPanel(QWidget):
         self.explanation = QLabel()
         self.explanation.setWordWrap(True)
         self.form.addRow(self.explanation)
+        self.synthesis_widget = QWidget()
+        self.form = QFormLayout(self.synthesis_widget)
         self.override = QCheckBox("Override main speech generator sampling defaults")
         self.override.toggled.connect(self.sampling_changed)
         self.form.addRow("Advanced synthesis", self.override)
@@ -106,7 +112,10 @@ class SettingsPanel(QWidget):
         self.record = QCheckBox("Record presentation as a video")
         self.fields["record_presentation"] = self.record
         self.record.toggled.connect(lambda: self.edit("record_presentation"))
-        self.record.setToolTip("Record slides and narration during playback. Choose the destination in Present & Export. Prepared export is also available after an unrecorded talk.")
+        self.record.setToolTip("Recording begins when the presentation starts. Choose slides or screen recording in Talk settings → Recording.")
+        self.combo("recording_source", "Recording source", [("Slide video + narration", "slides"), ("Screen + system audio (Linux)", "screen")])
+        microphone = QCheckBox("Include microphone in screen recording")
+        self.bind("capture_microphone", "Live commentary", microphone, microphone.toggled)
         self.combo("recording_policy", "Recording pauses", [
             ("Keep fullscreen pauses; omit time outside fullscreen", "fullscreen"),
             ("Keep all elapsed time", "all"),
@@ -119,9 +128,6 @@ class SettingsPanel(QWidget):
         self.form.addRow(choose)
         self.combo("export_rate", "Export audio sample rate", [("24 kHz (native)", 24000), ("44.1 kHz", 44100), ("48 kHz", 48000)])
         self.combo("export_bitrate", "MP4 / M4A audio encoding", [("AAC 96 kbit/s", 96000), ("AAC 128 kbit/s", 128000), ("AAC 192 kbit/s", 192000)])
-        quality = QLabel("Synthesis remains at its native rate. Resampling and encoding affect export; they do not add voice detail. Expression and age are model instructions—preview their effect.")
-        quality.setWordWrap(True)
-        box.addWidget(quality)
         self.form = main_form
 
     def bind(self, path, label, widget, signal):
@@ -132,6 +138,8 @@ class SettingsPanel(QWidget):
 
     def combo(self, path, label, choices):
         widget = QComboBox()
+        widget.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        widget.setMinimumContentsLength(10)
         for text, value in choices:
             widget.addItem(text, value)
         return self.bind(path, label, widget, widget.currentIndexChanged)
@@ -163,6 +171,8 @@ class SettingsPanel(QWidget):
                 owner.pop(key, None)
         else:
             setattr(owner, key, value)
+        if path == "recording_source":
+            self.load(self.project)
         if path == "speech_priority":
             self.project.buffer_seconds = 2 if value == "earliest" else 5
             self.load(self.project)
@@ -202,6 +212,8 @@ class SettingsPanel(QWidget):
                 widget.setText(value)
             else:
                 widget.setValue(value)
+        self.fields["capture_microphone"].setEnabled(project.recording_source == "screen")
+        self.fields["recording_policy"].setEnabled(project.recording_source == "slides")
         self.override.setChecked(bool(project.delivery.sampling))
         self.override.setEnabled(project.mode != "Quick")
         self.fields["delivery.style"].setEnabled(project.mode != "Quick")
@@ -234,6 +246,8 @@ class SettingsPanel(QWidget):
                 self.presets.addItem(json.loads(path.read_text(encoding="utf-8"))["name"], path)
             except (OSError, ValueError, KeyError):
                 continue
+
+        self.use_preset_button.setEnabled(bool(self.presets.count()))
 
     def save_preset(self):
         if not self.project:

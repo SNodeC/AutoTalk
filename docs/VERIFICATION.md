@@ -1,5 +1,101 @@
 # 0.3 refinement verification — Linux only
 
+## Second ordinary-user walkthrough fixes — 2026-09-26
+
+All 15 findings have an individual implementation entry in
+[USABILITY.md](design/USABILITY.md#second-walkthrough-all-15-findings).
+The project still owns language/content, playback owns capture and completion,
+and the existing worker owns progress/cancellation. The fullscreen toolbar shares
+the controller's End action. Preview synthesis and design acceptance share one
+hash-derived output path. The system image viewer handles enlargement/zoom.
+
+- **144 Linux tests passed in 42.89 s**. New journeys exercise untranslated-draft
+  rejection at both Project and UI boundaries, preservation of manually translated
+  slides, original-language preservation after save/reopen, voice prerequisite
+  actions and changing designs, progress inside the active dialog, recording intent
+  alongside older output, and fullscreen mouse/finish/automatic-save behavior.
+- After the final table-layout adjustments, **43 UI/usability tests passed in
+  10.26 s**. No regression assertions were dropped.
+- Native Wayland/Breeze screenshots cover the three modes, all sections and menus,
+  and minimum-size light/dark layouts. Visual inspection corrected toolbar contrast,
+  caption/table clipping and excessive footer wrapping. These are solo walkthroughs,
+  not a recruited-user study.
+- A real Qwen CustomVoice preview played after **43.72 s**; the prior review measured
+  **43.10 s**. A visible dialog spinner, elapsed time and Cancel now explain that wait.
+  This is not a synthesis speed improvement or a first-download benchmark.
+- A native mouse walkthrough paused/continued a prepared presentation, ended it,
+  saved a new slides/audio MP4, and found it beside an older recording. A separate
+  final-slide walk verified Return to editing and that Space does not restart it.
+  The system viewer received the selected slide, and Gwenview's Zoom In action was
+  exercised. The created test viewer was closed afterward.
+- Five isolated first-window runs averaged **0.641 s** (median **0.626 s**), versus
+  **0.686 s** (median **0.693 s**) before this follow-up. Run-to-run variation means
+  this establishes no material startup regression, not a durable speedup.
+- The rebuilt native package passed its empty-PATH project-opening smoke test:
+  **27 matching Qt libraries/style plugins**, **17 loaded Qt libraries**, all from
+  the bundle. Existing platform integration and native file browsing remain packaged.
+- This pass did not repeat the complete Codex/Realtime generation run, first-ever
+  downloads, browser login, microphone capture, or Plasma sharing permission. Earlier
+  evidence below remains applicable to those unchanged paths. The native audio
+  backend logged an unsupported Bluetooth-format probe; the tested presentation and
+  recording completed, but this is not qualification of that Bluetooth device.
+
+Accounting against the immediately preceding review snapshot: production Python
+**+160 / −112 = +48**; tests **+196 / −8 = +188**. Cumulative against the original
+usability baseline: production **+411 / −293 = +118**, tests **+416 / −7 = +409**.
+This remains inside the original approved 120-line allowance; the proposed increase
+was unnecessary. No new workflow flags, timers, services or synthesis policies were
+introduced. Evidence is in ignored `artifacts/usability-followup/`.
+
+## Ordinary-user usability pass — 2026-09-26
+
+Coverage and architectural invariants are in [USABILITY.md](design/USABILITY.md).
+This pass preserves the existing project, playback, worker and recording owners.
+It removes competing next-action decisions and reorganizes existing controls.
+Guided sign-in, recording metadata and computed status handling require the net
+addition; the user explicitly approved up to 120 production lines.
+
+- **135 Linux tests passed in 40.95 s** with native Qt. After the final export
+  completion correction, **76 focused UI, playback, recording and usability tests
+  passed in 11.24 s**. These include actual asynchronous job completion, default
+  PDF import with no second chooser, manual-review guards in all modes, voice
+  control visibility, state-appropriate presentation actions, recording guidance
+  and discovery, legacy recovery, direct-export links, and settings cancellation.
+- Scripted app-server subprocess tests cover browser sign-in and cancellation;
+  pipeline tests prevent model loading before sign-in succeeds, and preserve
+  audio-only resume without Codex. Authentication follows the existing
+  [official app-server browser flow](https://learn.chatgpt.com/docs/app-server#3-log-in-with-chatgpt-browser-flow).
+  No user account was logged out or credentials replaced for testing.
+- Native Breeze screens, menus and dialogs were inspected in light and dark at
+  normal and 150% scaling, including 940×680 editor/presenter layouts. Advanced
+  slide controls are collapsed initially; the simpler inspector and combined
+  preview/rewrite row leave more height for the PDF. These are widget/visual
+  checks, not a recruited study of inexperienced users.
+- Five first-window startup runs averaged **0.699 s**, versus **0.656 s** before
+  this pass. Medians were **0.692 / 0.646 s**. This measures application startup,
+  not model loading; it does not establish a speech-startup improvement.
+- A real Codex/Qwen 1.7B Realtime run completed both slides and saved an MP4 with
+  no reported errors. First playback was **41.97 s**, model load **35.76 s**,
+  opening planning **15.06 s**, speech generation **11.86 s** for **27.72 s** of
+  audio. Playback began before all preparation completed. The previous recorded
+  run's first playback was 40.32 s; model loading remains the main cold-start cost.
+- Decoding that MP4 verified H.264 video **27.767 s** and AAC audio **27.751 s**.
+  Both audio channels were present with RMS **0.07427** and correlation **0.9999996**.
+  This run used slides/narration recording. Desktop-sharing permission was not
+  requested again; the earlier native Wayland acceptance remains separate evidence.
+- The rebuilt package verified **27 matching Qt libraries/style plugins** and
+  **17 loaded Qt libraries**, all from the bundle. Its project-opening smoke test
+  passed with an empty PATH. Platform appearance and the existing KIO filesystem
+  backend are retained. No Windows/macOS testing was performed.
+
+Accounting relative to the working tree immediately before this usability pass:
+production Python **+279 / −209 = +70**; tests **+226 / −5 = +221**.
+The changes stay below the approved 120-line limit. Test updates preserve the
+review guard and move cancellation assertions to the correct settings scopes;
+one producer-event fixture now supplies the real job's title contract. No test
+was dropped. Evidence is in ignored `artifacts/usability/`.
+
+
 ## Packaged native file navigation — 2026-09-26
 
 The previous native chooser inspection ran from source and missed a packaging
@@ -484,3 +580,64 @@ application; there was no existing implementation to reduce or replace.
   vendors. The first prototype targets NVIDIA GPU inference only.
 - General availability of a public binary release. The local build is provided
   for evaluation; licensing and distribution qualification remain separate work.
+
+
+## Clickable-prototype desktop refinement (2026-09-26)
+
+The old tabs were replaced by the approved desktop hierarchy: menu bar, compact
+three-column editor/inspector, Quick and presenter views, sectioned settings,
+voice library and saved/unfinished recordings. See [design](design/UI-REDESIGN.md).
+
+- Linux native Qt regression suite: **118 passed in 28.79 s**. The final progress/recording-label adjustment also passed
+  all **61 refinement/UI tests in 9.34 s**. Tests include dialog rollback,
+  command locks, inclusion, per-slide regeneration without changing other work,
+  pause/continue, voice selection, capture cancellation before permission,
+  saved-output discovery, desktop aspect ratio/timing and microphone mixing.
+- Visual checks use native Breeze with a landscape reference deck: editor, Quick,
+  presenter, five Talk settings sections, Preferences, voice library, exports and
+  seven opened menus. Minimum-size light/dark and 150% scaling are checked.
+- Five native source startup samples: 0.711, 0.656, 0.618, 0.682, 0.683 seconds.
+  Median **0.682 s**, mean **0.670 s**; pre-redesign median was **0.595 s**.
+  This is cached window startup, not model loading; the added UI costs about 87 ms
+  in this sample and is not a startup-speed improvement.
+- Fresh real Codex → Qwen3-TTS 1.7B → Realtime fullscreen → MP4 completed without
+  errors. First playback **40.32 s**, model load **34.70 s**, opening planning
+  **16.38 s**, later narration **6.65 s**, total speech generation **11.67 s**,
+  audio produced **27.32 s**. Planning/model loading overlap. The 24-second target
+  is approximate in Realtime. The completed video exists and the project is prepared.
+- That live check exposed an unset per-slide duration being sent as zero to Codex.
+  Unset timing now remains null, and the output schema requires nonblank narration
+  and a positive duration. Runtime validation remains in place.
+- Real desktop capture on an isolated Linux X11 display: **6.271 seconds**, no
+  errors, maximum UI timer gap **121 ms** with a nominal 100 ms timer. Export kept
+  4:3 screen content letterboxed at 1080p. Real PulseAudio monitor capture recorded
+  144,000 stereo frames in 3 seconds, identical left/right RMS **2040.98** from a
+  private test sink. The system's normal output routing was not changed.
+- Synthetic screen and separate microphone tracks verify frame timing, aspect ratio,
+  duration and summed audio through the production exporter. This does not establish
+  physical microphone behavior or subjective audio quality.
+- Production diff from `7bb41a3`: **+1,244 / −511 = +733 lines**. Tests:
+  **+344 / −12 = +332 lines**. Growth covers the UI replacement and Linux capture
+  together, within their combined previously scoped estimates. Existing tab
+  construction is deleted; capture reuses session metadata and the exporter.
+
+- Final native Wayland acceptance with user-granted Plasma sharing succeeded:
+  **6.102 seconds**, no reported errors, maximum UI timer gap **199 ms**.
+  The exported 1080p H.264/AAC file contains changing screen content and the
+  expected timed frame count. The application stopped capture and saved normally.
+
+Qualification still open: Wayland permission revocation during capture,
+physical microphone input, simultaneous long screen/demo recording under Qwen
+load, cross-platform native testing and subjective voice continuity. Linux-only
+local tests do not qualify Windows/macOS. The UI implementation does not claim
+completion of the roadmap's separate acoustic-generator sampling/Base comparison.
+
+Structured-output constraints were checked against the [official OpenAI schema
+guide](https://developers.openai.com/api/docs/guides/structured-outputs). Linux
+screen selection follows [Qt's QScreenCapture contract](https://doc.qt.io/qt-6/qscreencapture.html).
+
+The final Linux package passed a prepared-project launch with empty PATH. All
+27 audited Qt libraries/plugins matched their expected sources; 17 mapped Qt
+libraries came from the bundle. `libpulse-simple.so.0` is included through normal
+PyInstaller ctypes discovery. The native Plasma PDF chooser again navigated into
+a child directory and displayed its PDF. System license notices are preserved.

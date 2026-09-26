@@ -19,8 +19,8 @@ TEXT = {"type": "string"}
 NARRATION_SCHEMA = object_schema({
     "title": TEXT,
     "slides": {"type": "array", "items": object_schema({
-        "page": {"type": "integer"}, "narration": TEXT, "notes": TEXT,
-        "budget_seconds": {"type": "number"}})}})
+        "page": {"type": "integer"}, "narration": {"type": "string", "pattern": r"\S"}, "notes": TEXT,
+        "budget_seconds": {"type": "number", "minimum": 0.01, "maximum": 14400}})}})
 SCOPE_SCHEMA = object_schema({"scope": TEXT})
 
 
@@ -140,9 +140,6 @@ class Codex:
             cursor = following
 
     def generate(self, prompt, schema, images=(), *, model="", effort=""):
-        account = self.call("account/read", {"refreshToken": False}).get("account")
-        if not account or account.get("type") != "chatgpt":
-            raise RuntimeError("Use Connect ChatGPT first. AutoTalk requires subscription sign-in, not an API key.")
         options = {}
         if model or effort:
             models = self.models()
@@ -210,7 +207,13 @@ class Codex:
         self.scratch.cleanup()
 
     def __enter__(self):
-        return self
+        try:
+            self.task.report("Checking ChatGPT sign-in…")
+            self.login()
+            return self
+        except BaseException:
+            self.close()
+            raise
 
     def __exit__(self, *args):
         self.close()

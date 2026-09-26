@@ -12,7 +12,7 @@ from PySide6.QtCore import QObject, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QKeyEvent, QPainter
 from PySide6.QtMultimedia import QtAudio, QAudioFormat, QAudioSink, QMediaDevices
 from PySide6.QtPdf import QPdfDocument
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QToolBar, QWidget
 
 from .media import AudioFile, Capture, Mix, RATE
 
@@ -24,6 +24,7 @@ class Playback(QObject):
     failed = Signal(str)
     finished = Signal()
     recording_ready = Signal(object)
+    demo_requested = Signal()
 
     def __init__(self, parent=None, producer_active=lambda: False):
         super().__init__(parent)
@@ -75,7 +76,7 @@ class Playback(QObject):
 
     @property
     def active(self):
-        return not self.preview_path and self.state not in ("stopped", "finished")
+        return bool(self.capture) or not self.preview_path and self.state not in ("stopped", "finished")
 
     @property
     def elapsed(self):
@@ -254,6 +255,12 @@ class Playback(QObject):
                 self.capture.waiting(elapsed, self.index+1, self.fullscreen)
             if not self.playing:
                 return
+            if self.capture and hasattr(self.capture, "ready"):
+                if self.capture.error:
+                    raise RuntimeError(self.capture.error)
+                if not self.capture.ready:
+                    self.changed.emit()
+                    return
             parts, complete = self._parts()
             available = sum(p.frames for p in parts)
             if self.state == "buffering":
@@ -281,10 +288,14 @@ class Playback(QObject):
             if self._offset + self._consumed >= available and self.sink.state() == QtAudio.State.IdleState:
                 self._reset_sink()
                 if complete:
-                    if self.preview_path or self.index+1 == len(self.project.slides):
+                    if self.preview_path:
                         self._finish()
+                    elif self.project.slides[self.index].after != "advance":
+                        self.pause()
+                        if self.project.slides[self.index].after == "demo":
+                            self.demo_requested.emit()
                     else:
-                        self.select(self.index+1, play=True)
+                        self.step(1)
                 else:
                     self.state = "buffering"
             elif self.sink.error() not in (QtAudio.Error.NoError, QtAudio.Error.UnderrunError):
@@ -316,8 +327,22 @@ class Playback(QObject):
             if not self.project.prepared and (self.project.mode != "Realtime" or not self.producer_active()):
                 self.failed.emit("Generate current audio for every slide before presenting.")
                 return
+            if not self.project.slides[self.index].included:
+                following = next((s.page-1 for s in self.project.included_slides if s.page-1 > self.index), self.project.included_slides[0].page-1)
+                self.select(following)
+            elif self.mix.complete[self.index] and self.position > 0 and round(self.position * RATE) >= self.mix.frames(self.index):
+                self.step(1, play=True)
+                return
             if self.project.record_presentation and self.capture is None:
-                self.capture = Capture(self.project)
+                try:
+                    if self.project.recording_source == "screen":
+                        from .screen_capture import ScreenCapture
+                        self.capture = ScreenCapture(self.project, self.failed.emit)
+                    else:
+                        self.capture = Capture(self.project)
+                except (OSError, RuntimeError) as error:
+                    self.failed.emit(str(error))
+                    return
         if self.writer:
             self.sink.resume()
             self.state = "playing"
@@ -337,8 +362,14 @@ class Playback(QObject):
     def toggle(self):
         self.pause() if self.playing else self.play()
 
-    def step(self, amount):
-        self.select(self.index+amount, play=self.playing)
+    def step(self, amount, play=None):
+        if not self.project:
+            return
+        indices = [s.page-1 for s in self.project.included_slides if (s.page-1-self.index)*amount > 0]
+        if indices:
+            self.select(min(indices) if amount > 0 else max(indices), play=self.playing if play is None else play)
+        elif amount > 0:
+            self._finish()
 
     def preview(self, path):
         self.stop()
@@ -349,8 +380,10 @@ class Playback(QObject):
     def _finalize_capture(self):
         if self.capture:
             root = self.capture.close()
+            frames = self.capture.frames
             self.capture = None
-            self.recording_ready.emit(root)
+            if frames:
+                self.recording_ready.emit(root)
 
     def stop(self):
         self._reset_sink()
@@ -362,7 +395,8 @@ class Playback(QObject):
         self.changed.emit()
 
     def _finish(self):
-        self._finalize_capture()
+        if not self.capture or not hasattr(self.capture, "ready"):
+            self._finalize_capture()
         self.state = "finished"
         self.preview_path = None
         self.finished.emit()
@@ -375,18 +409,26 @@ def math_chunk_bytes(fmt):
 class Presentation(QWidget):
     closed = Signal()
 
-    def __init__(self, transport, parent=None):
+    def __init__(self, transport, end_action, parent=None):
         super().__init__(parent, Qt.WindowType.Window)
         self.transport = transport
         self.setWindowTitle("AutoTalk — Presentation")
-        self.setCursor(Qt.CursorShape.BlankCursor)
+        self.controls = QToolBar(self)
+        self.controls.setAutoFillBackground(True)
+        self.toggle_action = self.controls.addAction("Pause", transport.toggle)
+        self.controls.addAction("Return to controls (Esc)", self.close)
+        self.controls.addAction(end_action)
         self.document = QPdfDocument(self)
         self.document.load(str(transport.project.asset("slides.pdf")))
         self.rendered = None
         transport.slide_changed.connect(self.refresh)
-        transport.state_changed.connect(self.update)
+        transport.state_changed.connect(self.refresh)
 
     def refresh(self, *_):
+        self.toggle_action.setText("Pause" if self.transport.playing else "Continue")
+        self.toggle_action.setEnabled(self.transport.state in ("playing", "buffering", "paused"))
+        self.controls.adjustSize()
+        self.controls.move(16, self.height()-self.controls.height()-6)
         self.rendered = None
         self.update()
 
@@ -401,21 +443,21 @@ class Presentation(QWidget):
         size = self.document.pagePointSize(page)
         if size.isEmpty():
             return
-        ratio = min(self.width()/size.width(), self.height()/size.height())
+        ratio = min(self.width()/size.width(), (self.height()-55)/size.height())
         target = QSize(round(size.width()*ratio), round(size.height()*ratio))
         if self.rendered is None:
             self.rendered = self.document.render(page, target)
-        painter.drawImage((self.width()-target.width())//2, (self.height()-target.height())//2, self.rendered)
+        painter.drawImage((self.width()-target.width())//2, (self.height()-55-target.height())//2, self.rendered)
         if self.transport.state != "playing":
             painter.fillRect(0, 0, self.width(), 48, QColor(0, 0, 0, 190))
             painter.setPen(QColor("white"))
             painter.drawText(self.rect().adjusted(16, 8, -16, -8), Qt.AlignmentFlag.AlignTop,
-                             self.transport.state.capitalize() + " • Space: resume • Esc: return")
+                             ("Slides finished — recording continues" if self.transport.capture else "Presentation finished") if self.transport.state in ("finished", "stopped") else self.transport.state.capitalize() + " • Space: continue • Esc: return")
 
     def keyPressEvent(self, event: QKeyEvent):
         if event.key() == Qt.Key.Key_Escape:
             self.close()
-        elif event.key() == Qt.Key.Key_Space:
+        elif event.key() == Qt.Key.Key_Space and self.transport.state in ("playing", "buffering", "paused"):
             self.transport.toggle()
         elif event.key() in (Qt.Key.Key_Right, Qt.Key.Key_PageDown):
             self.transport.step(1)
