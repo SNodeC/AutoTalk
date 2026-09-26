@@ -5,20 +5,51 @@ complete agreed product scope below. Implementation targets 0.3. Testing for
 this refinement pass is **Linux only**; Windows/macOS support is retained.
 See [behavior](../README.md) and [measured verification](VERIFICATION.md).
 
+## Restored start/editor interaction — current refinement
+
+The fixed upper-right actions are Prepared: **Prepare and start**; Quick and
+Realtime: **Start**. No changing next-step dispatcher or text-review barrier remains.
+Each editor action has one purpose: Codex text creation/rewriting, Qwen audio
+creation, or playback of existing audio. Dialog-opening commands retain ellipses;
+direct commands omit them. Preview stop/completion clears preview state before
+notifying the UI. Account defaults and explicit models share the same display names.
+Verification and packaged Linux delivery are recorded in VERIFICATION.md.
+
+## Default project location — implemented
+
+New PDF imports collect their projects in the source PDF folder's `autotalk`
+subdirectory. Existing projects remain openable where they are; repeated imports
+create numbered project folders without overwriting prior talks.
+
+## Per-slide speech and Realtime reuse — implemented
+
+Prepared and Realtime share the selected-slide text → audio → playback flow,
+with separate, persistent text and audio buttons. Rewriting stays available after
+audio preparation; the audio button requires usable narration.
+Creating audio uses the displayed text and persists the result without a separate
+audio approval step. Rewriting words and regenerating audio remain distinct menu
+actions. Failed/cancelled regeneration retains the previous completed recording.
+Existing wording stays usable after context changes without approval;
+remaining-text creation fills only missing/translation slides. Saved current audio
+survives mode changes between Prepared and Realtime and is reused after reopening.
+Realtime checks the saved opening buffer immediately, before later preparation
+finishes. Quick retains its simple page and explains its defaults before switching
+away from prepared audio. See USER_GUIDE.md and VERIFICATION.md for tested behavior.
+
 ## Ordinary-user usability pass — implemented
 
-The nine original review groups and all **15 findings from the fresh walkthrough**
-are implemented in [the individual acceptance list](design/USABILITY.md).
-The second pass fixes voice prerequisites, translation approval, old-video versus
-new-recording state, fullscreen mouse controls and completion, and preview waiting.
-It also exposes basic setup and duration fitting, describes voices, separates
-recording discovery from new exports, and opens slides in the system image viewer.
+The nine original review groups, 15 second-pass findings, and all **12 latest
+walkthrough findings** are implemented in [the individual acceptance list](design/USABILITY.md).
+The latest pass removes duplicate welcome controls and the nested voice dialog,
+clarifies readiness/translation/completion, separates presentation from capture,
+and adds shared fullscreen slide navigation. Enlarged slides stay inside AutoTalk.
 
-Cumulative usability accounting is **118 net production lines**, within the
-approved 120-line limit, and **409 net test lines**. The second pass contributes
-48 production and 188 test lines. Linux verification includes 144 passing tests,
-native Breeze walkthroughs, real Qwen preview, recording/export and system-viewer
-checks. The earlier real Realtime/MP4 run remains separate evidence. Model loading
+Cumulative usability accounting is **117 net production lines**, within the
+approved 120-line limit, and **506 net test lines**. The latest pass removes one
+net production line and adds 97 test lines. Linux verification includes 148 passing
+tests, with 89 relevant tests repeated after the final simplification, native
+Breeze walkthroughs and real prepared-audio playback/MP4 saving. The earlier real
+Realtime generation and Qwen preview runs remain separate evidence. Model loading
 is still the main cold-start wait; this UI pass does not claim to accelerate it.
 Earlier product/platform requirements and deferred qualifications below remain.
 
@@ -108,7 +139,7 @@ supply missing GPU hardware or replace the operating system's driver setup.
 
 Trace authority, transformations, ownership, lifetime, presentation, persistence,
 and tests before changes. Reduce first, reshape existing code second, add narrowly
-only where necessary. Keep one script-acceptance authority, one speech-process
+only where necessary. Derive speech validity from its actual inputs; keep one speech-process
 owner, one playback position, and one shared audio mix. Preserve unrelated work.
 
 The following architectural corrections are implemented. Finding 5 remains open
@@ -117,7 +148,7 @@ limits and measured results are tracked below.
 
 | Review finding | Narrow correction and acceptance boundary |
 | --- | --- |
-| 1. Partial regeneration approves stale slides | Per-slide script context/origin replaces the version-wide stamp. Aggregate readiness derives from slides; explicit acceptance protects manual edits. Legacy scripts require review without deleting audio. |
+| 1. Partial regeneration approves stale slides | Removed script approval/context stamps. Partial rewriting preserves other words and audio; legacy stamps are ignored when loading. Start prepares only missing/translation text and invalid audio. |
 | 2. Language silently relabels old text | Select existing language versions or create translation drafts; preserve originals and send translation instructions to Codex. |
 | 3. Realtime serial startup | Load speech concurrently with Codex. A single first request plans the deck and writes its opening slide; later slide requests overlap synthesis and use the same thread/context. |
 | 4. Repeated cold model loads | Lease the existing speech process across preview/preparation; reload incompatible configurations, release on error/exit or selected idle policy. No separate model service. |
@@ -132,8 +163,16 @@ limits and measured results are tracked below.
 
 ### Remembered defaults
 
-- Speech model: keep until exit; alternatives five idle minutes / each operation;
-  manual Release GPU remains available.
+- Speech engine: immediate Load/Unload with current state; saved loading policy
+  (on demand / presentation start) and unloading policy (exit / presentation end /
+  five idle minutes / each preparation or preview). Manual preload follows the
+  same policy without counting as generation. Save/Cancel changes only policies;
+  playback continues during model management. The existing speech owner remains
+  authoritative; pauses, leaving fullscreen and live demos are not end events.
+- Model-loading progress: explicit stages, measured file/data counts where
+  available, no invented percentages for engine startup. Explicit **Check for
+  model updates…** compares the selected pinned model with upstream metadata;
+  it does not replace the verified manifest or download weights.
 - Quick: generate once and start; alternatives fit / require duration match.
 - Realtime: consistency first with grouped speech and adaptive buffering;
   Earliest playback uses a shorter first unit and lower minimum buffer.

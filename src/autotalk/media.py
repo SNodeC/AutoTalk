@@ -116,12 +116,11 @@ class Mix:
             if not slide.included:
                 self.parts[i], self.complete[i] = [], True
                 continue
-            current = slide.narration_context == p.context_key()
-            ready = current and p.ready(slide)
+            ready = p.ready(slide)
             parts = [AudioFile(p.asset(c.file), gain=c.gain) for c in slide.clips if c.placement == "before"]
             if ready:
                 parts.append(AudioFile(p.audio(slide)))
-            elif event and current and event["key"] == p.speech_key(slide):
+            elif event and slide.text_ready and event["key"] == p.speech_key(slide):
                 parts.append(AudioFile(event["path"], frames=event["frames"], offset=event["offset"]))
             if ready:
                 parts.extend(AudioFile(p.asset(c.file), gain=c.gain) for c in slide.clips if c.placement == "after")

@@ -56,7 +56,6 @@ def test_timing_uses_audio_and_not_word_estimates(project):
     make_audio(project, seconds=3)
     project.target_minutes = 0.1
     project.tolerance_seconds = 0
-    project.accept_script()
     assert project.total_seconds == 6
     assert project.within_target
 

@@ -5,6 +5,7 @@ import json
 import os
 import platform
 import queue
+import re
 import shlex
 import shutil
 import signal
@@ -202,7 +203,8 @@ def download(url: str, destination: Path, sha256: str, task: Task):
         append = response.status == 206 and offset > 0
         if not append:
             offset = 0
-        total = int(response.headers.get("Content-Length", 0)) + offset
+        length = response.headers.get("Content-Length")
+        total = int(length) + offset if length else None
         last = 0
         with partial.open("ab" if append else "wb") as stream:
             while block := response.read(1024 * 1024):
@@ -210,8 +212,10 @@ def download(url: str, destination: Path, sha256: str, task: Task):
                 stream.write(block)
                 offset += len(block)
                 if time.monotonic() - last > 0.5:
-                    task.report(f"Downloading {destination.name}: {offset / 2**20:.0f} / {total / 2**20:.0f} MiB")
+                    task.event({"type": "model_progress", "stage": "Downloading runtime: " + destination.name,
+                                "completed": offset, "total": total, "unit": "bytes"})
                     last = time.monotonic()
+        task.event({"type": "model_progress", "stage": "Checking runtime download"})
     with partial.open("rb") as stream:
         actual = hashlib.file_digest(stream, "sha256").hexdigest()
     if actual != sha256:
@@ -263,14 +267,18 @@ def binary_platform():
     return target
 
 
-def ensure_codex(task):
+def ensure_codex(task, *, install=True):
     # Existing installations preserve the user's normal ChatGPT login.
     existing = shutil.which("codex")
     if existing:
         return Path(existing)
     _, _, codex, archive, _, checksum = binary_platform()
     suffix = ".exe" if platform.system() == "Windows" else ""
-    return install_binary(f"codex-{CODEX_VERSION}{suffix}",
+    name = f"codex-{CODEX_VERSION}{suffix}"
+    if not install:
+        cached = data_dir() / "tools" / name
+        return cached if cached.is_file() else None
+    return install_binary(name,
                           f"https://github.com/openai/codex/releases/download/rust-v{CODEX_VERSION}/codex-{codex}.{archive}",
                           checksum, "codex-" + codex, task)
 
@@ -278,6 +286,24 @@ def ensure_codex(task):
 def speech_python() -> Path:
     root = data_dir() / ("speech-v2-" + speech_backend())
     return root / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
+
+
+def check_model_update(spec, task):
+    """Check upstream metadata without changing the verified model manifest/cache."""
+    task.check()
+    task.event({"type": "model_progress", "stage": "Checking model updates online"})
+    request = urllib.request.Request("https://huggingface.co/api/models/" + spec["repo"] + "?expand=sha",
+                                     headers={"User-Agent": "AutoTalk/0.3"})
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            latest = json.loads(response.read(65536)).get("sha", "")
+        if len(latest) != 40 or any(c not in "0123456789abcdef" for c in latest):
+            raise ValueError("The server did not provide a valid model revision.")
+    except (OSError, ValueError, AttributeError, TypeError) as error:
+        task.check()
+        raise RuntimeError(f"Could not check model updates: {error}") from error
+    task.check()
+    return latest
 
 
 def speech_backend():
@@ -297,12 +323,14 @@ def ensure_speech(task):
         marker = python.parent.parent / "autotalk-ready.json"
         if not python.exists():
             task.report("Preparing private Python 3.12 runtime…")
+            task.event({"type": "model_progress", "stage": "Creating private speech runtime"})
             run([uv, "venv", "--managed-python", "--python", "3.12.14", python.parent.parent], task)
         requirements = Path(__file__).with_name("speech-" + {
             "Linux": "linux", "Windows": "windows", "Darwin": "macos"}[platform.system()] + ".txt")
         fingerprint = hashlib.sha256(requirements.read_bytes()).hexdigest()
         if not marker.exists() or json.loads(marker.read_text()) != fingerprint:
             task.report("Installing GPU speech dependencies. The first download is several GB…")
+            task.event({"type": "model_progress", "stage": "Installing speech dependencies"})
             run([uv, "pip", "sync", "--python", python, requirements], task)
             marker.write_text(json.dumps(fingerprint))
         if speech_backend() == "vllm":
@@ -326,27 +354,62 @@ def speech_command(task, request: dict):
 
 
 @contextmanager
-def speech_session(task, config):
+def speech_session(task, config, preload=False):
     config = {key: config[key] for key in ("backend", "model", "source", "speaker", "sampling")}
     session = task.speech or SpeechSession(task, config)
     with session.guard:
         if session.idle_timer:
             session.idle_timer.cancel()
             session.idle_timer = None
+        session.release_requested = False
         try:
-            if any(session.config.get(k) != config[k] for k in ("backend", "model", "source", "sampling")) or (session.process and session.process.poll() is not None):
+            if not session.matches(config):
                 session.close()
             session.task, session.config = task, config
             yield session.__enter__()
         except BaseException:
             session.close()
+            if not task.cancelled.is_set():
+                session.phase = "failed"
             raise
         finally:
-            if task.speech is None or session.retention == "operation":
+            if session.phase != "failed" and (task.speech is None or session.release_requested or session.retention == "operation" and not preload):
                 session.close()
             else:
                 session.schedule_release()
             session.task = Task(report=lambda _: None, log=lambda _: None)
+
+
+def backend_loading_progress(line):
+    """Decode only the pinned vLLM 0.28 loading diagnostics; never infer readiness."""
+    line = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", line)
+    engine = re.search(r"(?:StageEngineCoreProc_stage|\[StageRuntime\] Stage )(\d+)", line)
+    prefix = f"Speech engine {int(engine[1])+1}: " if engine else ""
+    event = {"type": "model_progress", "stage": ""}
+    files = re.search(r"Loading safetensors checkpoint shards(?: \(eager\))?:\s*\d+% Completed \|\s*(\d+)/(\d+)\s", line)
+    if files:
+        completed, total = map(int, files.groups())
+        if total > 0 and 0 <= completed <= total:
+            return {**event, "stage": prefix + "Reading checkpoint files (current pass)",
+                    "completed": completed, "total": total, "unit": "files"}
+        return None
+    for pattern, stage, detail in (
+        (r"Initializing a V1 LLM engine", "Starting GPU runtime", ""),
+        (r"Starting to load model ", "Loading model weights", ""),
+        (r"Loaded (\d+) weights for Qwen3TTSTalkerForConditionalGeneration", "Speech weights loaded", "{0} weights reported"),
+        (r"Loading weights took ([\d.]+) seconds", "Weight loading completed", "{0} s"),
+        (r"Model loading took ([\d.]+) GiB memory and ([\d.]+) seconds", "Weights loaded; initializing engine", "Model memory: {0} GiB; load: {1} s"),
+        (r"Available KV cache memory: ([\d.]+) GiB", "Preparing inference cache", "{0} GiB available for cache"),
+        (r"GPU KV cache size: ([\d,]+) tokens", "Preparing inference cache", "Capacity: {0} tokens"),
+        (r"init engine \(profile, create kv cache, warmup model\) took ([\d.]+) s", "GPU initialization completed", "{0} s for profiling, cache and warmup"),
+        (r"\[StageRuntime\] Stage (\d+) initialized", "Initialization completed", "Service startup continues"),
+        (r"Orchestrator ready with (\d+) stages", "Checking speech service", "{0} engine stages initialized"),
+        (r"AsyncOmniEngine initialized in ([\d.]+) seconds", "Checking speech service", "Engine startup: {0} s"),
+    ):
+        match = re.search(pattern, line)
+        if match:
+            return {**event, "stage": prefix + stage, "detail": detail.format(*match.groups())}
+    return None
 
 
 class SpeechSession:
@@ -355,23 +418,39 @@ class SpeechSession:
         self.task, self.config = task, config
         self.guard = threading.Lock()
         self.retention = "session"
+        self.phase = "unloaded"
+        self.release_requested = False
         self.idle_timer = None
         self.process = None
         self.readers = []
         self.messages = queue.Queue()
         self.lock = None
 
+    @property
+    def state(self):
+        process = self.process
+        if process and process.poll() is not None and self.phase != "unloading":
+            return "failed"
+        return "in_use" if self.phase == "ready" and self.guard.locked() else self.phase
+
+    def matches(self, config):
+        process = self.process
+        return bool(process and process.poll() is None and all(
+            self.config.get(k) == config[k] for k in ("backend", "model", "source", "sampling")))
+
     def __enter__(self):
         if self.process:
             self.task.report("Reusing the loaded speech model.")
             return self
         from PySide6.QtCore import QLockFile
+        self.phase = "loading"
         try:
             data_dir().mkdir(parents=True, exist_ok=True)
             self.lock = QLockFile(str(data_dir() / "speech-session.lock"))
             if not self.lock.tryLock(0):
                 raise RuntimeError("Another AutoTalk instance is using the speech GPU.")
             started = time.monotonic()
+            self.task.event({"type": "model_progress", "stage": "Preparing speech runtime"})
             python = ensure_speech(self.task)
             self.task.event({"type": "measurement", "stage": "Runtime setup", "seconds": time.monotonic()-started})
             env = child_env()
@@ -390,6 +469,8 @@ class SpeechSession:
                 self.readers.append(reader)
             self._send(self.config)
             self._wait("ready")
+            self.phase = "ready"
+            self.task.event({"type": "model_progress", "stage": "Speech model ready", "completed": 1, "total": 1, "unit": ""})
             return self
         except BaseException:
             self.close()
@@ -404,6 +485,8 @@ class SpeechSession:
                 except json.JSONDecodeError:
                     pass
             self.task.log(line.rstrip()[:4000])
+            if not protocol and self.phase == "loading" and self.config.get("backend") == "vllm":
+                self.messages.put({"type": "backend_log", "line": line})
         if protocol:
             self.messages.put(None)
 
@@ -422,6 +505,10 @@ class SpeechSession:
                 continue
             if event is None:
                 raise RuntimeError("The local speech process stopped. See preparation details.")
+            if event.get("type") == "backend_log":
+                event = backend_loading_progress(event["line"]) if expected == "ready" else None
+                if event is None:
+                    continue
             kind = event.get("type")
             if kind == "error":
                 raise RuntimeError(event.get("message", "Speech generation failed."))
@@ -435,8 +522,12 @@ class SpeechSession:
         raise TimeoutError("Speech generation stopped responding. Completed slides have been retained.")
 
     def generate(self, request, on_event=None):
-        self._send({**self.config, "items": request["items"]})
-        self._wait("batch_complete", on_event)
+        self.phase = "generating"
+        try:
+            self._send({**self.config, "items": request["items"]})
+            self._wait("batch_complete", on_event)
+        finally:
+            self.phase = "ready"
 
     def schedule_release(self):
         def expire():
@@ -446,8 +537,8 @@ class SpeechSession:
         if self.idle_timer:
             self.idle_timer.cancel()
             self.idle_timer = None
-        if self.retention != "session" and self.process:
-            self.idle_timer = threading.Timer(300 if self.retention == "idle" else 0, expire)
+        if self.process and (self.release_requested or self.retention == "idle"):
+            self.idle_timer = threading.Timer(0 if self.release_requested else 300, expire)
             self.idle_timer.daemon = True
             self.idle_timer.start()
 
@@ -459,6 +550,12 @@ class SpeechSession:
             finally:
                 self.guard.release()
 
+    def request_release(self):
+        if not self.process and not self.guard.locked():
+            return
+        self.release_requested = True
+        self.set_retention(self.retention)
+
     def release(self):
         with self.guard:
             self.close()
@@ -467,6 +564,7 @@ class SpeechSession:
         if self.idle_timer:
             self.idle_timer.cancel()
         if self.process:
+            self.phase = "unloading"
             stop_process(self.process)
             for reader in self.readers:
                 reader.join(timeout=2)
@@ -480,6 +578,8 @@ class SpeechSession:
             self.lock.unlock()
         self.readers.clear()
         self.messages = queue.Queue()
+        self.phase = "unloaded"
+        self.release_requested = False
 
     def __exit__(self, *args):
         self.close()

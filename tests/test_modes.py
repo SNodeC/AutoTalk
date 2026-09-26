@@ -39,7 +39,6 @@ def test_stream_files_remain_readable_through_completion(project, local_speech):
         if value["type"] == "audio":
             audio_events.append(value)
             assert len(AudioFile(value["path"], frames=value["frames"], offset=value["offset"]).read(0, 10)) == 10
-    project.accept_script()
     services.prepare(project, Task(event=event))
     assert project.prepared
     assert Project.load(project.manifest).prepared
@@ -48,7 +47,6 @@ def test_stream_files_remain_readable_through_completion(project, local_speech):
 
 
 def test_cancelled_stream_retains_only_completed_slides(project, local_speech):
-    project.accept_script()
     task = Task()
     def event(value):
         if value["type"] == "slide_ready": task.cancelled.set()

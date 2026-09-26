@@ -23,6 +23,7 @@ class Playback(QObject):
     slide_changed = Signal(int)
     failed = Signal(str)
     finished = Signal()
+    presentation_ended = Signal()
     recording_ready = Signal(object)
     demo_requested = Signal()
 
@@ -386,21 +387,29 @@ class Playback(QObject):
                 self.recording_ready.emit(root)
 
     def stop(self):
+        was_presenting = self.active and not self.preview_path
         self._reset_sink()
         self._finalize_capture()
-        self.state = "stopped"
         self._offset = 0
         self.preview_path = None
         self.preview_audio = None
+        self.state = "stopped"
         self.changed.emit()
+        if was_presenting:
+            self.presentation_ended.emit()
 
     def _finish(self):
+        if self.preview_path:
+            self.stop()
+            return
+        was_presenting = self.active and not self.preview_path
         if not self.capture or not hasattr(self.capture, "ready"):
             self._finalize_capture()
         self.state = "finished"
-        self.preview_path = None
         self.finished.emit()
         self.changed.emit()
+        if was_presenting and not self.capture:
+            self.presentation_ended.emit()
 
 
 def math_chunk_bytes(fmt):
@@ -409,14 +418,16 @@ def math_chunk_bytes(fmt):
 class Presentation(QWidget):
     closed = Signal()
 
-    def __init__(self, transport, end_action, parent=None):
+    def __init__(self, transport, previous_action, next_action, end_action, parent=None):
         super().__init__(parent, Qt.WindowType.Window)
         self.transport = transport
         self.setWindowTitle("AutoTalk — Presentation")
         self.controls = QToolBar(self)
         self.controls.setAutoFillBackground(True)
+        self.controls.addAction(previous_action)
         self.toggle_action = self.controls.addAction("Pause", transport.toggle)
-        self.controls.addAction("Return to controls (Esc)", self.close)
+        self.controls.addAction(next_action)
+        self.controls.addAction("Pause and return to controls (Esc)", self.close)
         self.controls.addAction(end_action)
         self.document = QPdfDocument(self)
         self.document.load(str(transport.project.asset("slides.pdf")))

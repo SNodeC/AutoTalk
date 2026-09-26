@@ -15,41 +15,40 @@ from autotalk.media import Capture, RATE
 from autotalk.runtime import Cancelled, Task
 
 
-def test_open_pdf_has_one_dialog_and_non_destructive_default_location(qtbot, sample_pdf, tmp_path, monkeypatch):
-    documents = tmp_path / 'Documents'
-    monkeypatch.setattr(app.QStandardPaths, 'writableLocation', lambda _: str(documents))
+def test_open_pdf_has_one_dialog_and_non_destructive_default_location(qtbot, sample_pdf, monkeypatch):
+    projects = sample_pdf.parent / 'autotalk'
     monkeypatch.setattr(app.QFileDialog, 'getOpenFileName', lambda *a: (str(sample_pdf), 'PDF'))
     monkeypatch.setattr(app.QFileDialog, 'getExistingDirectory', lambda *a: pytest.fail('Unexpected folder dialog'))
     w = MainWindow(); qtbot.addWidget(w); w.show()
     for suffix in ('', '-2'):
         w.new_project()
         qtbot.waitUntil(lambda: w.job is None, timeout=5000)
-        assert w.project.root == documents / 'AutoTalk' / ('slides-AutoTalk' + suffix)
+        assert w.project.root == projects / ('slides-AutoTalk' + suffix)
         assert w.project.manifest.is_file()
-        assert w.start_button.text() == 'Write talk text'
-        assert w.context_warning.text() == 'Your slides are ready. Write the talk text next.'
+        assert w.start_button.text() == 'Prepare and start'
+        assert 'Start reuses current audio' in w.status.text()
         assert w.talk_dialog.isVisible() and w.minutes.isVisible() and w.audience.isVisible()
         w.talk_dialog.accept()
-    assert (documents / 'AutoTalk/slides-AutoTalk/talk.autotalk.json').is_file()
+    assert (projects / 'slides-AutoTalk/talk.autotalk.json').is_file()
 
 
 @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
-def test_manual_review_and_next_action_agree_everywhere(qtbot, project, mode):
+def test_mode_start_label_is_stable_after_manual_edits(qtbot, project, monkeypatch, mode):
     project.mode = mode
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    assert w.start_button.text() == w.start_action.text() == 'Review talk text'
-    assert mode in w.mode_description.text()
-    w.start_button.click()
-    assert w.workspace.currentWidget() is w.editor and w.job is None
-    assert w.accept_button.isVisible()
-    w.accept_button.click()
-    assert project.script_current
-    assert w.start_button.text() == w.start_action.text()
-    assert w.start_button.text() == ('Prepare audio' if mode == 'Prepared' else 'Prepare and start')
+    caption = 'Prepare and start' if mode == 'Prepared' else 'Start'
+    calls = []
+    monkeypatch.setattr(w, 'prepare_and_present', lambda: calls.append(True))
+    for text in ('My edited narration.', '', 'Restored words.'):
+        w.narration.setPlainText(text)
+        assert w.start_button.text() == w.start_action.text() == caption
+        assert w.start_button.isVisible() and w.start_button.isEnabled()
+        w.start_button.click()
+    assert calls == [True] * 3
     w.minutes.setValue(5)
     assert 'Talk length changed' in w.status.text()
-    assert not project.script_current
-
+    assert w.start_button.text() == caption
+    assert not any('Approve' in b.text() for b in w.findChildren(QPushButton))
 
 def test_voice_source_shows_only_its_own_workflow(qtbot, project):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
@@ -76,7 +75,7 @@ def test_presenter_offers_one_action_and_explicit_recording_end(qtbot, project):
         w.refresh()
         assert [b for b in actions if b.isVisible()] == [expected]
         assert expected.isEnabled()
-        assert not w.start_button.isVisible()
+        assert w.start_button.isVisible() and w.start_button.isEnabled()
     capture = Capture(project)
     try:
         capture.append(np.zeros((RATE, 2), dtype='<i2'), 1)
@@ -92,12 +91,12 @@ def test_presenter_offers_one_action_and_explicit_recording_end(qtbot, project):
 
 
 def test_interrupted_realtime_has_a_visible_resume_preparation(qtbot, project):
-    project.mode = 'Realtime'; project.accept_script()
+    project.mode = 'Realtime'
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     w.workspace.setCurrentWidget(w.presenter)
     w.transport.state = 'paused'; w.refresh()
     assert w.start_button.isVisible() and w.start_button.isEnabled()
-    assert w.start_button.text() == 'Resume preparation'
+    assert w.start_button.text() == 'Start'
     assert not w.present_button.isVisible() and not w.continue_button.isVisible()
     w.transport.stop()
 
@@ -117,10 +116,12 @@ def test_recording_browser_empty_then_saved_and_legacy_recovery(qtbot, project, 
     assert w.recordings.item(0, 0).text() == project.title
     assert w.recordings.item(0, 2).text() == '0:01'
     assert w.recordings.item(0, 3).text() == 'Needs saving'
+    assert w.recover_button.text() == 'Save unfinished recording…'
     output = tmp_path / 'video.mp4'; output.write_bytes(b'exported')
     info['output'] = str(output); (root / 'session.json').write_text(json.dumps(info))
     w.export_saved(output); w.update_timing()
     assert w.recordings.item(0, 3).text() == 'Ready'
+    assert w.recover_button.text() == 'Save a copy / another format…'
     assert 'Saved ' in w.record_status.text() and w.output_button.isEnabled()
     # Older recoverable recordings have no title/date fields or project manifest.
     del info['title']; del info['started_at']
@@ -168,7 +169,6 @@ def test_sign_in_failure_prevents_expensive_speech_loading(project, monkeypatch,
         pytest.fail('Speech loaded before sign-in')
         yield
     monkeypatch.setattr(services, 'speech_session', speech)
-    project.accept_script()
     if mode == 'fit':
         operation = lambda: services.prepare(project, Task(), fit=True)
     else:
@@ -183,7 +183,7 @@ def test_sign_in_failure_prevents_expensive_speech_loading(project, monkeypatch,
 @pytest.mark.parametrize('mode', ['Quick', 'Realtime'])
 def test_audio_only_resume_does_not_require_chatgpt(project, monkeypatch, mode):
     from contextlib import nullcontext
-    project.mode = mode; project.quick_timing = 'once'; project.accept_script()
+    project.mode = mode; project.quick_timing = 'once'
     monkeypatch.setattr(services, 'Codex', lambda *a: pytest.fail('No text generation needed'))
     monkeypatch.setattr(services, 'speech_session', lambda *a: nullcontext())
     monkeypatch.setattr(services, 'synthesize', lambda p, t, **kw: make_audio(p))
@@ -191,37 +191,25 @@ def test_audio_only_resume_does_not_require_chatgpt(project, monkeypatch, mode):
     assert project.prepared
 
 
-def test_language_draft_cannot_be_approved_until_translated_or_replaced(qtbot, project, monkeypatch):
+def test_language_draft_accepts_manual_text_without_approval(qtbot, project):
     from autotalk.project import Project
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     original = project.active_version
     text = [s.narration for s in project.slides]
     w.language.setCurrentText('German')
-    assert w.start_button.text() == 'Translate talk text'
-    assert not w.accept_button.isEnabled()
-    with pytest.raises(ValueError, match='Translate or replace'):
-        project.accept_script()
-    assert not project.script_current
-    calls = []
-    monkeypatch.setattr(app.QMessageBox, 'question', lambda *a: pytest.fail('Translation must not ask to rewrite the source'))
-    monkeypatch.setattr(w, 'start_job', lambda *a, **kw: calls.append(a[1].keywords.get('pages')))
-    w.start_button.click()
-    assert calls == [[1, 2]]
+    assert w.start_button.text() == 'Prepare and start'
+    assert 'Source text — waiting for German translation' in w.slide_info.text()
+    assert 'German — German' not in w.version_select.currentText()
+    assert not any(s.text_ready for s in project.slides)
     for index, slide in enumerate(project.slides):
         w.slide_list.setCurrentRow(index)
         w.narration.setPlainText(f'Dies ist die Erklärung für Folie {slide.page}.')
-        if index == 0:
-            assert not w.accept_button.isEnabled()
-            assert w.start_button.text() == 'Translate talk text'
-            w.start_button.click()
-            assert calls[-1] == [2]
-    assert w.accept_button.isEnabled()
-    w.accept_button.click()
-    assert project.script_current
+        assert slide.text_ready
+        assert w.start_button.isEnabled()
+    assert w.save()
     reopened = Project.load(project.manifest)
-    assert reopened.language == 'German' and reopened.script_current
+    assert reopened.language == 'German' and all(s.text_ready for s in reopened.slides)
     assert [s.narration for s in reopened.versions[original].slides] == text
-
 
 def test_previous_video_does_not_override_new_recording_intent(qtbot, project, tmp_path):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project)
@@ -285,9 +273,7 @@ def test_operation_feedback_is_in_the_active_dialog(qtbot, project):
     assert not w.progress.isVisible()
     w.talk_dialog.accept()
     assert w.progress.parentWidget() is w.footer
-    w.accept_button.click()
-    assert w.status.text() == w.next_step()[1]
-    assert 'Prepare its audio' in w.status.text()
+    assert "Start reuses current audio" in w.status.text()
 
 
 def test_inapplicable_options_and_recording_browser_priorities(qtbot, project, monkeypatch, tmp_path):
@@ -321,6 +307,11 @@ def test_fullscreen_mouse_controls_and_finished_return(qtbot, project):
     assert fullscreen.toggle_action.text() == 'Continue'
     qtbot.mouseClick(fullscreen.controls.widgetForAction(fullscreen.toggle_action), Qt.MouseButton.LeftButton)
     assert w.transport.playing
+    assert not w.previous_action.isEnabled() and w.next_action.isEnabled()
+    qtbot.mouseClick(fullscreen.controls.widgetForAction(w.next_action), Qt.MouseButton.LeftButton)
+    assert w.transport.index == 1 and w.previous_action.isEnabled()
+    qtbot.mouseClick(fullscreen.controls.widgetForAction(w.previous_action), Qt.MouseButton.LeftButton)
+    assert w.transport.index == 0
     w.transport.select(len(project.slides)-1)
     w.transport.step(1)
     assert w.transport.state == 'finished' and not fullscreen.toggle_action.isEnabled()
@@ -330,16 +321,30 @@ def test_fullscreen_mouse_controls_and_finished_return(qtbot, project):
     assert w.transport.state == 'stopped'
 
 
-def test_enlargement_opens_current_slide_in_system_viewer(qtbot, project, monkeypatch):
-    from autotalk import ui
-    opened = []
-    monkeypatch.setattr(ui.QDesktopServices, 'openUrl', lambda url: opened.append(Path(url.toLocalFile())))
+def test_enlargement_keeps_the_current_slide_inside_autotalk(qtbot, project, monkeypatch):
+    from PySide6.QtCore import QTimer
+    from PySide6.QtWidgets import QApplication, QDialog
+    from autotalk.app import SlideImage
+    monkeypatch.setattr(app.QDesktopServices, 'openUrl', lambda url: pytest.fail('Unexpected external viewer'))
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     w.slide_list.setCurrentRow(1)
-    button = next(b for b in w.findChildren(QPushButton) if b.text() == 'Enlarge in viewer…')
-    qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
-    assert opened == [project.image(project.slides[1])]
-    assert opened[0].is_file()
+    viewed = []
+    def inspect():
+        dialog = QApplication.activeModalWidget()
+        if isinstance(dialog, QDialog):
+            image = dialog.findChild(SlideImage)
+            viewed.append((dialog.windowTitle(), image.original.toImage(), image.size()))
+            dialog.accept()
+    timer = QTimer(); timer.timeout.connect(inspect); timer.start(50)
+    try:
+        button = next(b for b in w.findChildren(QPushButton) if b.text() == 'Enlarge slide…')
+        qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
+    finally:
+        timer.stop()
+    assert len(viewed) == 1 and viewed[0][0] == 'Slide 2'
+    assert viewed[0][1] == w.image.original.toImage()
+    assert viewed[0][2].width() > w.image.width() and viewed[0][2].height() > w.image.height()
+    assert w.transport.index == 1 and w.workspace.currentWidget() is w.editor
 
 
 def test_automatic_recording_save_cannot_resume_finished_fullscreen(qtbot, project):
@@ -348,11 +353,11 @@ def test_automatic_recording_save_cannot_resume_finished_fullscreen(qtbot, proje
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     w.present_button.click()
     view = w.presentation
-    qtbot.waitUntil(lambda: w.transport.state == 'stopped' and w.job is None and not w.pending_exports, timeout=10000)
+    qtbot.waitUntil(lambda: w.transport.state == 'finished' and w.job is None and not w.pending_exports, timeout=10000)
     assert Path(w.output_path).is_file()
     assert not view.toggle_action.isEnabled()
     qtbot.keyClick(view, Qt.Key.Key_Space)
-    assert w.transport.state == 'stopped' and w.transport.capture is None
+    assert w.transport.state == 'finished' and w.transport.capture is None
     assert w.end_action.text() == 'Return to editing'
     qtbot.mouseClick(view.controls.widgetForAction(w.end_action), Qt.MouseButton.LeftButton)
     assert w.presentation is None and w.workspace.currentWidget() is w.editor
@@ -371,6 +376,74 @@ def test_translation_keeps_manually_replaced_slides(project, monkeypatch):
     result = services.narrate(project, Task(), pages=[2])
     assert result.slides[0].narration == 'Meine eigene Erklärung.'
     assert result.slides[1].narration == 'Die zweite Folie.'
-    assert not result.script_current
-    result.accept_script()
-    assert result.script_current
+    assert all(s.text_ready for s in result.included_slides)
+
+
+def test_empty_window_has_one_top_aligned_start_and_no_talk_controls(qtbot, project):
+    from PySide6.QtCore import QPoint
+    w = MainWindow(); qtbot.addWidget(w); w.show()
+    buttons = [b for b in w.findChildren(QPushButton) if b.isVisible()]
+    assert [b.text() for b in buttons] == ['Open PDF…', 'Open saved talk…']
+    assert buttons[0].mapTo(w, QPoint()).y() < w.height() // 4
+    assert not w.toolbar.isVisible() and not w.overview.isVisible() and not w.footer.isVisible()
+    assert not w.narration_progress.isVisible() and not w.options.record.isVisible()
+    w.adopt(project)
+    assert w.toolbar.isVisible() and w.overview.isVisible() and w.footer.isVisible()
+    assert w.narration_progress.isVisible() and w.options.record.isVisible()
+    assert [b.text() for b in w.findChildren(QPushButton) if b.isVisible()].count('Open PDF…') == 1
+
+
+def test_generated_text_reports_readiness_without_claiming_human_approval(qtbot, project):
+    services.apply_narration(project, {'title': project.title, 'slides': [
+        {'page': s.page, 'narration': 'A newly generated explanation.', 'notes': '', 'budget_seconds': 15}
+        for s in project.slides]}, Task(lambda _: None))
+    w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+    assert w.narration_progress.text() == 'Text ready: 2 / 2'
+    assert 'Start reuses current audio' in w.status.text() and w.start_button.text() == 'Prepare and start'
+    assert w.version_select.currentText() == 'English'
+
+
+def test_saved_voice_preview_feedback_and_settings_have_one_owner(qtbot, project, monkeypatch, tmp_path):
+    import threading
+    from PySide6.QtWidgets import QApplication, QDialogButtonBox
+    from autotalk import voices
+    monkeypatch.setattr(voices, 'data_dir', lambda: tmp_path)
+    w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+    w.talk_dialog.show_section(7)
+    assert w.voice_library.rowCount() == 0
+    assert not w.library_preview.isEnabled() and not w.library_use.isEnabled()
+    voices.save_voice(project, 'Conference voice'); w.refresh_library()
+    assert w.library_preview.isEnabled() and w.library_use.isEnabled()
+    release = threading.Event()
+    monkeypatch.setattr(app, 'synthesize', lambda *a, **kw: (release.wait(3), None)[1])
+    # Exercise the real button and worker path; no speech model needed to check ownership.
+    monkeypatch.setattr(w.transport, 'preview', lambda path: None)
+    try:
+        w.library_preview.click(); qtbot.wait(300)
+        assert QApplication.activeModalWidget() is w.talk_dialog
+        assert w.progress.isVisible() and w.progress.parentWidget() is w.talk_dialog
+        assert 'Generating voice preview' in w.talk_dialog.status.text()
+        assert w.talk_dialog.cancel_job.isVisible()
+    finally:
+        release.set(); qtbot.waitUntil(lambda: w.job is None)
+    assert w.talk_dialog.buttons.button(QDialogButtonBox.Save).text() == 'Save and return to talk'
+    w.talk_dialog.show_section(4)
+    assert w.screen.isVisible() and w.audio_test_button.isVisible() and not w.options.record.isVisible()
+    w.talk_dialog.show_section(5)
+    assert w.options.record.isVisible() and not w.screen.isVisible() and not w.audio_test_button.isVisible()
+    w.talk_dialog.reject()
+
+
+def test_skipping_to_the_end_promotes_completion_not_replay(qtbot, project):
+    make_audio(project, seconds=10)
+    w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+    w.workspace.setCurrentWidget(w.presenter)
+    w.transport.select(len(project.slides)-1); w.transport.step(1)
+    assert w.transport.state == 'finished'
+    assert w.duration_label.text() == 'Presentation finished'
+    assert 'Remaining' not in w.play_time.text() and 'Buffered' not in w.play_time.text()
+    assert not w.present_button.isVisible() and w.start_button.isVisible()
+    assert w.end_button.text() == 'Return to editing' and w.end_button.property('primary')
+    assert w.start_button.isEnabled()
+    w.end_button.click()
+    assert w.workspace.currentWidget() is w.editor and w.transport.state == 'stopped'

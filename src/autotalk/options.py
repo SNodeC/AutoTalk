@@ -64,7 +64,7 @@ class SettingsPanel(QWidget):
         self.form.addRow("Saved delivery presets", self.presets)
         row = QHBoxLayout()
         self.use_preset_button = QPushButton("Use preset")
-        for button, callback in ((QPushButton("Save preset"), self.save_preset), (self.use_preset_button, self.use_preset)):
+        for button, callback in ((QPushButton("Save preset…"), self.save_preset), (self.use_preset_button, self.use_preset)):
             button.clicked.connect(callback)
             row.addWidget(button)
         self.form.addRow(row)

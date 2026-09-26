@@ -20,51 +20,48 @@ from autotalk.runtime import Cancelled, Task
 from autotalk.services import apply_narration, split_speech
 
 
-def test_partial_revision_never_approves_later_slides(project):
+def test_partial_revision_preserves_other_text_and_audio(project):
     make_audio(project)
     project.scope = 'A different conference'
-    old = project.slides[1].narration
+    other = copy.deepcopy(project.slides[1])
     events = []
     apply_narration(project, {'title': 'Revised', 'slides': [
         {'page': 1, 'narration': 'New introduction.', 'notes': '', 'budget_seconds': 2}]}, Task(event=events.append))
-    assert not project.script_current
-    assert project.slides[1].narration == old
-    assert project.slides[0].narration_context == project.context_key()
-    assert project.slides[1].narration_context != project.context_key()
+    assert all(s.text_ready for s in project.included_slides)
+    assert project.slides[1] == other and project.ready(other)
+    assert not project.ready(project.slides[0])
     assert not Project.load(project.manifest).prepared
-    assert events[-1]['completed'] == 1
+    assert events[-1]['completed'] == 2
 
-
-def test_manual_edit_requires_review_and_preserves_other_slides(project):
+def test_manual_edit_only_invalidates_its_audio(project):
     make_audio(project)
-    stamp = project.slides[1].narration_context
+    other = copy.deepcopy(project.slides[1])
     project.slides[0].narration += ' An important correction.'
-    assert not project.script_current
+    assert all(s.text_ready for s in project.included_slides)
     assert project.slides[0].narration_origin == 'manual'
-    assert project.slides[1].narration_context == stamp
-    project.accept_script()
-    assert project.script_current
+    assert project.slides[1] == other
     assert not project.ready(project.slides[0])
     assert project.ready(project.slides[1])
 
-
-def test_v2_import_requires_review_without_erasing_work(project):
+@pytest.mark.parametrize('version_number', [2, 3])
+def test_old_context_stamps_do_not_block_saved_audio(project, version_number):
     make_audio(project)
     old = json.loads(project.manifest.read_text())
-    old['version'] = 2
+    old['version'] = version_number
     for version in old['versions'].values():
-        version['narration_context'] = 'unreliable-old-version-wide-stamp'
+        version['narration_context'] = 'obsolete-version-stamp'
         for slide in version['slides']:
-            slide.pop('narration_context')
+            slide['narration_context'] = 'obsolete-slide-stamp'
             slide.pop('narration_origin')
     project.manifest.write_text(json.dumps(old))
     loaded = Project.load(project.manifest)
-    assert not loaded.script_current
+    assert loaded.prepared
     assert all(loaded.ready(s) for s in loaded.slides)
-    loaded.accept_script();loaded.save()
-    assert loaded.manifest.with_suffix('.v2-backup.json').exists()
+    loaded.save()
+    if version_number == 2:
+        assert loaded.manifest.with_suffix('.v2-backup.json').exists()
     assert Project.load(loaded.manifest).prepared
-
+    assert 'narration_context' not in loaded.manifest.read_text()
 
 def test_language_selection_creates_translation_and_preserves_original(qtbot,project):
     make_audio(project)
@@ -74,7 +71,7 @@ def test_language_selection_creates_translation_and_preserves_original(qtbot,pro
     w.language.setCurrentText('German')
     assert project.active_version != original
     assert project.language == project.version.name == 'German'
-    assert not project.script_current
+    assert not all(s.text_ready for s in project.included_slides)
     assert all(s.narration_origin == 'translation' for s in project.slides)
     w.language.setCurrentText('English')
     assert project.active_version == original
@@ -121,7 +118,7 @@ def test_new_common_delivery_invalidates_previous_audio(project, monkeypatch):
         old.setattr(Project, 'directions', lambda self, slide: 'Professional')
         make_audio(project)
         paths = [project.audio(s) for s in project.slides]
-    assert project.script_current
+    assert all(s.text_ready for s in project.included_slides)
     assert not project.prepared
     assert all(p.exists() for p in paths)
     project.save()
@@ -176,7 +173,6 @@ def test_shared_mix_preserves_stereo_and_read_boundaries(project,tmp_path):
     assert np.array_equal(audio.read(0,4800),samples)
     make_audio(project)
     project.slides[0].clips=[clip]
-    project.accept_script()
     mix=Mix(project)
     assert np.array_equal(mix.read(0,0,4800),samples)
     mono=AudioFile(project.audio(project.slides[0]))
@@ -226,11 +222,16 @@ def test_desktop_workspaces_and_remembered_policy(qtbot,project):
     assert w.workspace.currentWidget() is w.quick_page
     w.mode.setCurrentText('Realtime')
     assert w.workspace.currentWidget() is w.editor
-    w.gpu_retention.setCurrentIndex(w.gpu_retention.findData('idle'))
+    w.preferences_dialog.show_section(1)
+    next(b for b in w.gpu_retention.buttons() if b.property('value') == 'idle').click()
+    assert w.speech.retention == 'session'
+    w.preferences_dialog.accept()
     assert w.speech.retention=='idle'
     w2=MainWindow();qtbot.addWidget(w2)
-    assert w2.gpu_retention.currentData()=='idle'
-    w.gpu_retention.setCurrentIndex(w.gpu_retention.findData('session'))
+    assert w2.gpu_retention.checkedButton().property('value')=='idle'
+    w.preferences_dialog.show_section(1)
+    next(b for b in w.gpu_retention.buttons() if b.property('value') == 'session').click()
+    w.preferences_dialog.accept()
 
 
 def test_selected_segmentation_invalidates_audio(project):
@@ -387,13 +388,14 @@ def test_accepted_designed_voice_uses_exact_preview(qtbot, project, monkeypatch,
     assert w.job is None
 
 
-def test_manual_edits_in_realtime_require_explicit_review(qtbot, project):
+def test_manual_edits_in_realtime_start_without_review(qtbot, project, monkeypatch):
     project.mode = 'Realtime'
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project)
-    assert w.start_button.text() == 'Review talk text'
-    w.start_mode()
-    assert w.workspace.currentWidget() is w.editor and w.job is None
-
+    started = []
+    monkeypatch.setattr(w, 'prepare_and_present', lambda: started.append(True))
+    assert w.start_button.text() == 'Start'
+    w.start_button.click()
+    assert started == [True]
 
 def test_expired_idle_timer_cannot_release_a_new_model_lease(monkeypatch):
     from autotalk import runtime
@@ -437,7 +439,6 @@ def test_writing_next_slide_preserves_current_stream_buffer(qtbot, project):
     before = w.transport.buffered_seconds
     updated = copy.deepcopy(project.slides[1])
     updated.narration = 'The next slide is now written.'
-    updated.narration_context = project.context_key()
     from types import SimpleNamespace
     w.job = SimpleNamespace(title="Preparing talk…")  # Deliver a producer event through the GUI's public handler.
     try:
@@ -467,7 +468,7 @@ def test_single_slide_generation_preserves_unset_timing_and_other_work(project):
         narrate(project, Task(), pages=[1])
     assert project.title == old_title
     assert project.slides[1] == second and project.ready(project.slides[1])
-    assert project.script_current and not project.ready(project.slides[0])
+    assert all(s.text_ready for s in project.included_slides) and not project.ready(project.slides[0])
 
 
 def test_excluded_slides_are_preserved_but_not_synthesized_or_exported(project, tmp_path):
@@ -476,7 +477,7 @@ def test_excluded_slides_are_preserved_but_not_synthesized_or_exported(project, 
     project.slides[0].included = False
     project.slides[0].narration = ''
     project.slides[1].after = 'demo'
-    project.accept_script();project.save()
+    project.save()
     loaded = Project.load(project.manifest)
     assert loaded.prepared and len(loaded.slides) == 2
     assert loaded.slides[1].after == 'demo'
@@ -503,7 +504,7 @@ def test_after_slide_pause_continues_to_next_included_slide(qtbot, project):
     assert player.index == 1 and player.state == 'buffering'
     player.stop()
     project.slides[0].included = False
-    project.accept_script();player.load(project);player.play()
+    player.load(project);player.play()
     assert player.index == 1
     player.stop()
 
@@ -521,24 +522,28 @@ def test_completed_desktop_recording_keeps_authoring_locked(qtbot, project):
     w.transport.stop()
 
 
-def test_voice_library_preview_selection_and_cancel(qtbot, project):
-    from autotalk.project import SPEAKERS
-    w = MainWindow();qtbot.addWidget(w);w.adopt(project);w.show()
+def test_voice_library_preview_selection_and_cancel(qtbot, project, monkeypatch, tmp_path):
+    from autotalk import voices
+    monkeypatch.setattr(voices, 'data_dir', lambda: tmp_path)
     original = project.voice.speaker
-    w.voice_dialog.show_section()
-    w.voice_library.selectRow(2)
-    selected = w.voice_library.item(2, 0).text()
-    assert selected in SPEAKERS
-    w.use_saved_voice()
-    assert w.project.voice.speaker == selected
-    assert w.voice_library.item(w.voice_library.currentRow(), 0).text() == selected
-    w.voice_dialog.reject()
+    project.voice.speaker = 'Aiden'
+    voices.save_voice(project, 'My conference voice')
+    project.voice.speaker = original
+    w = MainWindow();qtbot.addWidget(w);w.adopt(project);w.show()
+    w.talk_dialog.show_section(7)
+    assert w.voice_library.rowCount() == 1
+    assert w.voice_library.item(0, 0).text() == 'My conference voice'
+    w.library_use.click()
+    assert w.project.voice.speaker == 'Aiden'
+    assert w.talk_dialog.navigation.currentItem().text() == 'Voice'
+    assert w.voice_library.item(w.voice_library.currentRow(), 0).text() == 'My conference voice'
+    w.talk_dialog.reject()
     assert w.project.voice.speaker == original
 
 
 def test_recording_sources_update_capabilities_and_restore_on_cancel(qtbot, project):
     w = MainWindow();qtbot.addWidget(w);w.adopt(project);w.show()
-    w.talk_dialog.show_section(4)
+    w.talk_dialog.show_section(5)
     w.options.fields['recording_source'].setCurrentIndex(1)
     assert project.recording_source == 'screen'
     assert w.options.fields['capture_microphone'].isEnabled()
@@ -608,7 +613,6 @@ def test_excluding_final_slide_updates_pause_audio_key_and_language_copy(project
     previous_key = project.speech_key(project.slides[0])
     project.slides[1].included = False
     project.slides[0].after = 'demo'
-    project.accept_script()
     assert project.speech_key(project.slides[0]) != previous_key
     assert not project.ready(project.slides[0])
     requests = []

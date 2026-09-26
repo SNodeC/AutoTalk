@@ -25,14 +25,17 @@ SCOPE_SCHEMA = object_schema({"scope": TEXT})
 
 
 class Codex:
-    def __init__(self, task: Task):
+    def __init__(self, task: Task, *, interactive=True):
         self.task = task
+        self.interactive = interactive
+        binary = ensure_codex(task, install=interactive)
+        if binary is None:
+            raise FileNotFoundError("Sign in to ChatGPT to set up Codex.")
         self.messages = queue.Queue()
         self.pending = []
         self.sequence = 0
         self.thread = None
         self.scratch = tempfile.TemporaryDirectory(prefix="autotalk-codex-")
-        binary = ensure_codex(task)
         env = child_env()
         env.pop("OPENAI_API_KEY", None)
         env.pop("CODEX_API_KEY", None)
@@ -91,7 +94,7 @@ class Codex:
         self.sequence += 1
         request_id = self.sequence
         self.send({"method": method, "params": params, "id": request_id})
-        deadline = time.monotonic() + timeout
+        deadline = time.monotonic() + (timeout if self.interactive else min(timeout, 10))
         while True:
             message = self.receive(deadline)
             if message.get("id") == request_id:
@@ -107,6 +110,8 @@ class Codex:
         account = self.call("account/read", {"refreshToken": False}).get("account")
         if account and account.get("type") == "chatgpt":
             return "Connected to ChatGPT (" + str(account.get("planType", "subscription")) + ")"
+        if not self.interactive:
+            return None
         result = self.call("account/login/start", {"type": "chatgpt"})
         self.task.open_url(result["authUrl"])
         self.task.report("Complete ChatGPT sign-in in your browser. AutoTalk is waiting…")
@@ -142,9 +147,7 @@ class Codex:
     def generate(self, prompt, schema, images=(), *, model="", effort=""):
         options = {}
         if model or effort:
-            models = self.models()
-            selected = next((m for m in models if m["model"] == model), None) if model else next(
-                (m for m in models if m.get("isDefault")), None)
+            selected = next((m for m in self.settings["models"] if m["model"] == (model or self.settings["model"])), None)
             if not selected:
                 raise ValueError("The selected Codex model is unavailable. Choose an available model.")
             if images and "image" not in selected.get("inputModalities", ["text", "image"]):
@@ -199,6 +202,7 @@ class Codex:
                            "params": {"threadId": thread, "turnId": turn}})
 
     def close(self):
+        self.process.stdin.close()
         stop_process(self.process)
         for reader in self.readers:
             reader.join(timeout=2)
@@ -206,11 +210,25 @@ class Codex:
             pipe.close()
         self.scratch.cleanup()
 
+    def connect(self, *, sign_out=False):
+        self.task.report("Signing out of ChatGPT…" if sign_out else "Checking ChatGPT sign-in…")
+        if sign_out:
+            self.call("account/logout", {})
+        account = None if sign_out else self.login()
+        self.settings = {"type": "codex_settings", "account": account or "Sign in to ChatGPT to discover models.",
+                         "signed_in": bool(account), "models": [], "model": "", "effort": ""}
+        self.task.event(dict(self.settings))
+        if account:
+            models = self.models()
+            config = self.call("config/read", {"includeLayers": False}).get("config", {})
+            self.settings.update(models=models, model=config.get("model") or next((m["model"] for m in models if m.get("isDefault")), ""),
+                                 effort=config.get("model_reasoning_effort") or "")
+            self.task.event(self.settings)
+        return self
+
     def __enter__(self):
         try:
-            self.task.report("Checking ChatGPT sign-in…")
-            self.login()
-            return self
+            return self.connect()
         except BaseException:
             self.close()
             raise

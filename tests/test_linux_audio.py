@@ -45,7 +45,7 @@ def test_mono_narration_reaches_both_stereo_channels(qtbot, tmp_path, monkeypatc
             player = Playback()
             player.failed.connect(errors.append)
             player.preview(source)
-            qtbot.waitUntil(lambda: player.state == "finished" or bool(errors), timeout=5000)
+            qtbot.waitUntil(lambda: player.state == "stopped" or bool(errors), timeout=5000)
             assert not errors
             qtbot.wait(200)
             recorder.kill()

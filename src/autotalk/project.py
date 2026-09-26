@@ -119,7 +119,6 @@ class Slide:
     directions: str = ""
     included: bool = True
     after: str = "advance"
-    narration_context: str = ""
     narration_origin: str = "manual"
     audio_key: str = ""
     audio_file: str = ""
@@ -129,13 +128,16 @@ class Slide:
     clips: list[Clip] = field(default_factory=list)
 
     @property
+    def text_ready(self):
+        return bool(self.passages) and self.narration_origin != "translation"
+
+    @property
     def narration(self):
         return "\n\n".join((f"[{p.language}] " if p.language else "") + p.text for p in self.passages)
 
     @narration.setter
     def narration(self, text):
         self.passages = parse_passages(text)
-        self.narration_context = ""
         self.narration_origin = "manual"
 
 
@@ -201,26 +203,6 @@ class Project:
         self.version.language = value
         self.version.name = value
 
-    @property
-    def script_current(self):
-        context = self.context_key()
-        return bool(self.included_slides) and all(s.passages and s.narration_context == context for s in self.included_slides)
-
-    @property
-    def manual_review_required(self):
-        context = self.context_key()
-        return any(s.passages and s.narration_origin == "manual" and s.narration_context != context for s in self.included_slides)
-
-    def accept_script(self):
-        for slide in self.included_slides:
-            if slide.narration_origin == "translation":
-                raise ValueError(f"Translate or replace the text of slide {slide.page} before approving this language version.")
-            self.effective_passages(slide)
-            if not slide.passages:
-                raise ValueError(f"Slide {slide.page} has no narration.")
-        for slide in self.included_slides:
-            slide.narration_context = self.context_key()
-
     def reference(self, language=None):
         refs = self.voice.references
         return refs.get(language or self.language, refs.get("default", Reference()))
@@ -276,13 +258,6 @@ class Project:
     def audio_name(self, slide, key=None):
         return f"audio/{self.active_version}/{self.language}/{slide.page:04d}-{key or slide.audio_key}.wav"
 
-    def context_key(self) -> str:
-        context = [self.scope, self.audience, self.objective, self.delivery.style, self.codex_model, self.codex_effort]
-        return digest([self.pdf_hash, [] if self.mode == "Quick" else context,
-                       self.language, self.language_policy, self.target_minutes, self.pause_seconds,
-                       [[c.seconds for c in s.clips] for s in self.slides]] +
-                      ([[s.page for s in self.included_slides]] if any(not s.included for s in self.slides) else []))
-
     def effective_passages(self, slide):
         values = [Passage(p.text, p.language or self.language) for p in slide.passages]
         languages = {p.language for p in values}
@@ -327,14 +302,14 @@ class Project:
 
     def ready(self, slide: Slide) -> bool:
         try:
-            return bool(slide.passages and slide.audio_key == self.speech_key(slide)
+            return bool(slide.text_ready and slide.audio_key == self.speech_key(slide)
                         and slide.duration > 0 and self.audio(slide).is_file())
         except ValueError:
             return False
 
     @property
     def prepared(self):
-        return self.script_current and all(self.ready(s) for s in self.included_slides)
+        return bool(self.included_slides) and all(self.ready(s) for s in self.included_slides)
 
     @property
     def total_seconds(self):
@@ -428,6 +403,7 @@ class Project:
                 value.pop("narration_context", None)
                 slides = []
                 for s in value.pop("slides"):
+                    s.pop("narration_context", None)
                     s["passages"] = [Passage(**p) for p in s["passages"]]
                     s["clips"] = [Clip(**c) for c in s.get("clips", [])]
                     slides.append(Slide(**s))

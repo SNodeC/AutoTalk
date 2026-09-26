@@ -1,7 +1,23 @@
 # Ordinary-user usability refinement
 
-The first pass reorganized the nine original review groups. A fresh walkthrough
-then identified the 15 remaining findings covered individually below. It retains the
+## Current interaction contract (supersedes earlier next-step/approval rules)
+
+Prepared always offers **Prepare and start**; Quick/Realtime offer **Start**.
+The command stays visible and enabled for a loaded talk and prepares missing
+content automatically. There is no text approval or context-freshness gate.
+Existing words remain unless the user requests rewriting or explicit duration fitting.
+The editor separates Codex text generation, Qwen audio creation and existing-file
+playback. Saved audio is reused in presentation only when its speech inputs match.
+Dialog-opening actions retain ellipses, including rewrite confirmation. Direct
+commands omit them. Both stopping and finishing a preview restore Play audio;
+account-default models use the same names as their explicit dropdown entries.
+
+The historical acceptance entries below describe earlier passes; their next-step
+and approval behavior has been replaced by this contract.
+
+
+The first two passes addressed the nine original review groups and 15 follow-up
+findings. The latest pass addresses the additional 12 findings listed first below. It retains the
 clickable prototype's desktop layout, native platform appearance, and all three
 preparation modes. Linux is the verification target.
 
@@ -20,6 +36,28 @@ voice panels reuse the existing bindings. Existing capture/session metadata gain
 a title and creation timestamp; no new service or workflow state is introduced.
 The user approved up to **120 net additional production lines** for this pass.
 
+## Latest walkthrough: all 12 findings
+
+The welcome screen uses the existing project boundary, and completed playback
+retains its finished state during export. Removing the nested voice-library dialog
+leaves one settings transaction and one progress owner. No new persisted state,
+workflow flags, services or timers were introduced.
+
+| Finding | Implemented behavior |
+| --- | --- |
+| 1. Duplicate, centered opening controls | One opening area near the top. The document toolbar appears only after a talk is opened. Sign-in stays in the guided preparation flow. |
+| 2. Empty application shows talk controls | Hide summary, recording status and document progress until a talk exists. Import still shows operation progress. Previous recordings remain available from File. |
+| 3. Vague setup completion | Save and return to talk explains the transition; General explains writing/reviewing text next. |
+| 4. Generated text called Approved | Text ready reports freshness; Prepared explicitly asks the user to review before Prepare audio. Manual edits retain their approval guard. |
+| 5. Repeated guidance and crowded editor | Remove whole-talk instructions from the slide inspector and idle dialogs. Simplify thumbnail/version captions and Quick layout. Enlarge reuses the existing image widget inside AutoTalk. |
+| 6. Duplicate voice pickers | Predefined voices have one picker. Saved voices contains only reusable profiles, in Talk settings with one final Save/Cancel. |
+| 7. Hidden library progress | Removing the nested dialog lets saved-voice previews use the settings dialog's existing spinner, elapsed status and Cancel. |
+| 8. Display/audio under Recording | Presentation owns display, system audio and background music; Recording owns optional capture. |
+| 9. Missing fullscreen mouse navigation | Fullscreen shares Previous/Next actions with presenter controls and explicitly says that returning pauses playback. |
+| 10. Finished view promotes restart | Return to editing/end-and-save becomes primary. No remaining/buffered countdown at completion. Replay is explicitly in the Presentation menu. Automatic video export preserves finished state. |
+| 11. Ambiguous recording Save | Ready outputs offer Save a copy / another format; unfinished recordings offer Save unfinished recording. |
+| 12. Translation source looks translated | The label directly above the text says Source text — waiting for the selected language's translation until replaced or translated. |
+
 ## Second walkthrough: all 15 findings
 
 The follow-up keeps the same owners and persistence format. It removes stale
@@ -27,8 +65,8 @@ message copying, a redundant voice label/timer restart, a one-use callback, and
 hover-dependent controls. The fullscreen toolbar shares the existing End action;
 preview creation and design acceptance share the same artifact path. No new
 workflow flags, timers, services, or model-selection policies were introduced.
-Slide enlargement delegates to the platform image viewer instead of adding a
-second viewer implementation.
+Slide enlargement now reuses the existing slide image widget in a resizable
+AutoTalk dialog; it no longer opens another application.
 
 | Finding | Implemented behavior |
 | --- | --- |
@@ -43,7 +81,7 @@ second viewer implementation.
 | 9. Recording source | The main recording checkbox names slides/narration or screen/system audio. Talk settings → Recording changes the source. |
 | 10. Find versus create video | Opening the selected saved recording is primary; creating a separate slides-and-speech export is below it and explicitly excludes live demos. Table space follows content, with wrapping titles. |
 | 11. Language changes | Untranslated drafts cannot be approved at the Project boundary. Translate processes remaining draft slides, preserving manually replaced slides and the original language version. A user may instead replace each draft's text before approval. |
-| 12. Slide detail | Navigator captions wrap and include a text-derived heading, skipping text repeated throughout a multi-slide deck; full captions have tooltips. Enlarge in viewer opens the current rendered slide in the system image viewer for zoom. |
+| 12. Slide detail | Navigator captions wrap and include a text-derived heading, skipping text repeated throughout a multi-slide deck; full captions have tooltips. Enlarge slide reuses the slide image widget in a larger resizable AutoTalk window. |
 | 13. Duration | Fit duration sits beside target and measured audio duration in the main window. |
 | 14. Stale guidance | Idle guidance is recomputed from the current next step; old operations remain in Preparation details. Hidden dialogs no longer inherit the last error as their current instruction. |
 | 15. Inapplicable settings | Background volume is a labelled percentage; volume/loop/remove require a track. Use preset requires a saved preset. Conference context is explicitly optional. |
@@ -55,7 +93,7 @@ Descriptions guide selection; listening remains the check for the chosen languag
 
 | Review group | Implemented behavior |
 | --- | --- |
-| 1. Opening slides | Open PDF and Open saved talk are explicit in the toolbar, menus, and welcome page. PDF import creates a unique folder under Documents / AutoTalk without a second chooser. Save a copy selects another location. |
+| 1. Opening slides | Open PDF and Open saved talk appear once in the welcome content, then in the toolbar after opening a talk. Menu equivalents remain. PDF import creates a unique project under the source PDF folder’s `autotalk` subdirectory without a second chooser. Save a copy selects another location. |
 | 2. First-time readiness | Codex acquisition checks ChatGPT sign-in and guides browser login. Automatic preparation and timing fitting complete that step before loading speech. Cancellation closes the client. Audio-only resume and prepared playback do not require a new ChatGPT connection. First-use download size and wait are explained. |
 | 3. Mode consistency | The toolbar, menu and Quick guidance use one computed next step. There is one start action. All three modes have visible descriptions. Existing manual edits retain their review guard. Interrupted Realtime has a visible Resume preparation action. |
 | 4. Honest guidance | A fresh PDF says the slides are ready and to create speech. Actual duration/audience/context changes identify the changed field and show the resulting next step. |

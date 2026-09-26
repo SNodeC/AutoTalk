@@ -171,7 +171,7 @@ def test_fullscreen_escape_pauses_and_continue_preserves_position(qtbot, project
     window.continue_presentation()
     qtbot.waitUntil(lambda: window.transport.position > position, timeout=5000)
     window.stop_presentation()
-    assert window.accept_button.isEnabled()
+    assert window.start_button.isEnabled()
 
 
 @pytest.mark.audio_device
@@ -197,17 +197,18 @@ def test_quick_autostart_respects_timing_policy(qtbot, project, monkeypatch, pol
     window = MainWindow()
     qtbot.addWidget(window)
     project.mode, project.quick_timing = "Quick", policy
-    project.accept_script()  # This test starts from a reviewed existing script.
     window.adopt(project)
-    presented = []
-    monkeypatch.setattr(window, "present", lambda: presented.append(True))
     def prepared(p,task):
         make_audio(p)
         return p
     monkeypatch.setattr(app, "workflow", prepared)
     window.start_mode()
     qtbot.waitUntil(lambda: window.job is None, timeout=5000)
-    assert bool(presented) is starts
+    assert (window.presentation is not None) is starts
+    assert window.start_button.text() == "Start" and window.start_button.isEnabled()
+    window.start_button.click()
+    assert (window.presentation is not None) is starts
+    window.stop_presentation()
     assert window.project.prepared and not window.project.within_target
 
 
@@ -272,13 +273,14 @@ def test_preferences_cancel_restores_retention_and_sampling(qtbot, project):
     qtbot.addWidget(window)
     window.adopt(project)
     window.show()
-    original = window.gpu_retention.currentData()
+    original = window.gpu_retention.checkedButton().property("value")
     window.preferences_dialog.show_section(1)
-    window.gpu_retention.setCurrentIndex(window.gpu_retention.findData('operation'))
+    next(b for b in window.gpu_retention.buttons() if b.property('value') == 'operation').click()
+    assert window.speech.retention == original  # Draft policies do not act before Save.
     window.preferences_dialog.reject()
-    assert window.gpu_retention.currentData() == original
+    assert window.gpu_retention.checkedButton().property("value") == original
     assert window.speech.retention == original
-    window.talk_dialog.show_section(5)
+    window.talk_dialog.show_section(6)
     window.options.override.setChecked(True)
     window.options.sampling['temperature'].setValue(.4)
     window.talk_dialog.reject()
@@ -366,7 +368,7 @@ def test_recording_dialog_uses_same_checkbox_and_cancel_restores_choice(qtbot, p
     window.adopt(project)
     window.show()
     checkbox = window.options.record
-    window.talk_dialog.show_section(4)
+    window.talk_dialog.show_section(5)
     qtbot.waitUntil(checkbox.isVisible)
     assert checkbox.parentWidget() is window.recording_form
     from PySide6.QtCore import QPoint
@@ -376,3 +378,26 @@ def test_recording_dialog_uses_same_checkbox_and_cancel_restores_choice(qtbot, p
     assert not window.project.record_presentation
     qtbot.waitUntil(checkbox.isVisible)
     assert checkbox.parentWidget() is window.record_footer
+
+
+@pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+def test_numeric_editors_fit_native_style_geometry(qtbot, project, mode):
+    from PySide6.QtWidgets import QAbstractSpinBox, QSpinBox, QStyle, QStyleOptionSpinBox
+    project.mode = mode
+    window = MainWindow(); qtbot.addWidget(window); window.adopt(project)
+    window.resize(940, 680); window.show()
+    seen = set()
+    for section in range(window.talk_dialog.navigation.count()):
+        window.talk_dialog.show_section(section)
+        qtbot.wait(1)
+        for spin in window.findChildren(QAbstractSpinBox):
+            if not spin.isVisible():
+                continue
+            option = QStyleOptionSpinBox(); spin.initStyleOption(option)
+            expected = spin.style().subControlRect(QStyle.ComplexControl.CC_SpinBox, option,
+                                                  QStyle.SubControl.SC_SpinBoxEditField, spin)
+            assert spin.lineEdit().geometry() == expected, (spin.text(), spin.lineEdit().geometry(), expected)
+            assert spin.rect().contains(spin.lineEdit().geometry())
+            seen.add(type(spin))
+    assert QSpinBox in seen and len(seen) >= 2
+    window.talk_dialog.reject()

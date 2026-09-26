@@ -5,6 +5,7 @@ import sys
 import json
 import re
 import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 import shutil
@@ -162,7 +163,6 @@ def apply_narration(project, result, task, fit=False):
     for value in result["slides"]:
         slide = copy.deepcopy(project.slides[value["page"]-1])
         slide.narration = value["narration"].strip()
-        slide.narration_context = project.context_key()
         slide.narration_origin = "generated"
         slide.notes = value["notes"]
         slide.budget_seconds = value["budget_seconds"]
@@ -176,7 +176,7 @@ def apply_narration(project, result, task, fit=False):
     project.save()
     task.event({"type": "narration", "version": project.active_version, "title": project.title,
                 "slides": [copy.deepcopy(project.slides[v["page"]-1]) for v in result["slides"]]})
-    task.event({"type": "progress", "stage": "Narration", "completed": sum(bool(s.passages) and s.narration_context == project.context_key() for s in project.included_slides),
+    task.event({"type": "progress", "stage": "Narration", "completed": sum(s.text_ready for s in project.included_slides),
                 "total": len(project.included_slides)})
     return project
 
@@ -242,7 +242,7 @@ def preview_path(project):
     return data_dir() / "previews" / f"{project.speech_key(sample)}.wav"
 
 
-def synthesize(project, task, preview=False, *, pages=None, session=None):
+def synthesize(project, task, preview=False, *, pages=None, session=None, force=False):
     voice = project.effective_voice
     items = []
     selected = [s for s in project.slides if pages is None or s.page in pages]
@@ -253,9 +253,9 @@ def synthesize(project, task, preview=False, *, pages=None, session=None):
     for slide in selected:
         if not preview and not slide.included:
             continue
-        if not slide.passages:
-            raise ValueError(f"Slide {slide.page} has no narration.")
-        if not preview and project.ready(slide):
+        if not slide.text_ready:
+            raise ValueError(f"Create or translate narration for slide {slide.page} before creating its audio.")
+        if not preview and not force and project.ready(slide):
             continue
         passages = []
         for passage in project.effective_passages(slide):
@@ -273,6 +273,8 @@ def synthesize(project, task, preview=False, *, pages=None, session=None):
                                  "instructions": project.directions(slide)})
         key = project.speech_key(slide)
         output = preview_path(project) if preview else project.asset(project.audio_name(slide, key))
+        if force:
+            output = output.with_stem(output.stem + "-" + uuid.uuid4().hex)
         items.append({"page": slide.page, "key": key, "passages": passages, "output": str(output),
                       "pause": project.pause_after(slide)})
     if not items:
@@ -295,13 +297,12 @@ def synthesize(project, task, preview=False, *, pages=None, session=None):
                 return
             if kind == "complete":
                 slide = project.slides[item["page"]-1]
-                if slide.audio_key != item["key"] or not project.ready(slide):
-                    slide.audio_key = item["key"]
-                    slide.audio_file = path.relative_to(project.root).as_posix()
-                    slide.duration = wav_duration(path)
-                    slide.audio_sha256 = file_hash(path)
-                    slide.audio_provenance = {**value["provenance"], "speech_priority": project.speech_priority,
-                                              "segmentation": "paragraph-sentence-groups-300-v1"}
+                slide.audio_key = item["key"]
+                slide.audio_file = path.relative_to(project.root).as_posix()
+                slide.duration = wav_duration(path)
+                slide.audio_sha256 = file_hash(path)
+                slide.audio_provenance = {**value["provenance"], "speech_priority": project.speech_priority,
+                                          "segmentation": "paragraph-sentence-groups-300-v1"}
                 project.save()
                 task.event({"type": "slide_ready", "version": project.active_version, "slide": copy.deepcopy(slide)})
                 task.event({"type": "measurement", "stage": "Speech", "seconds": value["generation_seconds"],
@@ -332,9 +333,12 @@ def freeze_designed_voice(project, task):
     raise ValueError("Preview and accept the designed voice before starting the talk.")
 
 
-def prepare(project, task, fit=False):
-    if not project.script_current and not fit:
-        raise ValueError("Review and accept the script for the current context before generating audio.")
+def prepare(project, task, fit=False, *, pages=None, force=False):
+    if pages is not None:
+        freeze_designed_voice(project, task)
+        synthesize(project, task, pages=pages, force=force)
+        project.save()
+        return project
     fixed = sum(c.seconds for s in project.included_slides for c in s.clips) + project.pause_seconds * (len(project.included_slides)-1)
     if fit and fixed > project.target_minutes * 60 + project.tolerance_seconds:
         raise ValueError("Clips and fixed pauses already exceed the requested duration.")
@@ -358,14 +362,10 @@ def prepare(project, task, fit=False):
 
 def workflow(project, task):
     """Write ahead while the one speech owner loads and then synthesizes."""
-    if project.mode == "Prepared":
-        return prepare(project, task)
     if project.prepared:
         return project
-    if project.manual_review_required:
-        raise ValueError("Review and accept your edited script, or explicitly regenerate it, before Start.")
     freeze_designed_voice(project, task)
-    missing = [s.page for s in project.included_slides if s.narration_context != project.context_key() or not s.passages]
+    missing = [s.page for s in project.included_slides if not s.text_ready]
     needs_codex = missing or project.mode == "Quick" and project.quick_timing != "once"
     context = speech_session(task, speech_config(project))
     with (Codex(task) if needs_codex else nullcontext()) as client, ThreadPoolExecutor(max_workers=2) as workers:
@@ -389,7 +389,7 @@ def workflow(project, task):
                                         pages=batches[i+1], outline=outline) if i+1 < len(batches) else None
                 # Current scripts before this batch may only need their audio resumed.
                 through = pages[-1] if pages else len(project.slides)
-                eligible = [s.page for s in project.slides[:through] if s.narration_context == project.context_key()]
+                eligible = [s.page for s in project.slides[:through] if s.text_ready]
                 synthesize(project, task, pages=eligible, session=session)
             synthesize(project, task, session=session)
             if project.mode == "Quick" and project.quick_timing != "once":

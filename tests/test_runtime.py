@@ -59,3 +59,16 @@ def test_intel_mac_is_rejected_before_download(monkeypatch):
     monkeypatch.setattr(runtime.platform, "machine", lambda: "x86_64")
     with pytest.raises(RuntimeError, match="Apple Silicon"):
         runtime.binary_platform()
+
+
+def test_passive_codex_resolution_never_downloads_and_reuses_private_install(tmp_path, monkeypatch):
+    monkeypatch.setenv('AUTOTALK_DATA_DIR', str(tmp_path))
+    monkeypatch.setattr(runtime.shutil, 'which', lambda _: None)
+    monkeypatch.setattr(runtime, 'download', lambda *a: pytest.fail('Passive startup must not download Codex'))
+    assert runtime.ensure_codex(runtime.Task(), install=False) is None
+    suffix = '.exe' if runtime.platform.system() == 'Windows' else ''
+    cached = tmp_path / 'tools' / f'codex-{runtime.CODEX_VERSION}{suffix}'
+    cached.parent.mkdir(); cached.write_bytes(b'cached')
+    assert runtime.ensure_codex(runtime.Task(), install=False) == cached
+    monkeypatch.setattr(runtime.shutil, 'which', lambda _: str(tmp_path / 'system-codex'))
+    assert runtime.ensure_codex(runtime.Task(), install=False) == tmp_path / 'system-codex'

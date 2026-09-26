@@ -50,7 +50,6 @@ def project(sample_pdf, tmp_path):
 
 
 def make_audio(project, seconds=0.3):
-    project.accept_script()
     for slide in project.slides:
         slide.audio_key = project.speech_key(slide)
         slide.audio_file = project.audio_name(slide)

@@ -6,6 +6,15 @@ AutoTalk is a Python/PySide6 desktop application. Codex app-server writes narrat
 using your ChatGPT sign-in; Qwen3-TTS **1.7B** generates speech on your local GPU.
 The executable is `autotalk` (`autotalk.exe` on Windows).
 
+Read the [UI user guide](docs/USER_GUIDE.md) for step-by-step Prepared, Quick and
+Realtime workflows, editing and previewing individual slides, voice selection,
+presentation controls, recording, export and GPU-model management.
+
+The [UI interaction inventory](docs/design/UI_INVENTORY.md) lists current controls
+by functional group and UI location, with user-importance ratings and availability.
+The [revised UX placement proposal](docs/design/UX_PLACEMENT_PROPOSAL.md) records
+the proposed interaction structure and access criteria; it is not yet implemented.
+
 The 0.3 refinement prototype follows the [agreed feature and refinement plan](docs/ROADMAP.md), which distinguishes implemented work from remaining qualification.
 Read [verification results and platform limitations](docs/VERIFICATION.md) before
 relying on it for a conference.
@@ -58,46 +67,103 @@ Runtime/model data stays in the user's application-data directory.
    Earliest playback prioritizes a short first speech unit. Buffer underruns wait
    visibly. Final duration remains approximate until preparation finishes.
 
-First-time downloads and model loading precede speech in every mode. Streaming
-reduces waiting for audio; it does not guarantee uninterrupted playback on every GPU.
+First-time downloads and model loading precede newly generated speech. Saved current
+audio is reused in every mode. Realtime starts from a sufficient saved opening buffer
+without waiting for preparation needed only on later slides. Streaming does not
+guarantee uninterrupted playback on every GPU.
 
 The main window has a **slide navigator**, **PDF/narration editor**, and **slide
 inspector**, matching the interactive UI prototype. Use **Talk settings** (Ctrl+T)
-for General, Conference, Voice, Delivery, Recording, and Advanced. **Settings → Preferences**
-holds application appearance information and speech-model retention. Model/reasoning,
+for General, Conference, Voice, Delivery, Presentation, Recording, Advanced, and Saved voices. **Settings → Preferences**
+holds application appearance information and speech-engine controls. Model/reasoning,
 sampling, timing tolerance, language arrangement, and encoding belong to the current
 talk under **Talk settings → Advanced**. Dialogs have Save/Cancel; cancelling
 restores the talk configuration, including changes that an operation already saved.
 Explicitly saved reusable voice/delivery library entries remain available.
 The inspector controls slide timing, inclusion, delivery overrides, and automatic
 advance or a presenter/demo pause. Rewrite this slide replaces only its text.
-Use **Enlarge in viewer…** to open the current slide in the system image viewer
-for zoom. Navigator captions include headings extracted from the slide text.
-Talk → Voice library lists predefined and saved voices with language filtering.
+Use **Enlarge slide…** to inspect the current slide in a larger, resizable AutoTalk
+window. Navigator captions show slide headings; audio status is in their tooltips.
+Choose predefined voices in **Talk settings → Voice**. **Saved voices** contains
+your reusable voices, with language filtering and preview in the same dialog.
+Display, speakers and background music are under **Presentation**; video capture
+is under **Recording**.
 The preview waveform is calculated from the generated audio.
 
 **Quick** shows duration and language directly. **View → Presenter view** shows the
 current and next slides, narration, playback timing, and Continue controls. The primary
-action follows the selected mode and script state. Prepared keeps review and
-approval explicit. **Approve all slide text** approves the individual text on
-each slide; it does not copy one slide's words. **Write talk text** and **Prepare
-audio** are separate steps. Manual edits require approval or explicit rewriting.
-Use **End presentation** to return from playback; **Resume preparation** reuses
-completed work and restarts an unfinished slide from its beginning. Escape and
-Continue presentation preserve the current playback position. Fullscreen has
-visible mouse controls. Once finished, **Return to editing** leaves presentation
-mode; Space cannot restart a finished talk.
+action is always **Prepare and start** in Prepared mode and **Start** in Quick
+and Realtime. It remains available for a loaded talk; there is no text-approval
+barrier. Prepared creates all missing content before fullscreen; Realtime can
+start with opening audio while later slides prepare. Existing words are preserved,
+and current saved audio is reused. Changes to conference scope, target duration,
+or Codex choices do not invalidate existing speech by themselves.
 
-Speech models remain loaded until exit by default. Select five idle minutes or
-one operation instead, or use **Release GPU**. A compatible preview warms the
-next generation; changing model variant or deployment sampling settings reloads
-the worker. GPU retention, Quick timing, and Realtime priority are remembered.
+In Prepared and Realtime, separate buttons offer **Create slide text / Rewrite
+slide text…**, **Create slide audio**, and **Play audio / Stop audio**. Rewriting
+calls Codex; audio creation calls Qwen using the displayed words and saves and
+previews the new recording. Playback can audition an existing recording even
+when edited words require fresh audio for presentation. Failed/cancelled audio
+creation retains the previous completed file. Save / Ctrl+S persists narration
+edits; starting preparation/presentation and normal closing also save the talk.
+Ellipses mark actions that open dialogs, including rewrite confirmation.
+
+Use **End presentation** to return from playback. **Start** resumes interrupted
+Realtime preparation using completed work. Escape and
+Continue presentation preserve the current playback position. Fullscreen has
+visible Previous/Next, Pause/Continue and End controls. Once finished,
+**Return to editing** is primary; use **Presentation → Restart from beginning**
+to replay. Space cannot restart a finished talk. Ready recordings offer
+**Save a copy / another format**; unfinished recordings offer **Save unfinished recording**.
+
+Use **Settings → Speech engine…** (also available from the status bar) to see the
+current model and control GPU memory. **Load model now** and **Unload model now**
+act immediately without changing the saved automatic settings or stopping prepared
+audio. A compatible model is reused; changing model variant or deployment sampling
+settings requires loading the selected model.
+
+Automatic settings take effect only when you click **Save**:
+
+- **Load:** when speech is first needed (default), or when starting a presentation.
+  Presentation preload runs in the background; prepared audio starts immediately.
+  Preparation and voice previews always load a needed model.
+- **Unload:** keep until AutoTalk closes (default), at presentation end, after five
+  idle minutes, or after each preparation/preview. These rules also apply to a
+  manually loaded model. Per-operation unloading waits for the next actual
+  preparation/preview, so it does not undo a manual preload.
+
+Pause, leaving fullscreen, and continuing do not end a presentation. Screen
+recording keeps the session open until **End presentation and save video**.
+Choosing an automatic rule never causes an immediate load or unload; selecting
+five idle minutes starts that countdown for an already idle model. **Cancel**
+discards unsaved rules but does not undo immediate Load/Unload actions. Loading is
+cancellable; unloading waits for safe ownership of the model and retains downloaded
+files. GPU policies, Quick timing, and Realtime priority are remembered.
 A retained Linux worker uses roughly 6 GiB of GPU memory on the tested machine.
+
+Model loading shows the current stage in the progress bar: runtime setup,
+finding/downloading model files, file verification, GPU/engine startup, then ready.
+Available measurements are shown as completed files or transferred MiB, without
+percentages. On Linux, backend startup also shows checkpoint files per loading pass,
+reported weight counts, model memory and load times, inference-cache capacity, and
+each engine stage as it initializes. These are individual observations, not a
+percentage of overall GPU loading. Stages without a measurement say **Progress not
+reported**; elapsed time remains visible. Only the service readiness check marks
+the model ready. Cached models are checked and reused, not downloaded
+again on every load; missing or damaged files may require a download.
+
+**Check for model updates…** in Speech engine explicitly checks the selected
+model's upstream revision while AutoTalk is idle. It reports whether it matches
+AutoTalk's pinned revision, without downloading weights or replacing a loaded
+model. A different upstream revision requires an AutoTalk release with the
+verified model manifest before it becomes the model used for speech.
 
 ## Configure the talk
 
 - Choose **Open PDF…** for an unencrypted PDF of 1–80 slides. AutoTalk saves it in
-  **Documents / AutoTalk**, choosing a unique folder without replacing an earlier talk.
+  **an `autotalk` subfolder beside the PDF**, choosing a unique project folder
+  without replacing an earlier talk. For example, `/slides/demo.pdf` creates
+  `/slides/autotalk/demo-AutoTalk/`.
   **Open saved talk…** opens an AutoTalk project; **File → Save a copy…** changes location.
 - Import opens General in Prepared/Realtime so duration, language and audience
   can be checked first. Quick shows duration/language directly. **Fit duration…**
@@ -107,8 +173,12 @@ A retained Linux worker uses roughly 6 GiB of GPU memory on the tested machine.
   the editable extraction and its source links. JavaScript-only and authenticated
   websites may need a manually supplied explanation.
 - Creating speech checks ChatGPT sign-in and opens browser sign-in when needed,
-  before expensive speech setup. **Talk settings → Advanced → Sign in to ChatGPT**
-  also connects and discovers models. The model
+  before expensive speech setup. **Talk settings → Advanced** offers **Sign in**
+  when disconnected and **Sign out** when connected. Signing out clears the shared
+  local Codex login. At startup, an existing Codex installation
+  is checked for a ChatGPT sign-in; available models and configured defaults appear
+  automatically, without opening a browser or downloading tools. Saved talk choices
+  are preserved. The model
   selector lists account-available models accepting slide images; reasoning choices
   come from the selected model. Subscription limits apply. No paid API fallback is
   used. Slide images, extracted text, and supplied context are sent to Codex;
@@ -117,7 +187,7 @@ A retained Linux worker uses roughly 6 GiB of GPU memory on the tested machine.
   Japanese, or Korean. Selecting a language opens its existing version or creates
   a translation draft from the current text, preserving the original. **Translate
   talk text** translates remaining drafts, preserving slides you already replaced
-  manually. Drafts cannot be approved until translated or replaced; synthesis
+  manually. Drafts must be translated or replaced before audio creation; synthesis
   alone cannot translate.
   `[German]` and similar paragraph markers allow mixed passages. Choose mixed
   passages, one language per slide, or a single language per version in settings.

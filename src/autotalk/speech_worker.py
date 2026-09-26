@@ -23,15 +23,33 @@ def emit(value):
     print(json.dumps(value), file=PROTOCOL, flush=True)
 
 
+def model_progress(stage, completed=0, total=None, unit="files"):
+    emit({"type": "model_progress", "stage": stage,
+          "completed": completed, "total": total, "unit": unit})
+
+
 def model_snapshot(spec):
     from huggingface_hub import hf_hub_download, snapshot_download
     from huggingface_hub.errors import LocalEntryNotFoundError
-    emit({"type": "status", "message": f"Preparing {spec['repo']}…"})
+    from tqdm.auto import tqdm
+    class DownloadProgress(tqdm):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **{**kwargs, "disable": False})
+
+        def display(self, *args, **kwargs):
+            # Snapshot file counts have a known total; parallel byte totals may
+            # still be incomplete while the hub discovers individual files.
+            if self.unit != "B":
+                model_progress("Downloading model files", self.n, self.total)
+
+    model_progress("Finding model files")
     try:
         root = Path(snapshot_download(spec["repo"], revision=spec["revision"], local_files_only=True))
     except LocalEntryNotFoundError:
-        root = Path(snapshot_download(spec["repo"], revision=spec["revision"]))
-    for name, expected in spec["files"].items():
+        model_progress("Downloading model files")
+        root = Path(snapshot_download(spec["repo"], revision=spec["revision"], tqdm_class=DownloadProgress))
+    for checked, (name, expected) in enumerate(spec["files"].items()):
+        model_progress("Checking model files", checked, len(spec["files"]))
         path = root / name
         for attempt in range(2):
             actual = ""
@@ -46,7 +64,9 @@ def model_snapshot(spec):
                 break
             if attempt:
                 raise RuntimeError(f"Model integrity check failed: {name}")
+            model_progress("Repairing model file: " + name)
             hf_hub_download(spec["repo"], name, revision=spec["revision"], force_download=True)
+    model_progress("Checking model files", len(spec["files"]), len(spec["files"]))
     return root
 
 
@@ -136,6 +156,7 @@ class VllmBackend:
         import torch
         if not torch.cuda.is_available():
             raise RuntimeError("Speech generation requires a working NVIDIA GPU driver.")
+        model_progress("Starting local speech service")
         self.directory = tempfile.TemporaryDirectory(prefix="autotalk-server-")
         self.config = config
         self.process = None
@@ -261,7 +282,7 @@ def main():
             path = model_snapshot(config["model"])
             emit({"type": "measurement", "stage": "Model files", "seconds": time.monotonic()-started})
             started = time.monotonic()
-            emit({"type": "status", "message": "Loading the local speech model…"})
+            model_progress("Loading model into GPU and starting speech engine")
             backend_type = {"vllm": VllmBackend, "torch": TorchBackend, "mlx": MLXBackend}[config["backend"]]
             backend = backend_type(path, config)
             emit({"type": "measurement", "stage": "Model load", "seconds": time.monotonic()-started})

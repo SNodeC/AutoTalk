@@ -1,5 +1,279 @@
 # 0.3 refinement verification — Linux only
 
+## Project folders beside the source PDF — 2026-09-26
+
+New imports use `<PDF folder>/autotalk/<PDF name>-AutoTalk/`. The import entry point
+owns this location choice; the existing importer, relative project assets, recent
+projects and saved-talk loader remain unchanged. Existing folders receive numbered
+siblings instead of being overwritten. No migration or second location policy is
+introduced. Preferences, Getting started and the user guide describe the same rule.
+
+**50 relevant Linux tests passed in 11.56 s**, covering actual PDF import twice,
+unique sibling project folders, persisted manifests and existing project/workflow
+behavior. Production Python **+4 / −5 = −1**; tests **+4 / −5 = −1** relative to this
+task. Evidence: `artifacts/project-location/`. Audio-server qualification below
+is unchanged; this correction does not modify playback.
+
+## Separate slide-text and slide-audio controls — 2026-09-26
+
+Correction: text creation/rewriting and audio creation are independent actions.
+Both buttons stay visible in Prepared and Realtime. Audio creation requires
+usable narration and cannot fall back to writing text. The existing text rewrite
+confirmation and saved-audio reuse behavior remain in place; no approval state
+or workflow was added. Controls share the existing row; Qt font/layout metrics
+keep the duration label readable at 940×680 with the native Breeze style.
+
+- **63 relevant Linux UI/workflow tests passed in 11.01 s**. Additional geometry
+  assertions passed for both Prepared and Realtime, including readable duration,
+  no overlap, retained rewriting after synthesis and disabled audio for empty or
+  untranslated narration. Existing audio-server qualification below is unchanged.
+- Native Wayland/Breeze screenshots cover empty text, available narration,
+  prepared audio and minimum-size Realtime. Cached fullscreen playback still starts
+  while later preparation is blocked, using synthetic speech for this UI check.
+- Production Python **+9 / −10 = −1**; tests **+43 / −9 = +34**, relative to the
+  start of this correction. Existing assertions were updated for the explicitly
+  requested two-button behavior, with added rewriting and layout checks.
+
+Evidence: `artifacts/separate-slide-buttons/`.
+
+## Selected-slide speech and saved-audio startup — 2026-09-26
+
+Invariant: speech belongs to the slide's text and effective synthesis settings,
+not to Prepared versus Realtime. The editor and background workflow reuse the
+same artifact-validity check and synthesis implementation. There is no audio
+approval field or gate. Existing text review now protects generated wording too;
+context changes cannot silently replace it during Start.
+
+- **235 tests passed in 31.89 s**, excluding the four audio-device cases; the
+  three audio-device UI tests separately **passed in 4.38 s**. New tests cover
+  selected text/audio creation in both editor modes, saved-talk reuse in all
+  modes, cancellation-safe regeneration, preserved neighboring slides, cached
+  startup before worker completion, language isolation and waveform restoration.
+- **One existing PipeWire stereo-routing test remains failing**: its virtual
+  monitor captured silence. A separate baseline run crashed in Qt audio-device
+  initialization. Playback/media source is unchanged in this work. These results
+  do not establish the host/test failure's root cause; the full suite is not
+  claimed green. The crashed test's recorder and virtual sink were cleaned up.
+- Native Wayland/Breeze verification exercises creation, automatic audition,
+  Prepared/Realtime controls, minimum window size and actual fullscreen playback
+  from cached audio while later preparation is blocked. Synthetic speech avoids
+  changing the user's active GPU model; Qwen voice quality is not reassessed here.
+- A controlled **600 ms** background operation delayed cached startup to
+  **659 ms** with the baseline and **6 ms** with the change. This measures removal
+  of a startup dependency, not model loading or inference throughput.
+- The rebuilt native Linux bundle passed its empty-PATH saved-project smoke test
+  and Qt audit: 27 libraries/plugins verified; all 17 mapped Qt libraries are bundled.
+- Waveform file identity now drives reloads on audio replacement, invalidation
+  and restoration. The playback timer performs no file/configuration scans.
+
+Production Python **+82 / −41 = +41**; tests **+254 / −0 = +254** relative to the
+start of this task. Growth extends the existing selected-page preparation path,
+safe replacement artifacts and shared startup-buffer handling; there is no new
+speech owner, approval mechanism or presentation mode. Evidence is under
+`artifacts/slide-speech/`. Windows/macOS remain untested in this pass.
+
+## Backend GPU-loading observations — 2026-09-26
+
+Invariant: backend diagnostics describe measured work; only the speech worker's
+successful service-readiness check makes the model ready. A narrow decoder for the
+pinned vLLM 0.28 output feeds the existing model-progress events through the
+SpeechSession queue. No loader replacement, dependency patch, GPU-memory polling,
+extra thread or estimated percentage is added. Unknown output remains in the log.
+
+The display now exposes checkpoint-file counts for each loading pass, loaded
+speech-weight counts, model-loading memory/time, inference-cache memory/capacity,
+GPU initialization duration and per-engine initialization. The final diagnostic
+stage says Checking speech service. Late loading diagnostics are ignored outside
+the startup wait, including when queued just before readiness.
+
+- **224 Linux tests passed in 34.13 s**; **54 focused progress/lifecycle tests passed
+  in 8.47 s**. Coverage includes the recorded real-backend trace, carriage returns,
+  ANSI formatting, invalid counters, unknown messages, backend/lifecycle isolation,
+  late messages, cancellation and full file counters before actual readiness.
+- Native Qt replay of the recorded trace exercised the real stderr reader, event
+  queue and progress widget: 27 displayed events, all text fitting the dialog.
+  Screenshots cover file counts, model memory/time and service checking.
+- Decoder benchmark: 1,000 passes over 27 recorded messages took **0.080 s**,
+  approximately **0.080 ms per complete trace**. No extra GPU synchronization is
+  performed. This is a decoder overhead measurement, not a cold-load speed claim.
+- **Fresh real-GPU acceptance remains pending**: the running user instance owns
+  the speech lock and GPU model. It was left untouched. The prior real-GPU cached
+  load baseline was 39.03 s; no new end-to-end GPU timing is claimed.
+- The rebuilt Linux bundle passed its empty-PATH project smoke test and Qt audit:
+  27 libraries/plugins verified, all 17 mapped Qt libraries from the bundle.
+
+Production Python **+41 / −0 = +41**, within the approved 100-line allowance.
+Tests **+145 / −0 = +145** (118 Python lines and 27 recorded-output fixture lines).
+The decoder is the single backend-specific interpretation boundary; existing job,
+logging, progress rendering, cancellation and readiness ownership remain in use.
+Evidence: `artifacts/backend-progress/`. Windows/macOS checks remain deferred.
+
+
+## Native numeric-field alignment — 2026-09-26
+
+The shared minimum-height rule was applied to both spin boxes and their internal
+QLineEdit. Breeze allocated a 20-pixel text area inside a 32-pixel control, but the
+internal editor was forced to 32 pixels, shifting its text centre down 6 pixels.
+The rule now sizes only outer controls, covers integer and decimal spin boxes via
+QAbstractSpinBox, and leaves editors inside spin boxes/combos to their Qt style.
+
+- Native Wayland/Breeze before/after measurements cover all ten numeric controls
+  in the talk settings: vertical editor offset **6 px → 0 px**. Screenshots confirm
+  alignment with neighbouring labels and dropdowns.
+- **50 Linux UI/usability tests passed in 11.56 s**. New checks compare actual
+  editor geometry with the active style's edit-field rectangle in Prepared,
+  Quick and Realtime, including integer and decimal controls. All three new cases
+  fail against the preserved pre-fix source.
+- The rebuilt Linux bundle passed the empty-PATH project smoke test and Qt audit:
+  27 libraries/plugins verified, all 17 mapped Qt libraries from the bundle.
+
+Production Python **+3 / −4 = −1**; tests **+23 / −0 = +23**. No padding override,
+custom spin-box implementation or font-dependent offset was introduced. Evidence:
+`artifacts/spin-alignment/`. Native Windows/macOS checks remain deferred.
+
+
+## Codex sign-in/sign-out controls — 2026-09-26
+
+The account status reported by Codex controls two buttons in Talk settings →
+Advanced: Sign in is enabled while disconnected, Sign out while connected, and
+both are disabled during an operation. Authentication status is published before
+model discovery so a catalog failure cannot falsely show a signed-out account.
+Logout goes directly to `account/logout`, without a login or model-list dependency;
+only an acknowledged logout clears account/catalog state. Saved talk overrides
+remain unchanged, and a failed logout leaves Sign out available for retry.
+
+- **205 Linux tests passed in 33.13 s**, including both button transitions, busy
+  state, successful/failed logout, catalog failure with a known account, and saved
+  model/effort persistence. Logout tests use an isolated fake app-server.
+- Native Qt verification used the real account read-only: Sign in disabled, Sign
+  out enabled, and defaults retained. The user's account was not signed out.
+- The rebuilt Linux bundle passed the empty-PATH project smoke test and Qt audit:
+  27 libraries/plugins verified, all 17 mapped Qt libraries from the bundle.
+
+Production Python **+30 / −16 = +14**; tests **+62 / −1 = +61**. Combined with
+startup discovery, net production growth is **38**, within the approved 60 lines.
+The connection method replaces the old context-entry-only settings flow and shares
+one account/settings event with the UI; no separate auth cache or polling is added.
+Evidence: `artifacts/codex-auth/`. Windows/macOS checks remain deferred.
+
+
+## Codex startup discovery — 2026-09-26
+
+Invariant: the Codex connection owns account status, its model catalog and effective
+configuration. The UI displays that result while each talk retains its saved
+model/effort overrides. Startup uses the existing background job and a passive
+client; it never installs tools or starts browser sign-in. Successful interactive
+connections and narration jobs publish through the same settings event.
+
+- **202 Linux tests passed in 34.75 s**. Contract/UI coverage includes signed-in,
+  signed-out and API-key accounts; missing installations; offline discovery and
+  explicit retry; cancellation; catalog pagination; configured versus recommended
+  defaults; effort-only generation; startup with/without a command-line talk;
+  Prepared/Quick/Realtime persistence; and unavailable saved choices.
+- Read-only native startup discovered five models and displayed the configured
+  **gpt-6-astra / high**, before importing a private test talk. The complete check
+  took **1.72 s** (catalog visible at **1.65 s**); no inference was requested.
+  The maximum observed 50-ms UI-timer interval was **110 ms** during the check.
+- The baseline discovery/cleanup probe took **5.18 s**. Initial UI verification
+  exposed a five-second server shutdown timeout after discovery. Closing the
+  client's stdin before process teardown removes that delay at its owner. A real
+  subprocess test ignores SIGTERM and verifies prompt EOF-driven termination.
+- A native Qt screenshot confirms readable populated defaults in Talk settings →
+  Advanced. The rebuilt Linux bundle passed its empty-PATH project smoke test and
+  Qt-library audit (27 libraries/plugins checked, all 17 mapped Qt libraries from
+  the bundle). Windows/macOS testing remains deferred.
+- The passive client bounds each protocol request to ten seconds. Failures leave
+  the application usable and display a retry instruction; this does not promise
+  that an offline server can provide a fresh catalog.
+
+This pass changes production Python **+51 / −27 = +24** and tests
+**+161 / −1 = +160**, within the separately approved 60-line allowance. Growth
+adds passive connection policy, bounded startup discovery and settings delivery;
+the old button-specific result callback and separate model-list state are removed.
+Evidence: `artifacts/codex-startup/`. Protocol reference:
+[Codex App Server](https://learn.chatgpt.com/docs/app-server).
+
+
+## Measured model progress and explicit update check — 2026-09-26
+
+The existing task event channel now carries model-stage progress to the existing
+operation bar. Narration and slide counters retain their separate meanings. File
+verification and snapshot downloads expose completed-file counts; runtime downloads
+expose bytes and a known total when provided. Unknown-total stages use a static bar
+with a named stage and **Progress not reported**, rather than a made-up percentage.
+Parallel Hugging Face byte totals can grow while files are discovered, so snapshot
+progress uses its stable completed-file total. No stderr progress parsing is used.
+
+- **186 Linux tests passed in 51.34 s**, including download resume, missing totals,
+  cached-file reuse, integrity repair, independent narration/model progress, large
+  byte counters, progress relocation into Preferences, update-check errors and
+  cancellation, and preservation of the loaded model and policies during checks.
+- Byte-bar scaling is tested against large downloads and fractional-MiB totals:
+  the bar cannot show full completion before the measured transfer completes.
+- Real Wayland/Breeze GPU load verified **13 cached files** and reached ready in
+  **39.03 s**. No model download occurred. The earlier load baseline was **38.85 s**;
+  this change improves feedback, not inference/startup speed. Maximum observed
+  100-ms UI-timer interval was **138 ms** during the check. The test released its
+  model afterwards and left the user's project unchanged.
+- The explicit online check succeeded for CustomVoice and found the same upstream
+  revision as the pinned manifest. Tests cover the different-revision response.
+  Checks query metadata only; they do not install a new revision or alter the cache.
+- A real pinned Hugging Face 1.33.0 callback check downloaded only `config.json`
+  into a private temporary cache, reported **0 / 1 → 1 / 1 files**, then reused that
+  cache on the second access. Full multi-GB downloads were not repeated.
+- Native screenshots verify readable stage/count text and the update result.
+  The Linux bundle audit verified 27 Qt libraries/plugins; all 17 mapped Qt
+  libraries came from the bundle, and the prepared-project smoke test passed
+  with an empty PATH. Evidence is in `artifacts/model-progress/`; Windows/macOS
+  native tests remain deferred.
+
+This pass adds production Python **+79 / −14 = +65** and tests **+210 / −0 = +210**.
+Combined with the prior GPU-control pass, production growth is **202 lines**, within
+the approved 240-line allowance. The additions report measurements at their source
+and provide the requested explicit metadata check; they reuse the existing job,
+model owner, progress bar, cancellation and event channel, with no new timer or
+model manager. The previously reported Realtime cached-start delay is a separate
+pending fix and is not changed by this pass.
+
+## Speech-model lifecycle controls — 2026-09-26
+
+Invariant: `SpeechSession` alone owns the model, its lease and idle timer. Saved
+load/unload preferences describe future events; immediate actions do not edit
+preferences. Manual preload is not a synthesis operation. Playback owns the actual
+presentation-end signal, excluding previews, pauses and fullscreen exit.
+
+- Full Linux suite: **167 passed in 49.25 s**. After adding a slow-teardown
+  responsiveness case, the focused lifecycle suite passed **20 tests in 6.78 s**
+  (168 unique tests verified across these runs).
+- Subprocess-protocol/UI tests cover all four retention policies, model reuse,
+  five-minute timer reset/stale callbacks, deferred release during a lease,
+  Save/Cancel and persistence, cancelling load, retry after failure, prepared audio
+  during preload/unload, pause/fullscreen/Continue, natural completion, automatic
+  video export, and screen capture remaining open until End. A deliberately slow
+  child teardown confirms audio advances and Preferences remains usable during
+  unloading. These lifecycle tests use a small protocol worker, not Qwen inference.
+- Native Wayland/Breeze screenshots cover unloaded/loading/ready, saved versus
+  draft policies, Settings menu and light/dark palettes. All choices and Save/Cancel
+  fit the existing dialog. Visual ready/loading states use the protocol worker.
+- Pre-change real Qwen baseline: **38.85 s cold load**, **0.000065 s compatible
+  lease reuse**, **5.15 s teardown**. The post-change hardware run was stopped by
+  the normal exclusive GPU lease because another running AutoTalk instance owns
+  the model. It was left untouched. Real-Qwen post-change timing and playback
+  acceptance remain pending; no cold-load speed improvement is claimed.
+- Linux package built successfully. Audit verified **27 Qt libraries/plugins**
+  against the approved system Qt/Breeze sources; all **17 mapped Qt libraries**
+  came from the bundle. A prepared-project smoke test passed with an empty PATH.
+  Windows/macOS native testing and QEMU remain deferred.
+
+Against the snapshot immediately before this GPU-control feature, production
+Python **+179 / −42 = +137**; tests **+328 / −6 = +322**. The production increase
+is within the separately approved 240-line allowance: explicit model state,
+background release and preload using the existing owner/job, independent saved
+policies and their UI replace the old immediate retention selector. No second
+model manager, job queue or polling timer was introduced. Earlier uncommitted
+usability changes are excluded from these counts. Evidence: ignored
+`artifacts/gpu-lifecycle/`.
+
 ## Second ordinary-user walkthrough fixes — 2026-09-26
 
 All 15 findings have an individual implementation entry in
@@ -641,3 +915,86 @@ The final Linux package passed a prepared-project launch with empty PATH. All
 libraries came from the bundle. `libpulse-simple.so.0` is included through normal
 PyInstaller ctypes discovery. The native Plasma PDF chooser again navigated into
 a child directory and displayed its PDF. System license notices are preserved.
+
+
+## Latest ordinary-user review fixes (2026-09-26)
+
+Baseline committed as `bee3abc` before this pass. All 12 latest findings have an
+individual acceptance entry in [USABILITY.md](design/USABILITY.md).
+
+- Full Linux suite: **148 passed in 45.44 s**. After simplifying saved-voice loading
+  and disposing enlarged-slide dialogs, all **89 UI/usability/refinement tests
+  passed in 14.17 s**. Coverage includes the one-button welcome state, current-text
+  versus human approval, saved-voice transaction rollback/progress ownership,
+  separate display/audio/capture pages, fullscreen mouse navigation, skipped-end
+  timing, automatic export preserving completion, and pending-translation labels.
+- Native Wayland/Breeze walkthrough: **40 captured states**, using isolated settings
+  and copies of talks. Also inspected a landscape deck at 940×680 with light/dark
+  palettes, all eight Talk settings pages, Preferences, and saved recordings.
+  Programmatic menu popups emitted Wayland input-grab warnings in the landscape
+  harness; their widget captures alone do not verify compositor input ownership.
+- Real, previously generated narration was played through the native presentation
+  controls, paused, resumed and ended. The saved **1.300-second H.264/AAC MP4**
+  decoded successfully: **39 video frames**, **30,720 audio samples**, **stereo**.
+  This was deliberately an early end, not a full-length recording or speech test.
+- Latest production diff: **+106 / −107 = −1 line**. Test diff:
+  **+123 / −26 = +97 lines**. Removing duplicate dialogs/layout and library passes
+  absorbs the shared fullscreen actions and enlarged-slide window. No extra
+  persisted state, workflow flags, services or timers were introduced.
+
+These are automated checks and a visual review, not a study with recruited users.
+New text/preview-wait states used controlled fixtures; no new Codex/Qwen generation,
+fresh login, microphone recording or Wayland sharing permission was exercised in
+this pass. Earlier platform/capture/voice-quality qualifications remain open.
+The existing performance measurements remain the baseline; no speed improvement
+is claimed by this UI change.
+
+The rebuilt Linux package passed a prepared-project launch with empty PATH. All
+27 audited Qt libraries/plugins match their intended sources; 17 mapped Qt
+libraries came from the bundle. The checkout launcher uses the rebuilt package.
+System license notices were carried forward; existing user processes were left running.
+
+
+## Fixed start actions and preview state (2026-09-26)
+
+The start/editing interaction now follows the fixed user contract: Prepared uses
+Prepare and start, Quick/Realtime use Start, and existing narration requires no
+approval. The context-stamp gate and changing next-step dispatcher are removed;
+legacy stamp fields are discarded on import without discarding audio. Audio reuse
+still checks its actual narration, voice and synthesis inputs. Explicitly configured
+Quick "Require timing match" remains enforced at presentation entry, including
+repeated starts; it does not change the start caption or disable the command.
+
+Linux verification for this pass:
+
+- 265 tests passed in 39.04 s, covering existing regressions and 25 additional
+  start/control cases. The previously unqualified stereo-loopback test in
+  test_linux_audio.py ran separately after aligning its preview-completion
+  expectation with the corrected stopped state: **1 passed in 2.01 s**, with the
+  original left/right amplitude and equality checks retained. Total: **266** tests
+  passed across the suite and isolated stereo run.
+- 90 focused interaction/playback tests passed in 14.66 s during iteration,
+  including actual audio preview stop/natural completion and fullscreen playback.
+- Generation tests use controlled Codex/Qwen substitutes through real worker,
+  persistence and UI boundaries. No new real-model generation is claimed here.
+- Native Wayland/Breeze walkthrough checked fixed Prepared/Realtime/Quick labels,
+  preview Play → Stop → Play, rewrite confirmation and matching model display names.
+  Screenshots and logs are under artifacts/start-interaction-fix.
+- Tests preserve independent text/audio creation, old audio during unsuccessful
+  replacement, manual and translated wording, saved-project reuse, cancellation,
+  start-after-operation behavior, and Save/Ctrl+S persistence. No autosave was added.
+
+Changes are reductions of existing state/dispatch policy, not a new workflow layer.
+Text approval tests were replaced with preservation and startup tests for the
+requested behavior. Windows/macOS and new model/GPU acceptance were not run.
+
+After the final shared menu/button caption change, all **91** affected UI, editor,
+start and usability tests passed in **17.16 s**. Production changes relative to
+this pass’s starting tree are **+76 / −135 (net -59)**; tests are **+242 / −125 (net +117)**.
+
+The rebuilt standalone Linux executable passed its installed Wayland launch with
+an empty PATH and isolated preferences. All 27 audited Qt/Breeze libraries/plugins
+matched their expected source files; all 17 mapped Qt libraries came from the
+bundle. The previous executable was retained under artifacts/start-interaction-fix.
+No user talk or running application was modified. Build evidence and checksums are
+in artifacts/start-interaction-fix/package-result.json and bundle-audit.log.

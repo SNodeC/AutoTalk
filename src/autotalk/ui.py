@@ -7,7 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import QSize, Qt, QUrl
 from PySide6.QtGui import QAction, QIcon, QDesktopServices, QKeySequence, QPainter
 from PySide6.QtWidgets import (
-    QApplication, QComboBox, QCheckBox, QDialog, QDialogButtonBox, QDoubleSpinBox,
+    QApplication, QAbstractSpinBox, QButtonGroup, QRadioButton, QComboBox, QCheckBox, QDialog, QDialogButtonBox, QDoubleSpinBox,
     QFormLayout, QHBoxLayout, QLabel, QLineEdit, QListView, QListWidget,
     QPlainTextEdit, QProgressBar, QPushButton, QMessageBox, QScrollArea,
     QTableWidget, QHeaderView, QAbstractItemView, QSizePolicy, QSplitter, QStackedWidget, QVBoxLayout, QWidget,
@@ -107,10 +107,13 @@ class Waveform(QWidget):
     def __init__(self):
         super().__init__()
         self.peaks, self.progress = [], 0
-        self.setMinimumSize(100, 30)
+        self.path = None
+        self.setMinimumSize(60, 30)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
     def load(self, path):
+        if path == self.path:
+            return
         self.peaks = []
         if path and path.is_file():
             with wave.open(str(path), "rb") as audio:
@@ -118,6 +121,7 @@ class Waveform(QWidget):
             if len(values):
                 peaks = [np.max(np.abs(v)) for v in np.array_split(values, min(60, len(values)))]
                 self.peaks = np.asarray(peaks) / max(1, max(peaks))
+        self.path = path
         self.update()
 
     def paintEvent(self, event):
@@ -181,10 +185,10 @@ class SectionDialog(QDialog):
 
     def show_section(self, index=0):
         if not self.isVisible():
-            self.before = copy.deepcopy(self.window.project) if self.transactional else None
+            self.before = copy.deepcopy(self.window.project) if self is self.window.talk_dialog else None
             self.selected = self.window.transport.index
             self.defaults = {key: self.window.preferences.value(key) for key in
-                             ("gpu_retention", "quick_timing", "speech_priority")}
+                             ("quick_timing", "speech_priority")}
         self.navigation.setCurrentRow(index)
         self.show()
         self.window.place_settings_fields()
@@ -193,12 +197,14 @@ class SectionDialog(QDialog):
 
     def done(self, result):
         w = self.window
-        if w.job or w.recorder.source:
+        if w.job and self is not w.preferences_dialog or w.recorder.source:
             self.status.setText("Stop the current operation or voice recording before closing.")
             return
-        if w.transport.preview_path:
+        if w.transport.preview_path and self is not w.preferences_dialog:
             w.transport.stop()
-        if self.transactional:
+        if self is w.preferences_dialog:
+            w.speech_preferences(result == QDialog.DialogCode.Accepted)
+        elif self.transactional:
             if result == QDialog.DialogCode.Accepted:
                 if not w.save():
                     return
@@ -206,7 +212,6 @@ class SectionDialog(QDialog):
                 w.transport.stop()
                 for key, value in self.defaults.items():
                     w.preferences.remove(key) if value is None else w.preferences.setValue(key, value)
-                w.gpu_retention.setCurrentIndex(max(0, w.gpu_retention.findData(w.preferences.value("gpu_retention", "session"))))
                 if self.before is not None:
                     w.adopt(self.before)
                     w.transport.select(min(self.selected, len(w.project.slides)-1))
@@ -227,8 +232,7 @@ def build(w):
     w.options.changed.connect(w.configuration_changed)
     w.talk_dialog = SectionDialog(w, "Talk settings")
     w.preferences_dialog = SectionDialog(w, "Preferences")
-    w.voice_dialog = SectionDialog(w, "Voice library")
-    w.voice_dialog.navigation.hide()
+    w.talk_dialog.buttons.button(QDialogButtonBox.StandardButton.Save).setText("Save and return to talk")
     w.export_dialog = SectionDialog(w, "Export / recordings", transactional=False)
     w.general_form = w.talk_dialog.add("General")
     w.basics = column(margin=0)
@@ -247,7 +251,7 @@ def build(w):
     w.pause = number(0, 10, .6, w.details_changed, " sec")
     w.pause.setSingleStep(.1)
     general.addRow("Talk title", w.talk_title)
-    w.general_form.layout().addWidget(label("Saved with this talk. Check duration, language and audience before writing your talk. Conference details and voice selection are optional. ChatGPT sign-in is guided when needed."))
+    w.general_form.layout().addWidget(label("Choose duration, language and audience, then Save and return to talk. There you can write and review the text. Conference details and voice selection are optional; sign-in is guided when needed."))
     w.general_form.layout().addStretch()
 
     conference = w.talk_dialog.add("Conference")
@@ -303,51 +307,37 @@ def build(w):
     voice.layout().addWidget(w.voice_preview_button)
     w.accept_voice_button = button("Use this designed voice", w.accept_designed_voice)
     voice.layout().addWidget(w.accept_voice_button)
-    w.save_voice_button = button("Save voice to library…", w.save_personal_voice)
-    voice.layout().addLayout(row(button("Voice library…", w.voice_dialog.show_section), w.save_voice_button))
-    library_page = w.voice_dialog.add("Voice library")
-    w.library_language = combo(["All languages", *LANGUAGES], w.refresh_library)
-    library_page.layout().addLayout(row(w.library_language, None, button("Record / design voice…", lambda: (w.voice_dialog.accept(), w.talk_dialog.show_section(2)))))
-    w.voice_library = QTableWidget(0, 3)
-    w.voice_library.setHorizontalHeaderLabels(["Voice", "Description", "Languages"])
-    w.voice_library.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-    w.voice_library.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-    w.voice_library.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-    w.voice_library.verticalHeader().hide()
-    w.voice_library.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-    w.voice_library.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-    w.voice_library.setTextElideMode(Qt.TextElideMode.ElideNone)
-    library_page.layout().addWidget(w.voice_library, 1)
-    library_page.layout().addLayout(row(button("Listen to selected voice", lambda: (w.use_saved_voice(), w.preview_voice())), None))
-    w.voice_dialog.buttons.button(QDialogButtonBox.StandardButton.Save).setText("Use selected voice")
-    w.voice_dialog.buttons.accepted.disconnect()
-    w.voice_dialog.buttons.accepted.connect(lambda: (w.use_saved_voice(), w.voice_dialog.accept()))
+    w.save_voice_button = button("Save reusable voice…", w.save_personal_voice)
+    voice.layout().addLayout(row(button("Saved voices…", lambda: w.talk_dialog.show_section(7)), w.save_voice_button))
     voice.layout().addStretch()
     delivery = w.talk_dialog.add("Delivery")
     delivery.layout().addWidget(label("Talk-wide delivery applies to all slides. The slide inspector can supply deliberate overrides."))
     delivery.layout().addWidget(w.options.delivery_widget)
     delivery.layout().addStretch()
-    recording = w.recording_form = w.talk_dialog.add("Recording")
-    recording.layout().addWidget(label("Record just the slides and speech, or share your screen to include live demos. Screen recording continues until you choose End presentation and save video. Slides-and-speech recordings finish automatically after the last slide."))
-    recording.layout().addWidget(w.options.recording_widget)
+    presentation = w.talk_dialog.add("Presentation")
     w.screen = combo([(f"Display {i+1}: {screen.name()}", i) for i, screen in enumerate(QApplication.screens())])
-    form(recording).addRow("Fullscreen display", w.screen)
+    form(presentation).addRow("Fullscreen display", w.screen)
     w.audio_test_button = button("Test audio", w.test_audio)
-    recording.layout().addLayout(row(button("System audio settings…", w.system_audio_settings), w.audio_test_button))
+    presentation.layout().addLayout(row(button("System audio settings…", w.system_audio_settings), w.audio_test_button))
     w.background_button = button("Add background track…", w.add_background)
     w.background_gain = number(0, 100, 15, w.background_changed, " %")
     w.background_gain.setSingleStep(5)
     w.background_loop = QCheckBox("Loop")
     w.background_loop.toggled.connect(w.background_changed)
     w.remove_background_button = button("Remove background", w.remove_background)
-    recording.layout().addWidget(w.background_button)
-    recording.layout().addLayout(row(label("Background volume"), w.background_gain, w.background_loop, w.remove_background_button))
+    presentation.layout().addWidget(w.background_button)
+    presentation.layout().addLayout(row(label("Background volume"), w.background_gain, w.background_loop, w.remove_background_button))
+    presentation.layout().addStretch()
+
+    recording = w.recording_form = w.talk_dialog.add("Recording")
+    recording.layout().addWidget(label("Record just the slides and speech, or share your screen to include live demos. Screen recording continues until you choose End presentation and save video. Slides-and-speech recordings finish automatically after the last slide."))
+    recording.layout().addWidget(w.options.recording_widget)
     recording.layout().addStretch()
 
     appearance = w.preferences_dialog.add("General")
     appearance.layout().addWidget(label("Appearance follows your system", "title"))
     appearance.layout().addWidget(label("AutoTalk uses the platform widget style, fonts and light/dark palette, including Breeze on KDE Plasma. File and audio selection use system dialogs."))
-    appearance.layout().addWidget(label("New talks are saved in Documents / AutoTalk. Use File → Save a copy to choose another location. Talk-specific options are under Talk settings → Advanced."))
+    appearance.layout().addWidget(label("New talks are saved inside the autotalk folder beside the source PDF. Use File → Save a copy to choose another location. Talk-specific options are under Talk settings → Advanced."))
     appearance.layout().addStretch()
     codex = w.talk_dialog.add("Advanced")
     codex.layout().addWidget(label("These options affect this talk. The defaults work for most presentations."))
@@ -360,35 +350,75 @@ def build(w):
         advanced_form.addRow(taken.labelItem.widget(), taken.fieldItem.widget())
     w.connection = label("Sign in to ChatGPT when preparing your first talk. You can also sign in here.")
     codex.layout().addWidget(w.connection)
-    codex.layout().addWidget(button("Sign in to ChatGPT", w.connect_chatgpt))
+    w.codex_signin = button("Sign in", w.connect_chatgpt)
+    w.codex_signout = button("Sign out", lambda: w.connect_chatgpt(sign_out=True))
+    w.codex_signout.setToolTip("Sign out of the shared Codex account on this computer.")
+    codex.layout().addLayout(row(w.codex_signin, w.codex_signout))
     codex.layout().addWidget(label("Model and reasoning for the current talk. Quick uses account defaults. Slide images, text and conference context are sent to Codex; voice references stay local."))
     w.codex_model = combo([("Account default", "")], w.model_changed)
-    w.codex_effort = combo([("Model default", "")], w.model_settings_changed)
+    w.codex_effort = combo([("Codex default", "")], w.model_settings_changed)
     fields = form(codex)
     fields.addRow("Model", w.codex_model)
     fields.addRow("Reasoning effort", w.codex_effort)
     codex.layout().addWidget(w.options.synthesis_widget)
     codex.layout().addStretch()
-    speech = w.preferences_dialog.add("Advanced")
-    speech.layout().addWidget(label("Speech performance · applies to the application", "title"))
-    w.gpu_retention = combo([("Until exit", "session"), ("Five idle minutes", "idle"), ("During each operation", "operation")])
-    w.gpu_retention.setCurrentIndex(max(0, w.gpu_retention.findData(w.preferences.value("gpu_retention", "session"))))
-    w.gpu_retention.currentIndexChanged.connect(w.retention_changed)
-    form(speech).addRow("Keep model loaded", w.gpu_retention)
-    speech.layout().addWidget(button("Release GPU memory", w.release_gpu))
+    speech = w.preferences_dialog.add("Speech engine")
+    speech.layout().addWidget(label("Current model", "title"))
+    w.engine_state, w.engine_model = label("Not loaded"), label("")
+    speech.layout().addWidget(w.engine_state)
+    speech.layout().addWidget(w.engine_model)
+    w.load_gpu_button = button("Load model now", w.load_gpu, True)
+    w.unload_gpu_button = button("Unload model now", w.release_gpu)
+    speech.layout().addLayout(row(w.load_gpu_button, w.unload_gpu_button))
+    w.check_model_button = button("Check for model updates…", w.check_model_updates)
+    speech.layout().addWidget(w.check_model_button)
+    for name, title, choices in (
+        ("gpu_loading", "When to load an unloaded model", [("When speech is first needed (recommended)", "needed"), ("When I start a presentation", "start")]),
+        ("gpu_retention", "When to release a loaded model", [("Never — keep loaded until I close AutoTalk", "session"),
+            ("When the presentation ends", "presentation"), ("After 5 minutes without speech generation", "idle"),
+            ("After each preparation or voice preview", "operation")])):
+        speech.layout().addWidget(label(title, "title"))
+        group = QButtonGroup(speech)
+        setattr(w, name, group)
+        for index, (title, value) in enumerate(choices):
+            choice = QRadioButton(title)
+            choice.setProperty("value", value)
+            group.addButton(choice, index)
+            speech.layout().addWidget(choice)
+        group.buttons()[0].setChecked(True)
+        group.buttonClicked.connect(w.update_speech_controls)
+    speech.layout().addWidget(label("Loading at Start happens in the background; prepared audio can play immediately. Preparation and previews always load a needed model. Manual loading follows the same unloading policy."))
+    speech.layout().addWidget(label("Presentation end excludes pauses and leaving fullscreen. Screen recording ends with End presentation. Per-operation unloading waits for the next preparation or preview; it does not undo Load now. Unloading keeps downloaded files."))
+    w.engine_policy_note = label("")
+    speech.layout().addWidget(w.engine_policy_note)
     speech.layout().addStretch()
+
+    library_page = w.talk_dialog.add("Saved voices")
+    library_page.layout().addWidget(label("Your reusable voices. Choose and listen here, then save the talk settings. Save a voice on the Voice page to add it here."))
+    w.library_language = combo(["All languages", *LANGUAGES], w.refresh_library)
+    library_page.layout().addWidget(w.library_language)
+    w.voice_library = QTableWidget(0, 3)
+    w.voice_library.setHorizontalHeaderLabels(["Voice", "Description", "Languages"])
+    library_page.layout().addWidget(w.voice_library, 1)
+    w.library_preview = button("Listen to selected voice", lambda: (w.use_saved_voice(), w.preview_voice()))
+    w.library_use = button("Use selected voice", lambda: (w.use_saved_voice(), w.talk_dialog.show_section(2)))
+    w.library_preview.setEnabled(False)
+    w.library_use.setEnabled(False)
+    w.voice_library.itemSelectionChanged.connect(lambda: [b.setEnabled(w.voice_library.currentRow() >= 0) for b in (w.library_preview, w.library_use)])
+    library_page.layout().addLayout(row(w.library_preview, w.library_use, None))
 
     exports = w.export_dialog.add("Export / recordings")
     exports.layout().addWidget(label("Saved and unfinished recordings", "title"))
     w.recordings = QTableWidget(0, 4)
     w.recordings.setHorizontalHeaderLabels(["Talk", "Date", "Duration", "Status"])
-    w.recordings.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-    w.recordings.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-    w.recordings.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-    w.recordings.verticalHeader().hide()
-    w.recordings.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-    w.recordings.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-    w.recordings.setTextElideMode(Qt.TextElideMode.ElideNone)
+    for table, stretch in ((w.voice_library, 1), (w.recordings, 0)):
+        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        table.verticalHeader().hide()
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        table.horizontalHeader().setSectionResizeMode(stretch, QHeaderView.ResizeMode.Stretch)
+        table.setTextElideMode(Qt.TextElideMode.ElideNone)
     w.recordings.itemSelectionChanged.connect(w.recording_selected)
     exports.layout().addWidget(w.recordings, 1)
     w.recordings_empty = label("No recordings yet. Enable recording before presenting. You can also create a slides-only video below.")
@@ -407,7 +437,7 @@ def build(w):
     root = column("chrome", 0)
     root.layout().setSpacing(0)
     w.setCentralWidget(root)
-    toolbar = column("chrome", 10)
+    toolbar = w.toolbar = column("chrome", 10)
     toolbar.layout().setDirection(QVBoxLayout.Direction.LeftToRight)
     root.layout().addWidget(toolbar)
     menus = {name: w.menuBar().addMenu(name) for name in ("File", "Edit", "View", "Talk", "Presentation", "Settings", "Help")}
@@ -433,17 +463,17 @@ def build(w):
     toolbar.layout().addStretch()
     toolbar.layout().addWidget(label("Mode"))
     w.mode = combo(["Prepared", "Quick", "Realtime"])
-    for i, explanation in enumerate(("Review everything before presenting", "Prepare and start automatically", "Start while speech for later slides is prepared")):
+    for i, explanation in enumerate(("Prepare all slides before presenting; editing is optional", "Prepare and start automatically", "Start while speech for later slides is prepared")):
         w.mode.setItemData(i, explanation, Qt.ItemDataRole.ToolTipRole)
     w.mode.currentTextChanged.connect(w.mode_changed)
     toolbar.layout().addWidget(w.mode)
     w.talk_action = command("Talk", "Talk settings…", w.talk_dialog.show_section, "Ctrl+T")
-    talk_button = button("Talk settings", w.talk_action.trigger)
+    talk_button = button("Talk settings…", w.talk_action.trigger)
     w.talk_action.changed.connect(lambda: talk_button.setEnabled(w.talk_action.isEnabled()))
     toolbar.layout().addWidget(talk_button)
     w.start_button = button("Start", w.start_mode, True)
     toolbar.layout().addWidget(w.start_button)
-    summary = column("paper", 12)
+    summary = w.overview = column("paper", 12)
     w.title_label = label("Welcome to AutoTalk", "title")
     w.summary = label("")
     w.fit_button = button("Fit duration…", w.fit_duration)
@@ -468,7 +498,7 @@ def build(w):
     w.slide_list.setWrapping(False)
     w.slide_list.setMovement(QListView.Movement.Static)
     w.slide_list.setIconSize(QSize(90, 50))
-    w.slide_list.setGridSize(QSize(116, 160))
+    w.slide_list.setGridSize(QSize(116, 125))
     w.slide_list.setWordWrap(True)
     w.slide_list.setTextElideMode(Qt.TextElideMode.ElideNone)
     w.slide_list.currentRowChanged.connect(w.select_slide)
@@ -477,22 +507,21 @@ def build(w):
     w.image = SlideImage()
     center.layout().addWidget(w.image, 5)
     w.slide_info = label("Talk text · select a slide")
-    center.layout().addLayout(row(w.slide_info, button("Enlarge in viewer…", lambda: w.enlarge_action.trigger())))
+    center.layout().addLayout(row(w.slide_info, button("Enlarge slide…", lambda: w.enlarge_action.trigger())))
     w.narration = QPlainTextEdit()
     w.narration.setMinimumHeight(100)
     w.narration.setPlaceholderText("Write the talk text, or type what you want to say on this slide.")
     w.narration.textChanged.connect(w.narration_changed)
     center.layout().addWidget(w.narration, 2)
-    w.context_warning = label("")
-    w.accept_button = button("Approve all slide text", w.accept_script)
-    w.regenerate_button = button("Rewrite this slide…", w.regenerate_slide)
-    center.layout().addWidget(w.accept_button)
-    w.preview_button = button("▷ Preview", w.preview_slide)
+    w.regenerate_button = button("Create slide text", w.regenerate_slide)
+    w.slide_audio_button = button("Create slide audio", w.prepare_slide, True)
+    w.preview_button = button("Play audio", w.preview_slide)
     w.preview_time = label("0:00")
+    w.preview_time.setWordWrap(False)
     w.waveform = Waveform()
-    center.layout().addLayout(row(w.preview_button, w.waveform, w.preview_time, w.regenerate_button))
+    center.layout().addLayout(row(w.regenerate_button, w.slide_audio_button, w.preview_button, w.waveform, w.preview_time))
     inspector = column("chrome", 12)
-    inspector.layout().addWidget(label("Slide inspector", "title"))
+    inspector.layout().addWidget(label("Slide settings", "title"))
     w.delivery_summary = label("Using talk delivery")
     w.slide_budget = number(0, 14400, 0, w.slide_policy_changed, " sec")
     w.slide_budget.setSpecialValueText("Automatic")
@@ -500,8 +529,6 @@ def build(w):
     advanced_slide.hide()
     slide_toggle = button("Advanced slide options ▸", lambda: advanced_slide.setVisible(not advanced_slide.isVisible()))
     inspector.layout().addWidget(w.delivery_summary)
-    inspector.layout().addWidget(w.context_warning)
-    inspector.layout().addWidget(button("Voice and style for the talk…", lambda: w.talk_dialog.show_section(2)))
     inspector.layout().addWidget(slide_toggle)
     inspector.layout().addWidget(advanced_slide)
     advanced_slide.layout().addWidget(label("Target duration for this slide"))
@@ -554,7 +581,7 @@ def build(w):
         w.editor.addWidget(pane)
     w.editor.setSizes([154, 644, 226])
     w.editor.setStretchFactor(1, 1)
-    w.authoring_widgets = [w.version_select, w.accept_button, w.regenerate_button, inspector, extras]
+    w.authoring_widgets = [w.version_select, w.regenerate_button, w.slide_audio_button, inspector, extras]
     w.workspace.addWidget(w.editor)
 
     w.presenter = column("paper", 15)
@@ -589,29 +616,17 @@ def build(w):
     w.presenter.layout().addWidget(label("Esc pauses and returns here. Continue resumes at the same position. End presentation returns to editing."))
     w.workspace.addWidget(w.presenter)
 
-    w.quick_page = column("paper", 24)
-    w.quick_page.layout().addStretch()
-    w.quick_form = column("paper", 16)
+    w.quick_page = w.quick_form = column("paper", 24)
     w.quick_form.layout().setSizeConstraint(QVBoxLayout.SizeConstraint.SetMinimumSize)
-    w.quick_form.layout().addWidget(label("Quick · PDF to presentation", "heading"))
     w.quick_summary = label("")
     w.quick_form.layout().addWidget(w.quick_summary)
-    w.quick_form.layout().addWidget(label("Quick uses the default voice and no conference context. Follow the highlighted action above; existing speech edits need your review before starting."))
-    w.quick_form.layout().addWidget(button("Choose another PDF…", w.new_project))
-    w.quick_form.layout().addWidget(button("Review before presenting: Prepared mode", lambda: w.mode.setCurrentText("Prepared")))
-    quick_row = QHBoxLayout()
-    quick_row.addStretch(1)
-    quick_row.addWidget(w.quick_form, 4)
-    quick_row.addStretch(1)
-    w.quick_page.layout().addLayout(quick_row)
+    w.quick_form.layout().addWidget(label("Quick uses the default voice and no conference context. Choose the highlighted action above to begin."))
     w.quick_page.layout().addStretch()
     w.workspace.addWidget(w.quick_page)
     welcome = w.welcome = column("paper", 36)
-    welcome.layout().addStretch()
     welcome.layout().addWidget(label("Turn your slides into a talk", "heading"))
     welcome.layout().addWidget(label("Open a PDF, choose a duration and language, then prepare or start presenting. Your projects keep narration, voices and recordings together."))
     welcome.layout().addLayout(row(button("Open PDF…", w.new_project, True), button("Open saved talk…", w.open_project), None))
-    welcome.layout().addWidget(button("Sign in to ChatGPT", w.connect_chatgpt))
     welcome.layout().addStretch()
     w.workspace.addWidget(welcome)
     w.workspace.setCurrentWidget(welcome)
@@ -626,13 +641,8 @@ def build(w):
     w.record_footer.layout().addWidget(w.record_status, 1)
     footer.layout().addWidget(w.record_footer)
     w.narration_progress, w.slide_progress = QProgressBar(), QProgressBar()
-    for bar, title in ((w.narration_progress, "Approved text"), (w.slide_progress, "Prepared slides")):
-        bar.setRange(0, 1)
-        bar.setValue(0)
-        bar.setFormat(title + ": %v / %m")
     footer.layout().addLayout(row(w.narration_progress, w.slide_progress))
     w.progress = QProgressBar()
-    w.progress.setTextVisible(False)
     w.progress.hide()
     footer.layout().addWidget(w.progress)
     w.status = label("Open a PDF or a saved talk to begin.")
@@ -680,40 +690,56 @@ def build(w):
         action.setChecked(True)
         menus["View"].aboutToShow.connect(lambda a=action, p=pane: a.setChecked(not p.isHidden()))
     command("View", "Restore default layout", lambda: (navigation.show(), inspector_scroll.show(), w.editor.setSizes([154, 644, 226])))
-    w.enlarge_action = command("View", "Enlarge slide in system image viewer…", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(w.project.image(w.project.slides[w.transport.index])))), control=w.image)
-    command("View", "Slide editor", lambda: w.workspace.setCurrentWidget(w.editor))
-    command("View", "Presenter view", lambda: w.workspace.setCurrentWidget(w.presenter))
+    def enlarge():
+        dialog = QDialog(w)
+        dialog.setWindowTitle("Slide " + str(w.transport.index+1))
+        dialog.resize(1000, 720)
+        dialog.setLayout(QVBoxLayout())
+        image = SlideImage()
+        image.show_file(w.project.image(w.project.slides[w.transport.index]))
+        dialog.layout().addWidget(image)
+        dialog.exec()
+        dialog.deleteLater()
+    w.enlarge_action = command("View", "Enlarge slide…", enlarge, control=w.image)
+    command("View", "Slide editor", lambda: w.workspace.setCurrentWidget(w.editor), control=w.image)
+    command("View", "Presenter view", lambda: w.workspace.setCurrentWidget(w.presenter), control=w.image)
     command("View", "Preparation details", lambda: w.log.setVisible(not w.log.isVisible()))
-    command("Talk", "Voice library…", w.voice_dialog.show_section, control=talk_button)
+    command("Talk", "Saved voices…", lambda: w.talk_dialog.show_section(7), control=talk_button)
     w.start_action = command("Talk", "Start", w.start_mode, control=w.start_button)
     command("Talk", "Write or translate talk text…", w.create_narration, control=w.regenerate_button)
-    command("Talk", "Rewrite this slide…", w.regenerate_slide, control=w.regenerate_button)
-    command("Talk", "Preview slide audio", w.preview_slide, control=w.preview_button)
+    w.regenerate_action = command("Talk", "Rewrite slide text…", w.regenerate_slide, control=w.regenerate_button)
+    command("Talk", "Regenerate slide audio", w.prepare_slide, control=w.slide_audio_button)
+    w.preview_action = command("Talk", "Play audio", w.preview_slide, control=w.preview_button)
     for mode in ("Prepared", "Quick", "Realtime"):
         command("Talk", "Mode: " + mode, lambda m=mode: w.mode.setCurrentText(m), control=w.mode)
-    command("Talk", "Approve all slide text", w.accept_script, control=w.accept_button)
     for title, callback, control, shortcut in (
         ("Present fullscreen", w.present, w.present_button, "F5"),
         ("Continue presentation", w.continue_presentation, w.continue_button, "F6"),
         ("Pause", w.transport.pause, w.play_button, ""),
-        ("Restart from beginning", w.restart_presentation, w.end_button, "")):
+        ("Restart from beginning", w.restart_presentation, w.present_button, "")):
         command("Presentation", title, callback, shortcut, control=control)
     command("Presentation", "Start from selected slide", lambda: w.present(selected=True), "Shift+F5", control=w.present_button)
     command("Presentation", "Live demo / leave fullscreen", w.live_demo, control=w.demo_button)
+    w.previous_action = command("Presentation", "Previous slide", lambda: w.transport.step(-1), control=w.previous_button)
+    w.next_action = command("Presentation", "Next slide", lambda: w.transport.step(1), control=w.next_button)
     w.end_action = command("Presentation", "End presentation", w.stop_presentation, control=w.end_button)
     command("Presentation", "System audio settings…", w.system_audio_settings)
     command("Settings", "Preferences…", w.preferences_dialog.show_section, "Ctrl+,", locked=True)
-    command("Settings", "Codex model & reasoning…", lambda: w.talk_dialog.show_section(5), control=talk_button)
-    command("Settings", "Speech engine…", lambda: w.preferences_dialog.show_section(1), locked=True)
-    command("Help", "Getting started", lambda: QMessageBox.information(w, "Getting started", "Open PDF imports slides into Documents / AutoTalk. Choose duration and language in Talk settings, then follow the blue action button. Prepared lets you review before presenting; Quick starts automatically; Realtime prepares later speech while presenting. Enable recording before Start and end the presentation to save it."))
-    command("Help", "Keyboard shortcuts", lambda: QMessageBox.information(w, "Keyboard shortcuts", "Ctrl+N: New PDF · Ctrl+O: Open · Ctrl+S: Save\nCtrl+T: Talk settings · Ctrl+,: Preferences\nF5: Start · Shift+F5: Start selected · F6: Continue\nFullscreen: Space pauses/resumes, arrows change slides, Esc returns."))
-    command("Help", "Diagnostics…", lambda: (w.log.show(), w.log.setFocus()))
-    command("Help", "About AutoTalk", lambda: QMessageBox.about(w, "About AutoTalk", "AutoTalk 0.3\nPDF-to-talk preparation and presentation.\nCodex narration · Qwen3-TTS local speech\n\nPrepared, Quick and Realtime modes."))
+    command("Settings", "Codex model & reasoning…", lambda: w.talk_dialog.show_section(6), control=talk_button)
+    w.engine_action = command("Settings", "Speech engine…", lambda: w.preferences_dialog.show_section(1))
+    w.load_gpu_action = command("Settings", "Load speech model now", w.load_gpu)
+    w.unload_gpu_action = command("Settings", "Unload speech model now", w.release_gpu)
+    w.engine_status = button("Speech engine: Not loaded…", w.engine_action.trigger)
+    w.engine_status.setMaximumWidth(330)
+    w.statusBar().addPermanentWidget(w.engine_status)
+    command("Help", "Getting started…", lambda: QMessageBox.information(w, "Getting started", "Open PDF creates a project inside the autotalk folder beside that PDF. Choose duration and language in Talk settings, then choose Prepare and start (Prepared) or Start (Quick/Realtime). Prepared prepares every slide before presenting; Quick starts automatically; Realtime prepares later speech while presenting. Enable recording before Start and end the presentation to save it."))
+    command("Help", "Keyboard shortcuts…", lambda: QMessageBox.information(w, "Keyboard shortcuts", "Ctrl+N: New PDF · Ctrl+O: Open · Ctrl+S: Save\nCtrl+T: Talk settings · Ctrl+,: Preferences\nF5: Start · Shift+F5: Start selected · F6: Continue\nFullscreen: Space pauses/resumes, arrows change slides, Esc returns."))
+    command("Help", "Diagnostics", lambda: (w.log.show(), w.log.setFocus()))
+    command("Help", "About AutoTalk…", lambda: QMessageBox.about(w, "About AutoTalk", "AutoTalk 0.3\nPDF-to-talk preparation and presentation.\nCodex narration · Qwen3-TTS local speech\n\nPrepared, Quick and Realtime modes."))
 
-    # Give native controls enough layout height; QSS min-height alone excludes
-    # frame/padding on some platform styles and can let adjacent fields overlap.
+    # Size outer controls only; the platform style owns embedded editor geometry.
     for widget in w.findChildren(QWidget):
-        if isinstance(widget, (QComboBox, QLineEdit, QDoubleSpinBox)):
+        if isinstance(widget, (QComboBox, QLineEdit, QAbstractSpinBox)) and not isinstance(widget.parentWidget(), (QComboBox, QAbstractSpinBox)):
             widget.setMinimumHeight(32)
     for layout in w.findChildren(QFormLayout):
         layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
