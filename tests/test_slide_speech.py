@@ -69,7 +69,7 @@ def test_editor_creates_text_then_audio_without_audio_approval(qtbot, project, l
     assert played == [w.project.audio(w.project.slides[1])]
     assert w.regenerate_button.isVisible() and w.slide_audio_button.isVisible()
     assert w.preview_button.text() == 'Play audio' and w.preview_button.isEnabled()
-    assert 'reused when presenting' in w.slide_info.text()
+    assert 'Audio ready' in w.slide_info.text() and 'Start reuses current audio' in w.status.text()
     assert w.preview_time.fontMetrics().horizontalAdvance(w.preview_time.text()) <= w.preview_time.width()
     for button in (w.regenerate_button, w.slide_audio_button, w.preview_button):
         assert not button.geometry().intersects(w.narration.geometry())
@@ -204,16 +204,16 @@ def test_saved_opening_starts_before_background_preparation_finishes(qtbot, proj
     assert len(started) == 1 and started[0] - before < .5
 
 
-def test_quick_switch_explains_default_voice_and_can_be_cancelled(qtbot, project, monkeypatch):
+def test_quick_switch_preserves_voice_and_audio_without_confirmation(qtbot, project, monkeypatch):
     make_audio(project)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project)
     original = copy.deepcopy(project.slides)
     def question(*args):
-        assert 'Ryan' in args[2] and 'Existing text is kept' in args[2]
-        return QMessageBox.StandardButton.No
+        pytest.fail('Quick must not override the selected voice or ask to discard it')
     monkeypatch.setattr(QMessageBox, 'question', question)
     w.mode.setCurrentText('Quick')
-    assert project.mode == w.mode.currentText() == 'Prepared'
+    assert project.mode == w.mode.currentText() == 'Quick'
+    assert project.prepared
     assert project.slides == original
 
 

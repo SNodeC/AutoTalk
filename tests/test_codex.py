@@ -136,7 +136,7 @@ def test_discovery_updates_ui_without_changing_saved_selections(fake_server, qtb
     assert window.codex_model.itemText(0) == 'Account default (Vision)'
     assert window.codex_model.currentData() == 'test-vision'
     assert window.codex_effort.currentData() == 'high'
-    assert window.codex_model.isEnabled() == (mode != 'Quick')
+    assert window.codex_model.isEnabled()
     saved = Project.load(project.manifest)
     assert (saved.codex_model, saved.codex_effort) == ('test-vision', 'high')
     # A different talk reuses account discovery but retains its own unavailable selections.
@@ -169,7 +169,7 @@ def test_passive_startup_failure_is_nonmodal_and_closes(fake_server, monkeypatch
 
 
 @pytest.mark.parametrize('open_saved', [False, True])
-def test_application_startup_discovers_without_pdf_and_preserves_launch_project(fake_server, monkeypatch, qtbot, project, open_saved):
+def test_application_startup_discovers_without_pdf_and_preserves_launch_project(fake_server, monkeypatch, qtbot, qapp, project, open_saved):
     from types import SimpleNamespace
     from autotalk import app
     windows = []
@@ -187,6 +187,7 @@ def test_application_startup_discovers_without_pdf_and_preserves_launch_project(
     monkeypatch.setattr(app, 'MainWindow', window)
     monkeypatch.setattr(app, 'QApplication', lambda *_: SimpleNamespace(
         setApplicationName=lambda *_: None, setOrganizationName=lambda *_: None, exec=event_loop))
+    app.QApplication.activeModalWidget = qapp.activeModalWidget
     monkeypatch.setattr(sys, 'argv', ['autotalk'] + ([str(project.manifest)] if open_saved else []))
     assert app.main() == 0
 

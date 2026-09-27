@@ -1,7 +1,7 @@
 # AutoTalk UI user guide
 
 This guide describes the current AutoTalk 0.3 interface, including the speech-engine
-controls added on 26 September 2026. Instructions use the Linux UI. Windows and
+task-based placement implemented on 27 September 2026. Instructions use the Linux UI. Windows and
 macOS builds have not yet received equivalent native testing; screen recording
 with system audio is currently a Linux feature.
 
@@ -40,7 +40,7 @@ not change with narration or audio readiness.
 | Mode | What you do | What AutoTalk does | When presentation starts |
 | --- | --- | --- | --- |
 | **Prepared** | Set up the talk and optionally edit/preview individual slides. Choose **Prepare and start**. | Preserves existing words/audio and prepares missing content. | Automatically after all included slides are prepared. |
-| **Quick** | Choose a PDF, duration and language. | Uses default voice Ryan, Professional delivery, account-default text model and no conference context. | Automatically after preparation, subject to the selected timing policy. |
+| **Quick** | Choose a PDF, duration and language. | Uses resolved voice, delivery and model settings without conference setup. | Automatically after preparation, subject to the selected timing policy. |
 | **Realtime** | Set up duration, language, conference and voice, then choose **Start**. | Prepares opening audio, then continues writing and generating later slides while presenting. | Automatically when enough opening audio is available. |
 
 Use **Prepared** when you need to check wording, names, timing and pronunciation.
@@ -51,10 +51,9 @@ Realtime is generated narration for your slides. It is not a live conversation
 with the audience. It can still take time to start, especially on first use.
 
 Switching modes does not create a separate copy of the talk. For an experiment
-you want to keep separate, use **File → Save a copy…** first. Quick applies its
-defaults even if you previously configured another voice or conference. Switching
-to Quick with prepared audio asks for confirmation; audio that does not match its
-defaults needs recreation. The previous audio files are kept.
+you want to keep separate, use **File → Save a copy…** first. Quick preserves the
+selected or inherited voice, delivery and model settings. Changing mode alone
+does not invalidate matching audio. Quick skips conference and audience customisation.
 
 ## Find your way around
 
@@ -62,34 +61,77 @@ The welcome page offers **Open PDF…** and **Open saved talk…**. After openin
 
 | Area | Purpose |
 | --- | --- |
-| Menu bar | File operations, editing, views, presentation controls and settings. |
-| Toolbar | Open/save, mode, **Talk settings**, and the next main action. |
-| Talk summary | Target and prepared audio duration, **Fit duration…**, and **Videos / recordings…**. |
-| Left: Slides | Select a slide. The selector above the thumbnails switches language versions. Hover a thumbnail for audio readiness. |
-| Centre: slide editor | View the PDF slide, edit its talk text, preview recorded narration or rewrite this slide. |
-| Right: Slide settings | Include/exclude the selected slide; expand **Advanced slide options** for timing, delivery, pauses, languages and clips. |
-| Bottom: recording and progress | Recording intent/current status, text/audio counts, operation progress and cancellation. |
-| Status bar: Speech engine | See whether the model is loaded; click to open its controls. |
+| Document toolbar | Open/save, mode and the fixed **Start / Prepare and start** action. |
+| Talk basics | Duration, language/version, **Voice: …** (opens Voice & language), **Talk settings…**. |
+| Whole-talk preparation | **Create talk text** and **Create talk audio**, without starting playback. |
+| Presentation setup | **Record presentation as a video** and **Presentation settings…**. |
+| Left: Slides | Select a slide; hover its thumbnail for inclusion and audio readiness. |
+| Centre: Editor | PDF preview, editable narration, separate text/audio/play controls, notes and language insertion. |
+| Right: This slide | Inclusion, after-slide action, Timing, Delivery and Additional audio. |
+| Bottom | Current recording, last saved result, text/audio counts, operation progress and cancellation. |
+| Status bar: Speech engine | Current model state; click for immediate and automatic engine controls. |
 
-**View → Slide editor** returns to editing. **View → Presenter view** shows current
-and next slides, the current narration and presentation controls. Opening either
-view by itself does not start a presentation.
+Use the **Editor / Presenter** tabs, or their **View** menu entries, to switch
+workspaces. This does not start presentation. Quick has a simplified workspace;
+choose Prepared or Realtime to edit slides. Drag pane dividers or use **View →
+Slide navigator / Slide inspector / Restore default layout**. **Enlarge slide…**
+opens a larger preview.
 
-Drag the dividers to resize the editor panes. Use **View → Slide navigator** or
-**Slide inspector** to hide a side pane, and **Restore default layout** to restore
-them. **Enlarge slide…** opens a larger, resizable slide view inside AutoTalk.
+All settings share one **Settings** window. The left navigation is flat:
 
-**Talk settings** changes the current talk. Its sections are General, Conference,
-Voice, Delivery, Presentation, Recording, Advanced and Saved voices.
-**Settings → Preferences…** contains application appearance information and the
-Speech engine section. Appearance follows the system, including light/dark colours
-and the available native widget style; AutoTalk has no separate theme picker.
+| Page | Settings grouped here |
+| --- | --- |
+| **Voice & language** | Voice identity, language arrangement, writing style and spoken delivery. |
+| **Talk & preparation** | Audience/conference, timing and Prepared/Quick/Realtime policies. |
+| **Presentation & recording** | Pauses/after-slide action, recording/output, background track and slide clips. |
+| **AI & speech engine** | Codex model/reasoning, Qwen sampling and application GPU controls. |
+| **Application** | Account, display selection and system audio access. |
 
-In Talk settings, **Save and return to talk** keeps your changes. **Cancel** restores
-the talk settings from when you opened the dialog. An explicitly saved reusable
-voice or delivery preset remains in its library. During preparation, cancel the
-operation before closing Talk settings. Speech-engine preferences can be saved
-or cancelled while the model is loading.
+Use **Settings for** to select **Application defaults**, **This talk**, or the
+numbered **This slide**. Only applicable scopes and settings are available.
+**Talk duration** is editable at the top of **Talk & preparation → This talk**,
+as well as beside Duration in the main window. Both edit the same talk target;
+Save keeps changes and Cancel restores the previous value. The target belongs
+to the talk, so it is hidden under Application defaults.
+
+Main voice and presentation shortcuts select talk scope. **Slide voice & language…**
+and **Additional audio…** in the inspector select slide scope. Account and Speech
+engine shortcuts select application scope. Manual model loading prepares the
+selected slide's effective voice, or the application default when no talk is open.
+
+The precedence is **slide override → talk setting → application default**. Voice,
+language, writing style, spoken delivery, pauses and after-slide action support all
+three levels. Workflow, recording, output and technical model defaults support
+application and talk levels. Account/device/GPU lifecycle settings remain local to
+the application; conference content and files belong to the talk.
+
+**From app / From talk** identifies an inherited value. Edit a field to override it;
+**Use app / Use talk** removes that override. Empty directions, zero pause and an
+explicit model default are valid choices, distinct from inheritance. Voice summaries
+show **Predefined**, **Own**, **Designed**, or **Reference** for ambiguous older
+references, together with their scope. Saved is a library location, not a voice type.
+
+Changing application defaults affects existing talks that still inherit them.
+Settings saved into the talk override those defaults. To keep a talk independent of
+another computer's defaults, choose **This talk → Talk & preparation → Keep these
+settings for this talk**. Required personal-voice assets are included in the talk.
+
+**Save** keeps pending changes across all pages/scopes. **Cancel** restores the
+starting configuration, including manifest changes saved during a settings operation.
+Account, manual model, external system-audio and explicitly saved library operations
+are immediate. Stop a preparation or voice-recording operation started in Settings
+before closing it. Closing engine settings during playback does not stop presentation.
+
+Changing language does not translate existing words. Explicit passage markers and
+language versions remain available; slide language must respect the talk's language
+arrangement. Writing style affects later text generation; spoken delivery affects
+speech generation. Unchanged effective speech settings continue to reuse saved audio.
+
+**File → Recordings & export…** remains a separate task window; its settings link
+opens **Presentation & recording** for the talk.
+
+Appearance follows the system palette and available native widget style; there
+is no independent theme picker. File dialogs retain normal directory navigation.
 
 ## Open, save and reopen a talk
 
@@ -99,8 +141,8 @@ or cancelled while the model is loading.
    the PDF name. For example, `/slides/demo.pdf` creates
    `/slides/autotalk/demo-AutoTalk/`. Further imports use `demo-AutoTalk-2`, and so on.
    Existing projects stay in their current locations and can still be reopened.
-3. In Prepared and Realtime, Talk settings opens so you can choose duration,
-   language and audience. In Quick, duration and language appear in the main view.
+3. In Prepared and Realtime, Talk settings opens for audience and conference context.
+   Save or Cancel to return; duration and language remain in the main window.
 4. Use **Save** or **Ctrl+S** to save your work.
 
 To return later, choose **Open saved talk…** and open its `talk.autotalk.json` file,
@@ -123,24 +165,27 @@ to generate speech. Already prepared audio can play without loading a speech mod
 Example: prepare a five-minute conference talk in German and listen to it before presenting.
 
 1. Open the PDF and choose **Prepared**.
-2. In **Talk settings → General**, set **Talk duration** to 5 minutes and
-   **Spoken language** to German. Set the title and audience.
-3. Optionally configure **Conference**, **Voice** and **Delivery**. Choose
-   **Save and return to talk**.
-4. Optionally create or rewrite individual slide text, edit it, create slide audio
+2. Set **Duration** to 5 minutes and **Language** to German in the main window.
+3. Optionally configure **Talk settings → Talk & conference** and
+   **Voice & language → Voice / Writing & delivery**. Save the shared Settings dialog.
+4. Use **Create talk text** to fill missing narration for all included slides in
+   the active language version. Existing wording is preserved. Edit it, then use
+   **Create talk audio** to prepare missing/outdated audio without presenting.
+   This button becomes available once all included slides have usable text.
+5. Optionally create or rewrite individual slide text, edit it, create slide audio
    and listen using the three separate editor controls described below.
-5. Save edits with **Save / Ctrl+S**. Edits update memory immediately; there is no
+6. Save edits with **Save / Ctrl+S**. Edits update memory immediately; there is no
    per-keystroke disk autosave. Preparation, presentation startup and normal closing
    also save the talk.
-6. Choose the display and test the audio output. Enable recording if wanted.
-7. Choose **Prepare and start**. AutoTalk preserves existing narration, creates
+7. Choose the display and test the audio output. Enable recording if wanted.
+8. Choose **Prepare and start**. AutoTalk preserves existing narration, creates
    missing or translated text, creates missing/current speech and starts fullscreen
    after every included slide is ready. Current saved audio is reused.
 
 There is no text-approval step. **Text ready** counts slides with usable narration;
 it does not claim a person reviewed the words. You can edit before presenting,
 but editing is optional. To revise a completed talk's duration explicitly, use
-**Fit duration…**; this opens a confirmation because it can rewrite text.
+**Talk → Fit duration…** (also in Talk settings → Preparation & timing); this opens a confirmation because it can rewrite text.
 
 Fitting aims for your requested duration and allowed tolerance. It does not
 guarantee an exact finish time. Live pauses and demonstrations add time beyond the
@@ -151,13 +196,18 @@ prepared content. Fit duration changes the script; it is not just a playback-spe
 The same slide editor works in **Prepared** and **Realtime**. Preparing a single
 slide does not require text or audio on the other slides.
 
+**Show AI notes / Hide AI notes** reveals Codex’s supporting interpretation notes
+for the selected slide. They are read-only and are not spoken. If none were returned,
+the disabled button says **No AI notes**; it does not open an empty area.
+
 1. Select a slide. If it has no narration, choose **Create slide text** below the
    editor. Only this slide is written. You can also type the words yourself.
 2. Read and edit the text, then choose **Create slide audio**. This uses exactly
    the displayed words, saves the audio and plays it. It does not rewrite text.
 3. Use **Play audio / Stop audio** to listen again. There is no audio approval step.
-4. If you want another performance of those words, use **Talk → Regenerate slide
-   audio**. If you want different words, edit them or use **Talk → Rewrite slide text…**.
+4. If you want another performance, use **Create slide audio** again. To change
+   words, edit them or use **Rewrite slide text…**. These commands also appear in
+   **Talk → Selected slide**.
    A cancelled or failed regeneration leaves the previous completed recording intact.
 
 Both text and audio buttons remain visible. The text button offers **Rewrite slide
@@ -192,11 +242,12 @@ clips or background music; use a presentation to hear the complete mix.
 4. Choose **Start**.
 5. AutoTalk writes narration, prepares audio and opens fullscreen automatically.
 
-Quick uses Ryan, Professional delivery and account-default text-model settings.
-Conference details and custom voice/delivery choices are not used in this mode.
-If you need those choices, use Prepared or Realtime.
+Quick uses the same resolved voice, language, delivery and model settings as
+Prepared and Realtime, including saved slide overrides. Its simplified workspace
+still omits the editor and conference setup. Switch to Prepared or Realtime to
+edit individual narration; switching mode does not discard voice choices or audio.
 
-**Talk settings → Advanced → Quick timing policy** controls what happens before playback:
+**Talk settings → Preparation & timing → Quick timing policy** controls what happens before playback:
 
 | Policy | Behaviour |
 | --- | --- |
@@ -214,7 +265,7 @@ current saved audio plays without generation. No text approval is required.
 3. For a designed voice, listen to a sample and choose **Use this designed voice**
    before starting. For your own voice, supply its reference recording first.
 4. Select the presentation display, test sound and configure recording if wanted.
-5. Choose **Save and return to talk**, then **Start**.
+5. Choose **Save**, then **Start**.
 6. AutoTalk reuses saved current audio and prepares missing narration/audio.
    Cached opening audio can start while preparation continues in the background.
 7. Fullscreen opens automatically once enough audio is buffered. Later slides
@@ -224,7 +275,8 @@ The progress bars continue updating during preparation. If playback reaches audi
 that is not ready, it displays **Buffering** and waits. It continues once sufficient
 audio is available. Remaining time is an estimate while the talk is incomplete.
 
-Realtime options live under **Talk settings → Advanced**:
+Realtime options live under **Talk settings → Preparation & timing**. The startup/refill
+buffer is under its **Advanced Realtime buffering** disclosure:
 
 | Setting | Choices and effect |
 | --- | --- |
@@ -246,10 +298,10 @@ mode still says Realtime. Selecting Realtime does not force regeneration each ti
 
 ## Conference, audience and objective
 
-Set **Audience** under **Talk settings → General**: for example, “Researchers and
+Set **Audience** under **Talk settings → Talk & conference**: for example, “Researchers and
 software engineers; familiar with Linux, new to speech generation.”
 
-Under **Conference**, set **Talk objective** and supply context in either way:
+In the same section, set **Talk objective** and supply context in either way:
 
 - **Write it yourself:** enter topics, tracks, technical level and relevant emphasis
   in **Conference scope**. A website URL is not required.
@@ -265,7 +317,9 @@ a scope change; use Rewrite slide text to apply new context to those words. Quic
 
 ## Voices and voice samples
 
-Open **Talk settings → Voice**. Choose one of the following paths.
+Open **Voice: …** in the main window (or **Talk → Voice & speech…**).
+The **Voice** section has directly selectable **Predefined / My voice / Design / Saved** tabs.
+The shared sample controls stay visible while changing delivery or model settings.
 
 ### Choose a voice
 
@@ -278,7 +332,7 @@ voice can speak the other supported languages; listen to assess pronunciation.
 
 ### Use my own voice
 
-1. Select **Use my own voice**.
+1. Select **My voice**.
 2. Choose **Record my voice**, speak clearly, then stop recording; the recorder
    stops automatically at 30 seconds. Alternatively choose **Import voice recording…**.
 3. Use a clean WAV recording between 3 and 60 seconds long.
@@ -293,9 +347,9 @@ choose that device through the system's audio settings.
 
 ### Design a new voice
 
-1. Select **Design a new voice**.
+1. Select **Design**.
 2. Describe the voice, such as “a warm, calm adult voice with clear pronunciation”.
-3. Optionally adjust supported attributes under Delivery.
+3. Optionally select age here and adjust supported attributes under Delivery.
 4. Choose **Listen to a sample**.
 5. If satisfied, choose **Use this designed voice**. If you change the description
    or effective settings, listen to the new sample before accepting it.
@@ -307,13 +361,12 @@ AutoTalk does not independently design a new speaker for each slide.
 
 ### Saved voices
 
-Use **Talk settings → Saved voices**, **Talk → Saved voices…**, or the Voice page's
-**Saved voices…** button. Filter by language, select a row, then:
+Use **Voice & language → Voice → Saved**. Filter by language and select a row:
 
-- **Listen to selected voice** selects it for this talk and generates/plays its sample.
-- **Use selected voice** selects it and returns to the Voice section.
+- **Listen to selected voice** auditions the candidate without selecting it for the talk.
+- **Use selected voice** applies the candidate to the dialog's pending voice choice.
 
-Choose **Save and return to talk** to keep the choice. Cancel restores the previous
+Choose **Save** to keep the choice. Cancel restores the previous
 talk voice. Saving a reusable voice is a separate, explicit library action and
 is not undone by cancelling the dialog.
 
@@ -322,10 +375,11 @@ Voice samples can require a model download or cold load. Follow progress and use
 
 ## Delivery and speaking style
 
-**Talk settings → Delivery → Writing / delivery style** offers Professional,
-Conversational, Energetic, Calm and understated, Lightly humorous, Academic,
-Storytelling and Inspirational. The style guides narration wording and, where
-supported by the voice, its vocal delivery.
+**Voice & language → Writing & delivery** provides separate **Writing style**
+and **Spoken delivery** choices: Professional, Conversational, Energetic, Calm and
+understated, Lightly humorous, Academic, Storytelling and Inspirational. Writing
+style guides new narration wording; spoken delivery guides audio where supported
+by the voice. Changing writing style does not rewrite existing words.
 
 Expand **More vocal attributes** for:
 
@@ -335,7 +389,6 @@ Expand **More vocal attributes** for:
 | Texture | Clear, Warm, Breathy, Raspy |
 | Energy | Low, Moderate, High |
 | Pace | Slow, Moderate, Brisk |
-| Age | Young adult, Middle-aged adult, Older adult; voice design only |
 | Articulation | Natural, Precise, Relaxed |
 | Projection | Soft, Conversational, Confident |
 | Accent | Beijing Mandarin, Sichuan Mandarin; Chinese only |
@@ -344,17 +397,17 @@ Expand **More vocal attributes** for:
 | Custom vocal directions | Free text for the talk's delivery |
 | Gradual delivery across slides | Free text, such as a calm opening and more energetic conclusion |
 
-Attribute selectors also offer **Model default**. Changing the main style applies
-its preset attributes, replacing previous attribute choices; set the style first,
-then refine it. **Save preset** stores a named delivery configuration; select one
-under **Saved delivery presets** and choose **Use preset** to apply it.
+Attribute selectors also offer **Model default**. Changing style preserves explicit
+attribute choices. **Save preset…** stores a named delivery configuration; select it
+under **Saved delivery presets** and choose **Use preset**. Presets do not change
+advanced speech sampling. Age (young, middle-aged or older adult) is on the Design tab.
 
 These are instructions to the model, not exact sound controls. Preview important
 passages. Age is restricted to voice design; accent presets to Chinese. Reference
 voices inherit character and delivery from their reference, so direct vocal
-instructions are disabled. Writing style still affects narration. Quick uses its defaults.
+instructions are disabled. Writing style still affects narration. Quick uses the same inherited or overridden settings.
 
-For one deliberate exception, use the selected slide's **Delivery override**.
+For one deliberate exception, use the selected slide's **Delivery → Use talk delivery** setting (uncheck to override).
 Explicit slide directions take precedence over global custom directions, which
 take precedence over structured attributes/style. Speech continuity guidance is
 provided by default, but it cannot lock expression or speed exactly across passages.
@@ -365,27 +418,27 @@ Changed vocal settings require preparing affected audio again.
 Supported spoken languages are English, German, French, Spanish, Italian,
 Portuguese, Russian, Chinese, Japanese and Korean.
 
-For another language, change **Talk settings → General → Spoken language**.
-If that language version already exists, AutoTalk opens it. If text already exists
-but no such version exists, AutoTalk creates a translation draft and keeps the
-original version. **Edit → Add language version…** explicitly creates another version.
+Before creating narration, choose its initial language in the main **Language** control.
+Once narration exists, that control lists existing versions. Selecting one switches
+versions without creating another. Choose **Add language version…** in that control
+or the **Talk** menu to create a translation draft while preserving the original.
 
-1. Select the new version using the selector above the slide thumbnails.
-2. Choose **Translate slide text** for an individual slide, or Start to translate
-   remaining drafts during preparation.
-3. Review the translated text, then prepare audio and preview it.
+1. Select the target language in the creation dialog.
+2. Use **Create talk text** to translate remaining drafts without presenting, or
+   **Translate slide text** for one slide. Start also translates missing drafts.
+3. Review the translated text, then create audio and listen.
 
 Until translated, copied source text is marked **Source text — waiting for … translation**.
 You can replace a slide's text manually with its translation; translation preserves
 slides you already replaced. Copied source words are not usable target-language narration until translated or replaced.
 Preparing audio alone does not translate words into another language.
 
-For multiple languages within a slide, expand **Advanced slide options →
-Language / audio clips…**, choose a language and **Insert language passage**.
+For multiple languages within a slide, choose **Insert language passage…** beside
+the narration editor and select a language.
 It inserts a marker such as `[German]` into the narration. Type that passage's
 words in the intended language. The marker selects pronunciation; it does not translate.
 
-Under **Talk settings → Advanced → Language arrangement**, choose:
+Under **Language → Language options…** (also in the Talk menu), choose:
 
 - **Separate versions and mixed passages:** allow different languages within a slide.
 - **Separate versions; one language per slide:** allow one language on each slide.
@@ -401,34 +454,34 @@ Select the slide before using the right-hand inspector. **Include in presentatio
 controls whether it is spoken/presented; at least one slide must remain included.
 The PDF itself is not edited or reordered.
 
-Expand **Advanced slide options**:
+The inspector groups these controls by their purpose:
 
 | Control | Use |
 | --- | --- |
-| **Target duration for this slide** | Leave at **Automatic**, or set a target in seconds. Changing it requests text review; it does not instantly stretch recorded speech. |
-| **Use talk delivery** | Keep checked to inherit the talk's delivery. Uncheck to enter supported slide directions. |
+| **Timing** | Leave at **Automatic**, or set a target in seconds. Changing it requests text review; it does not instantly stretch recorded speech. |
+| **Delivery → Use talk delivery** | Keep checked to inherit the talk's delivery. Uncheck to enter supported slide directions. |
 | **Delivery override** | Instructions for this slide, such as a slower explanation of a complex chart. |
 | **After this slide: Advance automatically** | Continue to the next included slide after the audio ends. |
 | **After this slide: Pause for live demo** | Pause and leave fullscreen for a demonstration. |
 | **After this slide: Wait for presenter** | Pause until you continue. |
-| **Language / audio clips…** | Insert language markers and attach recorded audio before/after this slide. |
+| **Additional audio…** | Attach recorded audio before/after this slide. Language markers belong beside the text editor. |
 
 At an end-of-slide pause, **Continue** moves on when that slide's audio has finished.
 An ordinary mid-slide pause resumes from the paused position.
 
-In **Language / audio clips…**, choose **Add…** to import an audio clip. Select it
+In **Additional audio…**, choose **Add…** to import an audio clip. Select it
 in **Slide audio clips**, set **Play** to before/after and adjust **Volume**
 (1 is unchanged; 0 is silent; 2 doubles the gain). **Remove** removes it from the slide.
 Use clips for music, singing or effects you want reproduced from an existing recording.
 
-For audio across the presentation, use **Talk settings → Presentation → Add
+For audio across the presentation, use **Presentation settings → Background audio → Add
 background track…**. Adjust **Background volume**, enable **Loop** if wanted, or
 choose **Remove background**. Listen to a presentation/export to check the balance.
 Imported clips and between-slide pauses count toward duration fitting.
 
 ## Present, pause, continue and give a live demo
 
-Before starting, open **Talk settings → Presentation**:
+Before starting, open **Application → Display & sound**:
 
 1. Choose **Fullscreen display**.
 2. Choose **System audio settings…** to select/reroute AutoTalk's output using the
@@ -440,14 +493,14 @@ belongs to the system. Select the output before beginning screen recording.
 
 | Action | Result |
 | --- | --- |
-| **Start presentation** / **F5** | Start fullscreen from the beginning when ready. |
-| **Presentation → Start from selected slide** / **Shift+F5** | Begin from the selected slide when presentation is available. |
+| **Start / Prepare and start** / **F5** | The same preparation-and-start command as the upper-right button. |
+| **Presenter → More actions → Start from selected slide** / **Shift+F5** | Begin from the selected slide when presentation is available. |
 | **Pause** / fullscreen **Space** | Pause narration; press Space or use Continue to resume. |
 | **Previous / Next** | Navigate included slides. Navigating starts that slide from its beginning; it is not an audio seek control. |
 | Fullscreen **Esc** | Pause and leave fullscreen, preserving the playback position. |
 | **Continue presentation** / **F6** | Reopen fullscreen and continue from the retained position. |
 | **Pause for a live demo** | Pause narration and leave fullscreen. |
-| **Presentation → Restart from beginning** | Start the presentation again from its beginning. |
+| **Presenter → More actions → Restart from beginning** | Start the presentation again from its beginning. |
 | **End presentation** | End the session and return to editing; cancel unfinished Realtime preparation. |
 
 For a live demo, pause/leave fullscreen, show another application, then use Continue.
@@ -466,17 +519,17 @@ There are three distinct uses:
 | --- | --- |
 | A video of slides and AutoTalk's audio as you present/navigate | Record with **Slide video + narration**. |
 | A video including your desktop, live demos and optionally your microphone | Record with **Screen + system audio (Linux)**. |
-| A ready-made video/audio file without playing the talk in real time | **Create slides-and-speech video or audio…** after preparation. |
+| A ready-made video/audio file without playing the talk in real time | **File → Export prepared talk…** after preparation. |
 
 ### Record while presenting
 
-1. Open **Talk settings → Recording**.
+1. Open **Presentation settings → Recording**.
 2. Choose **Recording source**.
 3. For screen capture with commentary, enable **Include microphone in screen recording**.
 4. Optionally use **Choose video destination…**. Otherwise AutoTalk saves a new
    video in the project's recordings folder. Session suffixes protect previous recordings.
-5. Enable **Record presentation as a video**, in this section or the main window's
-   bottom bar, before starting. This is the same setting in both locations.
+5. Enable **Record presentation as a video** beside Presentation settings in the
+   main window before starting. The Recording page reports whether it is enabled.
 6. Save the settings and start the presentation.
 
 On Wayland, screen capture opens Plasma's screen-sharing chooser. Choose the display
@@ -496,25 +549,25 @@ the default microphone and can pick up speaker sound, so check your setup first.
 - **Slides finished — recording continues:** screen capture is still active.
 - **End presentation and save video:** explicitly ends screen capture.
 - **Saving video:** allow the save/export operation to finish.
-- **Saved:** use the dated output link or open Videos / recordings.
+- **Saved:** use the dated output link or open File → Recordings & export.
 
 Slide-video capture finishes automatically after the last slide. Screen capture
 continues through pauses, leaving fullscreen, live demos and completion of the last
 slide, until you explicitly End. A link to an older saved video is not evidence
 that the current recording has finished.
 
-For slide-video capture, **Talk settings → Advanced → Recording pauses** chooses
+For slide-video capture, **Presentation settings → Recording → Advanced recording → Recording pauses** chooses
 whether to retain fullscreen pauses, all elapsed waits, or content only. It does
 not apply to screen recording, which records the ongoing session.
 
 ### Find or recover the result
 
-Open **Videos / recordings…** in the talk summary or **File → Export / recordings…**.
+Open **File → Recordings & export…**, or use the direct result links after saving.
 The table lists talk, date, duration and status. With a talk open it shows that
 project's recordings; reopen the relevant saved talk to locate its videos.
 
 - Select a **Ready** row, then **Open video / audio** or **Open folder**.
-- Use **Save a copy / another format…** for another MP4, WAV or M4A output.
+- Use **Save another format…** for another MP4, WAV or M4A output.
 - Select **Needs saving**, then **Save unfinished recording…** to retry saving
   retained recording material.
 
@@ -524,8 +577,9 @@ material; it does not mean the final video is already ready.
 
 ### Export without presenting
 
-Prepare all included slide audio first. Open **Videos / recordings…**, then choose
-**Create slides-and-speech video or audio…** and save as MP4, WAV or M4A.
+Use **Create talk text** and **Create talk audio** to prepare all included slides.
+Choose **File → Export prepared talk…**, then save as MP4, WAV or M4A. The same
+export command is also available in Recordings & export.
 This exports prepared slides/narration with clips and background audio. It does not
 require live playback, and it does not include a demonstration from another application.
 
@@ -567,7 +621,7 @@ The final stage is **Checking speech service**. The model becomes **Ready** only
 when the actual readiness check succeeds. File counters and memory measurements do
 not indicate overall startup completion or bytes copied to the GPU. Stages without
 a measurement say **Progress not reported**; elapsed time continues separately.
-The backend's original output remains available in **Preparation details**. This
+The backend's original output remains available in **Operation details**. This
 adapter recognizes the pinned Linux backend; unknown messages remain in the log
 without inventing progress.
 
@@ -621,28 +675,28 @@ Practical examples:
 
 ## Advanced settings
 
-Use **Talk settings → Advanced** for settings specific to the current talk.
+Technical settings stay with the task they configure. Open the indicated section:
 
-| Control | Meaning |
+| Control / location | Meaning |
 | --- | --- |
-| **Allowed timing difference** | Tolerance in seconds around the target duration when assessing/fitting a talk. |
-| **Pause between slides** | Prepared gap between slides; contributes to duration. |
-| **Language arrangement** | Mixed passages, one language per slide, or single-language versions. |
+| **Talk settings → Preparation & timing → Allowed timing difference** | Tolerance in seconds around the target duration when assessing/fitting a talk. |
+| **Presentation & recording → Playback → Pause after slide** | Prepared gap between slides; contributes to duration. |
+| **Language → Language options… → Language arrangement** | Mixed passages, one language per slide, or single-language versions. |
 | **Quick timing policy** | Generation/fitting/start behaviour; visible in Quick. |
 | **Realtime narration / speech priority / startup-refill buffer** | Text preparation and buffering choices; visible in Realtime. |
 | **Recording pauses** | How slide-video capture handles waits; unavailable for screen capture. |
-| **Export audio sample rate** | 24 kHz, 44.1 kHz or 48 kHz. This controls output encoding, not the original voice model's quality. |
-| **MP4 / M4A audio encoding** | AAC 96, 128 or 192 kbit/s. Higher bitrate generally increases file size. |
-| **Sign in / Sign out** | Sign in is enabled when disconnected; Sign out is enabled when connected. Both are disabled during an operation. Sign-out clears the shared local Codex login and the discovered model list, while preserving saved talk selections. |
-| **Model / Reasoning effort** | Choose from the connected account's available text models and that model's effort options. Quick uses account defaults. |
-| **Override main speech generator sampling defaults** | Exposes Temperature, Top k, Top p, Repetition penalty and Max new tokens for speech generation. |
+| **Presentation settings → Recording → Output quality → Export audio sample rate** | 24 kHz, 44.1 kHz or 48 kHz. This controls output encoding, not the original voice model's quality. |
+| **Presentation settings → Recording → Output quality → MP4 / M4A audio encoding** | AAC 96, 128 or 192 kbit/s. Higher bitrate generally increases file size. |
+| **Settings → Account… → Sign in / Sign out** | Sign in is enabled when disconnected; Sign out is enabled when connected. Both are disabled during an operation. Sign-out clears the shared local Codex login and the discovered model list, while preserving saved talk selections. |
+| **AI & speech engine → Narration AI — Codex → Model / Reasoning effort** | Choose from the connected account's available text models and that model's effort options. All modes respect the selected scope. |
+| **AI & speech engine → Speech model — Qwen → Advanced synthesis** | Exposes Temperature, Top k, Top p, Repetition penalty and Max new tokens for speech generation. |
 
 AutoTalk checks an existing Codex installation for a ChatGPT sign-in at startup,
 even before you open a PDF or saved talk. If already signed in, model and reasoning
 choices are populated automatically. **Account default** shows the configured model;
 **Codex default** shows the configured reasoning effort, or the selected model's
 suggested effort when Codex has no explicit effort setting. Saved talk selections
-remain unchanged. Quick continues to use Codex defaults.
+remain unchanged. Quick respects these selections too.
 
 Startup does not install Codex or open a sign-in browser. If Codex is unavailable,
 or you are signed out, use **Sign in** to connect. If model discovery fails while
@@ -665,10 +719,10 @@ remain on the machine. Prepared playback uses saved content.
 
 ## Progress, cancellation and recovery
 
-**Text ready** counts included slides whose text matches the current talk settings.
+**Text ready** counts included slides with usable narration in the active language version.
 **Prepared slides** counts included slides with current audio. During a job the
 bars can show the active narration/audio stage. The separate moving progress bar
-means work is in progress; **Preparation details** shows messages and measured stages.
+means work is in progress; **Operation details** shows messages and measured stages.
 When a settings dialog is open, operation progress appears there.
 
 **Cancel operation** stops the current task. Completed slide audio is retained;
@@ -687,7 +741,7 @@ speech generation is catching up; **Needs saving** means an unfinished recording
 can be saved from the recordings dialog. Dialog-opening buttons/menu entries have
 an ellipsis; direct commands such as Start and Create slide audio do not.
 
-If setup or generation fails, read **Preparation details** or **Help → Diagnostics**.
+If setup or generation fails, read **Operation details** or **Help → Operation details**.
 For a missing voice reference, import/record the reference again. For an audio-output
 error, check system routing and Test audio. If another AutoTalk instance owns the
 speech GPU, unload/close that instance before attempting another model load.
@@ -696,31 +750,31 @@ speech GPU, unload/close that instance before attempting another model load.
 
 | Menu | Contents |
 | --- | --- |
-| **File** | Open PDF, Open saved talk, Save, Open recent, Save a copy, Open talk folder, Export / recordings, Quit. |
-| **Edit** | Undo/Redo, Cut/Copy/Paste/Select all, Find in talk text, Add language version. Find searches the current narration editor, not the whole deck. |
-| **View** | Show/hide navigator and inspector, restore layout, enlarge slide, Slide editor, Presenter view, Preparation details. |
-| **Talk** | Talk settings, Saved voices, Start / Prepare and start, Write or translate talk text, Rewrite slide text, Play audio and mode choices. |
-| **Presentation** | Present fullscreen, Continue, Pause, Restart, Start from selected slide, Live demo / leave fullscreen, Previous/Next, End, System audio settings. |
-| **Settings** | Preferences, Codex model & reasoning (opens Talk settings → Advanced), Speech engine, immediate model Load/Unload. |
-| **Help** | Getting started, Keyboard shortcuts, Diagnostics, About AutoTalk. |
+| **File** | Open PDF, Open saved talk, Open recent, Save, Save a copy, Open talk folder, Recordings & export, Export prepared talk, Quit. |
+| **Edit** | Undo/Redo, Cut/Copy/Paste/Select all, Find in slide text. Find searches the current narration, not the whole deck. |
+| **View** | Editor/Presenter, navigator/inspector visibility, restore layout, enlarge slide, Operation details. |
+| **Talk** | Talk settings, Voice & speech, Create talk text/audio, Rewrite all talk text, Fit duration, Add language version, Language options, Selected slide and Mode submenus. |
+| **Presentation** | Start / Prepare and start, Continue, Pause, start selected, Restart, live demo, Previous/Next, End, Presentation settings, System audio settings. |
+| **Settings** | Application settings, Account, Speech engine, immediate model Load/Unload. |
+| **Help** | Getting started, Keyboard shortcuts, Operation details, About AutoTalk. |
 
 | Shortcut | Action |
 | --- | --- |
 | **Ctrl+N / Ctrl+O** | Open PDF / open saved talk |
 | **Ctrl+S / Ctrl+Shift+S** | Save / save a copy |
-| **Ctrl+T / Ctrl+,** | Talk settings / Preferences |
+| **Ctrl+T / Ctrl+,** | Talk settings / Application settings |
 | **Ctrl+F** | Find in current talk-text editor |
 | **Ctrl+Z / Ctrl+Shift+Z** | Undo / redo in the focused text editor |
 | **Ctrl+X / Ctrl+C / Ctrl+V / Ctrl+A** | Cut / copy / paste / select all in the focused editor |
-| **F5 / Shift+F5** | Present / start from selected slide when ready |
+| **F5 / Shift+F5** | Start or prepare and start / start selected slide when ready |
 | **F6** | Continue presentation |
 | **Space** in fullscreen | Pause / continue |
 | **Right or Page Down / Left or Page Up** in fullscreen | Next / previous slide |
 | **Esc** in fullscreen | Pause and return to controls |
 | **Ctrl+Q** | Quit |
 
-Menu actions follow the same availability as their corresponding buttons. F5 does
-not generate missing speech; use the highlighted preparation action first.
+Menu actions follow the same availability as their corresponding buttons. F5 invokes
+the highlighted start command, including missing preparation; it is not a separate workflow.
 
 ## Common questions
 
@@ -734,8 +788,10 @@ part of preparation.
 Yes. Select it, use **Create slide text** if needed, then **Create slide audio**.
 The result is saved and previewed. **Play audio / Stop audio** auditions it again.
 
-**Why did Quick ignore my voice or conference?**
-That is its defined default workflow. Use Prepared or Realtime for those choices.
+**Does Quick use my voice and conference settings?**
+Quick uses the same selected or inherited voice, delivery and model settings as
+the other modes. It skips conference and audience customisation; use Prepared or
+Realtime when that context matters.
 
 **Why does Realtime still take time to start?**
 Initial downloads, model loading, opening text and enough audio must be ready first.
@@ -750,7 +806,7 @@ Yes: Continue presentation or F6. Do not use Restart if you want to retain posit
 
 **The last slide ended. Where is the screen recording?**
 Screen recording continues until End presentation and save video. Wait for saving,
-then open Videos / recordings and select the completed output.
+then open File → Recordings & export and select the completed output.
 
 **Can I create a video if I forgot to record?**
 Yes, from the prepared slides and audio through direct export. An unrecorded live

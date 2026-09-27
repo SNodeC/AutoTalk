@@ -27,8 +27,8 @@ def test_open_pdf_has_one_dialog_and_non_destructive_default_location(qtbot, sam
         assert w.project.manifest.is_file()
         assert w.start_button.text() == 'Prepare and start'
         assert 'Start reuses current audio' in w.status.text()
-        assert w.talk_dialog.isVisible() and w.minutes.isVisible() and w.audience.isVisible()
-        w.talk_dialog.accept()
+        assert w.settings_dialog.isVisible() and w.minutes.isVisible() and w.audience.isVisible()
+        w.settings_dialog.accept()
     assert (projects / 'slides-AutoTalk/talk.autotalk.json').is_file()
 
 
@@ -52,29 +52,29 @@ def test_mode_start_label_is_stable_after_manual_edits(qtbot, project, monkeypat
 
 def test_voice_source_shows_only_its_own_workflow(qtbot, project):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    w.talk_dialog.show_section(2)
-    designed = next(b for b in w.talk_dialog.findChildren(QPushButton) if b.text() == 'Use this designed voice')
+    w.settings_dialog.show_section("Voice & language", 1)
+    designed = next(b for b in w.settings_dialog.findChildren(QPushButton) if b.text() == 'Use this designed voice')
     for source in ('CustomVoice', 'Base', 'VoiceDesign', 'CustomVoice'):
-        w.voice_source.setCurrentIndex(w.voice_source.findData(source))
+        w.voice_source.setCurrentIndex(["CustomVoice", "Base", "VoiceDesign"].index(source))
         assert w.speaker.isVisible() == (source == 'CustomVoice')
         assert w.record_button.isVisible() == (source == 'Base')
         assert w.transcript.isVisible() == (source == 'Base')
         assert w.voice_description.isVisible() == (source == 'VoiceDesign')
         assert designed.isVisible() == (source == 'VoiceDesign')
         assert w.voice_preview_button.isVisible()
-    w.talk_dialog.reject()
+    w.settings_dialog.reject()
 
 
 def test_presenter_offers_one_action_and_explicit_recording_end(qtbot, project):
     make_audio(project)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     w.workspace.setCurrentWidget(w.presenter)
-    actions = (w.present_button, w.play_button, w.continue_button)
-    for state, expected in [('stopped', w.present_button), ('playing', w.play_button), ('paused', w.continue_button)]:
+    actions = (w.play_button, w.continue_button)
+    for state, expected in [('stopped', None), ('playing', w.play_button), ('paused', w.continue_button)]:
         w.transport.state = state
         w.refresh()
-        assert [b for b in actions if b.isVisible()] == [expected]
-        assert expected.isEnabled()
+        assert [b for b in actions if b.isVisible()] == ([expected] if expected else [])
+        assert expected is None or expected.isEnabled()
         assert w.start_button.isVisible() and w.start_button.isEnabled()
     capture = Capture(project)
     try:
@@ -97,7 +97,7 @@ def test_interrupted_realtime_has_a_visible_resume_preparation(qtbot, project):
     w.transport.state = 'paused'; w.refresh()
     assert w.start_button.isVisible() and w.start_button.isEnabled()
     assert w.start_button.text() == 'Start'
-    assert not w.present_button.isVisible() and not w.continue_button.isVisible()
+    assert not hasattr(w, "present_button") and not w.continue_button.isVisible()
     w.transport.stop()
 
 
@@ -121,8 +121,8 @@ def test_recording_browser_empty_then_saved_and_legacy_recovery(qtbot, project, 
     info['output'] = str(output); (root / 'session.json').write_text(json.dumps(info))
     w.export_saved(output); w.update_timing()
     assert w.recordings.item(0, 3).text() == 'Ready'
-    assert w.recover_button.text() == 'Save a copy / another format…'
-    assert 'Saved ' in w.record_status.text() and w.output_button.isEnabled()
+    assert w.recover_button.text() == 'Save another format…'
+    assert 'Saved ' in w.saved_output.text() and w.output_button.isEnabled()
     # Older recoverable recordings have no title/date fields or project manifest.
     del info['title']; del info['started_at']
     (root / 'session.json').write_text(json.dumps(info)); project.manifest.unlink()
@@ -138,7 +138,7 @@ def test_prepared_export_without_session_still_has_open_links(qtbot, project, tm
     qtbot.waitUntil(lambda: w.job is None)
     assert w.output_path == str(output)
     assert w.output_button.isEnabled() and w.folder_button.isEnabled()
-    assert 'Open video' in w.record_status.text()
+    assert 'Open video' in w.saved_output.text()
 
 
 def test_recording_intent_and_saving_are_not_reported_as_finished(qtbot, project):
@@ -191,15 +191,16 @@ def test_audio_only_resume_does_not_require_chatgpt(project, monkeypatch, mode):
     assert project.prepared
 
 
-def test_language_draft_accepts_manual_text_without_approval(qtbot, project):
+def test_language_draft_accepts_manual_text_without_approval(qtbot, project, monkeypatch):
     from autotalk.project import Project
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     original = project.active_version
     text = [s.narration for s in project.slides]
-    w.language.setCurrentText('German')
+    monkeypatch.setattr('autotalk.app.QInputDialog.getItem', lambda *a, **kw: ('German', True))
+    w.add_version()
     assert w.start_button.text() == 'Prepare and start'
     assert 'Source text — waiting for German translation' in w.slide_info.text()
-    assert 'German — German' not in w.version_select.currentText()
+    assert 'German — German' not in w.language.currentText()
     assert not any(s.text_ready for s in project.slides)
     for index, slide in enumerate(project.slides):
         w.slide_list.setCurrentRow(index)
@@ -211,33 +212,34 @@ def test_language_draft_accepts_manual_text_without_approval(qtbot, project):
     assert reopened.language == 'German' and all(s.text_ready for s in reopened.slides)
     assert [s.narration for s in reopened.versions[original].slides] == text
 
-def test_previous_video_does_not_override_new_recording_intent(qtbot, project, tmp_path):
+def test_previous_video_does_not_override_new_recording_intent(qtbot, project, tmp_path, monkeypatch):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project)
     video = tmp_path / 'previous.mp4'; video.write_bytes(b'video')
     w.export_saved(video)
     w.options.record.click()
     assert 'Will record when presentation starts' in w.record_status.text()
-    assert 'Saved ' in w.record_status.text() and 'Open video' in w.record_status.text()
+    assert 'Saved ' in w.saved_output.text() and 'Open video' in w.saved_output.text()
     w.options.fields['recording_source'].setCurrentIndex(w.options.fields['recording_source'].findData('screen'))
-    assert 'Screen + system audio' in w.options.record.text()
-    w.language.setCurrentText('German')
+    assert 'Screen + system audio' in w.options.record.toolTip()
+    monkeypatch.setattr('autotalk.app.QInputDialog.getItem', lambda *a, **kw: ('German', True))
+    w.add_version()
     assert 'Will record when presentation starts' in w.record_status.text()
     video.unlink()
     w.update_timing()  # An externally removed video must not crash the UI timer.
-    assert 'Saved ' not in w.record_status.text()
+    assert 'Saved ' not in w.saved_output.text()
 
 
 def test_voice_actions_follow_reference_and_current_design(qtbot, project, tmp_path, monkeypatch):
     import wave
     monkeypatch.setattr(services, 'data_dir', lambda: tmp_path)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    w.talk_dialog.show_section(2)
+    w.settings_dialog.show_section("Voice & language", 1)
     assert 'Energetic male' in w.speaker.currentText()
     w.speaker.setCurrentIndex(w.speaker.findData('Aiden'))
     assert project.voice.speaker == 'Aiden'
-    w.voice_source.setCurrentIndex(w.voice_source.findData('Base'))
+    w.voice_source.setCurrentIndex(1)
     assert not w.voice_preview_button.isEnabled() and not w.save_voice_button.isEnabled()
-    w.voice_source.setCurrentIndex(w.voice_source.findData('VoiceDesign'))
+    w.voice_source.setCurrentIndex(2)
     assert not w.voice_preview_button.isEnabled() and not w.accept_voice_button.isEnabled()
     w.voice_description.setText('Warm, calm and clear')
     assert w.voice_preview_button.isEnabled() and not w.accept_voice_button.isEnabled()
@@ -253,25 +255,25 @@ def test_voice_actions_follow_reference_and_current_design(qtbot, project, tmp_p
     w.accept_voice_button.click()
     assert project.voice.source == 'Base' and project.asset(project.voice_file).is_file()
     assert w.voice_preview_button.isEnabled()
-    w.talk_dialog.accept()
+    w.settings_dialog.accept()
 
 
 def test_operation_feedback_is_in_the_active_dialog(qtbot, project):
     import threading
     release = threading.Event()
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    w.talk_dialog.show_section(2)
+    w.settings_dialog.show_section("Voice & language", 1)
     try:
         w.start_job('Generating voice preview…', lambda task: release.wait(3))
         qtbot.wait(300)
-        assert w.progress.isVisible() and w.progress.parentWidget() is w.talk_dialog
-        assert 'Waiting ' in w.talk_dialog.status.text()
-        assert w.talk_dialog.cancel_job.isVisible() and w.talk_dialog.cancel_job.isEnabled()
+        assert w.progress.isVisible() and w.progress.parentWidget() is w.settings_dialog
+        assert 'Waiting ' in w.settings_dialog.status.text()
+        assert w.settings_dialog.cancel_job.isVisible() and w.settings_dialog.cancel_job.isEnabled()
     finally:
         release.set()
         qtbot.waitUntil(lambda: w.job is None)
     assert not w.progress.isVisible()
-    w.talk_dialog.accept()
+    w.settings_dialog.accept()
     assert w.progress.parentWidget() is w.footer
     assert "Start reuses current audio" in w.status.text()
 
@@ -281,15 +283,17 @@ def test_inapplicable_options_and_recording_browser_priorities(qtbot, project, m
     monkeypatch.setattr(options, 'data_dir', lambda: tmp_path)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     assert not w.options.use_preset_button.isEnabled()
-    w.talk_dialog.show_section(4)
-    assert not w.remove_background_button.isEnabled() and not w.background_gain.isEnabled()
+    w.settings_dialog.show_section("Presentation & recording", 1)
+    assert not w.remove_background_button.isEnabled() and w.background_gain.isEnabled()
     assert w.background_gain.value() == 15 and w.background_gain.suffix() == ' %'
-    w.talk_dialog.accept()
+    w.settings_dialog.accept()
     w.export_dialog.show_section()
     assert w.output_button.property('primary') and not w.export_button.property('primary')
     assert w.export_button.y() > w.recordings.y()
     w.export_dialog.accept()
+    w.settings_dialog.show_section("Talk & preparation", 1)
     assert w.fit_button.isVisible()
+    w.settings_dialog.reject()
     assert project.slides[0].source_text.splitlines()[0] in w.slide_list.item(0).text()
 
 
@@ -297,7 +301,7 @@ def test_fullscreen_mouse_controls_and_finished_return(qtbot, project):
     from PySide6.QtCore import QPoint
     make_audio(project, seconds=10)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    w.present_button.click()
+    w.start_button.click()
     fullscreen = w.presentation
     assert fullscreen is not None
     qtbot.mouseMove(fullscreen, QPoint(20, fullscreen.height()-25))
@@ -351,7 +355,7 @@ def test_automatic_recording_save_cannot_resume_finished_fullscreen(qtbot, proje
     make_audio(project, seconds=.2)
     project.record_presentation = True
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    w.present_button.click()
+    w.start_button.click()
     view = w.presentation
     qtbot.waitUntil(lambda: w.transport.state == 'finished' and w.job is None and not w.pending_exports, timeout=10000)
     assert Path(w.output_path).is_file()
@@ -400,7 +404,7 @@ def test_generated_text_reports_readiness_without_claiming_human_approval(qtbot,
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     assert w.narration_progress.text() == 'Text ready: 2 / 2'
     assert 'Start reuses current audio' in w.status.text() and w.start_button.text() == 'Prepare and start'
-    assert w.version_select.currentText() == 'English'
+    assert w.language.currentText() == 'English'
 
 
 def test_saved_voice_preview_feedback_and_settings_have_one_owner(qtbot, project, monkeypatch, tmp_path):
@@ -409,29 +413,31 @@ def test_saved_voice_preview_feedback_and_settings_have_one_owner(qtbot, project
     from autotalk import voices
     monkeypatch.setattr(voices, 'data_dir', lambda: tmp_path)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    w.talk_dialog.show_section(7)
+    w.settings_dialog.show_section("Voice & language", 1)
+    w.voice_source.setCurrentIndex(3)
     assert w.voice_library.rowCount() == 0
-    assert not w.library_preview.isEnabled() and not w.library_use.isEnabled()
+    assert not w.voice_preview_button.isEnabled() and not w.library_use.isEnabled()
     voices.save_voice(project, 'Conference voice'); w.refresh_library()
-    assert w.library_preview.isEnabled() and w.library_use.isEnabled()
+    assert w.voice_preview_button.isEnabled() and w.library_use.isEnabled()
     release = threading.Event()
     monkeypatch.setattr(app, 'synthesize', lambda *a, **kw: (release.wait(3), None)[1])
     # Exercise the real button and worker path; no speech model needed to check ownership.
     monkeypatch.setattr(w.transport, 'preview', lambda path: None)
     try:
-        w.library_preview.click(); qtbot.wait(300)
-        assert QApplication.activeModalWidget() is w.talk_dialog
-        assert w.progress.isVisible() and w.progress.parentWidget() is w.talk_dialog
-        assert 'Generating voice preview' in w.talk_dialog.status.text()
-        assert w.talk_dialog.cancel_job.isVisible()
+        w.voice_preview_button.click(); qtbot.wait(300)
+        assert QApplication.activeModalWidget() is w.settings_dialog
+        assert w.progress.isVisible() and w.progress.parentWidget() is w.settings_dialog
+        assert 'Generating voice preview' in w.settings_dialog.status.text()
+        assert w.settings_dialog.cancel_job.isVisible()
     finally:
         release.set(); qtbot.waitUntil(lambda: w.job is None)
-    assert w.talk_dialog.buttons.button(QDialogButtonBox.Save).text() == 'Save and return to talk'
-    w.talk_dialog.show_section(4)
-    assert w.screen.isVisible() and w.audio_test_button.isVisible() and not w.options.record.isVisible()
-    w.talk_dialog.show_section(5)
+    assert w.settings_dialog.buttons.button(QDialogButtonBox.Save).text().replace('&', '') == 'Save'
+    w.settings_dialog.reject()
+    w.settings_dialog.show_section("Application", 0)
+    assert w.screen.isVisible() and w.audio_test_button.isVisible()
+    w.settings_dialog.show_section("Presentation & recording", 1)
     assert w.options.record.isVisible() and not w.screen.isVisible() and not w.audio_test_button.isVisible()
-    w.talk_dialog.reject()
+    w.settings_dialog.reject()
 
 
 def test_skipping_to_the_end_promotes_completion_not_replay(qtbot, project):
@@ -442,7 +448,7 @@ def test_skipping_to_the_end_promotes_completion_not_replay(qtbot, project):
     assert w.transport.state == 'finished'
     assert w.duration_label.text() == 'Presentation finished'
     assert 'Remaining' not in w.play_time.text() and 'Buffered' not in w.play_time.text()
-    assert not w.present_button.isVisible() and w.start_button.isVisible()
+    assert not hasattr(w, "present_button") and w.start_button.isVisible()
     assert w.end_button.text() == 'Return to editing' and w.end_button.property('primary')
     assert w.start_button.isEnabled()
     w.end_button.click()

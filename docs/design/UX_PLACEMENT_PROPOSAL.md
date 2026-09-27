@@ -2,15 +2,38 @@
 
 Recorded: **26 September 2026**.
 
-**Status: revised proposal, not implemented or usability-validated.** This records
-the refactored proposal requested in the conversation. It supersedes the earlier
-placement proposal from that conversation, not the description of current behavior
-in the [UI interaction inventory](UI_INVENTORY.md).
+**Status: implemented on 27 September 2026; Linux verification recorded in
+[UX placement verification](UX_PLACEMENT_VERIFICATION.md).** This is the accepted
+interaction contract. The [original inventory](UI_INVENTORY.md) is the historical
+baseline. Existing visual styling is retained. The implementation was authorized
+with a ceiling of 160 net additional production lines.
 
-The proposal keeps one clear home for each task, reduces competing entry points,
-and uses the same access-depth measurement throughout. It changes interaction
-structure only; the existing styling remains. Storing it does not mark the
-proposed behavior as implemented or authorize production-code changes.
+## Current settings contract
+
+The subsequent [flat scoped-settings contract](SCOPED_SETTINGS_IMPLEMENTATION.md)
+supersedes settings grouping and Quick-mode substitutions described below. The
+main authoring and presentation placement requirements remain in force. Settings
+now have five flat pages and explicit application/talk/slide inheritance.
+
+## Consolidated settings amendment — 27 September 2026
+
+The later user instruction supersedes separate settings dialogs: one canonical
+**Settings** dialog contains the task sections below. Existing menus, buttons and
+internal links select the matching section without opening another dialog.
+
+- **Talk:** Audience & conference, Narration AI — Codex, Preparation & timing,
+  Language arrangement.
+- **Voice & speech:** Voice, Delivery, Speech model — Qwen.
+- **Presentation:** Display & sound, Recording, Background audio.
+- **This slide:** Slide audio clips.
+- **Application:** Account — Codex, Speech engine — Qwen.
+
+One transaction owns pending edits across sections. Save/Cancel covers talk/display
+configuration and automatic engine policies. Account, manual engine and explicit
+library actions remain immediate, stated in the shared footer. Talk-dependent
+sections are unavailable without a talk. Recordings & export remains a separate
+task window. Existing shortcut access depths and system appearance are preserved;
+references below to task dialogs now mean these groups inside Settings.
 
 ## Placement and access metric
 
@@ -95,7 +118,7 @@ The waveform remains feedback, not a falsely implied seek control.
 Whole-talk preparation and selected-slide preparation have separate, explicit
 scope. Creating talk text preserves existing text and creates missing/translated
 content. **Rewrite all talk text…** is a separate command. **Create talk audio**
-is a proposed new direct entry point to preparation: it prepares missing or
+is a direct entry point to preparation: it prepares missing or
 outdated audio without presenting. Create slide audio remains separate from
 rewriting slide text. Playing retained older audio identifies it as outdated;
 presentation reuse still requires matching audio. No text or audio approval
@@ -377,11 +400,7 @@ Mode and workspace choices show their current selection.
 
 ## Acceptance status
 
-The proposal gives previously ambiguous groups an exact home and a consistent
-navigation path. Grouping and access depth can be assessed from this specification;
-visual findability and minimum-window density still require checking in the actual
-layout before assigning the final **Correct** rating.
-
-No performance measurements, user tests, native-layout acceptance or production
-implementation are claimed by this document. Existing behavior remains documented
-in the [inventory](UI_INVENTORY.md) and [user guide](../USER_GUIDE.md).
+See [UX placement verification](UX_PLACEMENT_VERIFICATION.md) for the implementation
+mapping, measured navigation depth, Linux Xvfb checks and remaining validation
+limits. Ratings describe conformance to the agreed placement metric; they do not
+substitute for testing with recruited first-time users.

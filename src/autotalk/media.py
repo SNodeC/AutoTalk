@@ -110,7 +110,7 @@ class Mix:
     def update(self, index=None, event=None):
         p = self.project
         if index is None:
-            self.background = AudioFile(p.asset(p.background.file), gain=p.background.gain, loop=p.background.loop) if p.background else None
+            self.background = AudioFile(p.asset(p.background.file), gain=p.background_gain, loop=p.background_loop) if p.background else None
         for i in range(len(p.slides)) if index is None else [index]:
             slide = p.slides[i]
             if not slide.included:

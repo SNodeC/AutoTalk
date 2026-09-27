@@ -62,7 +62,7 @@ def test_recording_indicator_uses_recorded_time_and_clears_after_stop(qtbot, pro
         capture.close()
         window.transport.capture = None
     window.update_timing()
-    assert window.options.record.text() == 'Record presentation as a video · Slide video + narration'
+    assert window.options.record.text() == 'Record presentation as a video'
 
 
 def test_controls_and_pdf_selector_follow_palette_changes(qtbot, qapp, project):
@@ -114,16 +114,17 @@ def test_controls_and_pdf_selector_follow_palette_changes(qtbot, qapp, project):
         qapp.setStyleSheet(previous_style)
 
 
-def test_user_can_change_language_and_edit_narration(qtbot, project):
+def test_user_can_change_language_and_edit_narration(qtbot, project, monkeypatch):
     make_audio(project)
     window = MainWindow()
     qtbot.addWidget(window)
     window.adopt(project)
     window.show()
-    assert window.present_button.isEnabled()
-    window.language.setCurrentText("German")
+    assert window.more_presentation.isEnabled()
+    monkeypatch.setattr('autotalk.app.QInputDialog.getItem', lambda *a, **kw: ('German', True))
+    window.add_version()
     assert project.language == "German"
-    assert not window.present_button.isEnabled()
+    assert not window.more_presentation.isEnabled()
     window.workspace.setCurrentWidget(window.editor)
     window.narration.setPlainText("Dies ist ein Vortrag.")
     assert project.slides[0].narration == "Dies ist ein Vortrag."
@@ -236,29 +237,30 @@ def test_settings_open_and_save_preserve_selected_slide(qtbot, project):
     window.transport.select(1)
     original = window.project
     window.talk_action.trigger()
-    assert window.talk_dialog.isVisible()
+    assert window.settings_dialog.isVisible()
     assert window.project is original and window.transport.index == 1
     window.minutes.setValue(14)
-    qtbot.mouseClick(window.talk_dialog.buttons.button(QDialogButtonBox.StandardButton.Save), Qt.MouseButton.LeftButton)
-    assert not window.talk_dialog.isVisible()
+    qtbot.mouseClick(window.settings_dialog.buttons.button(QDialogButtonBox.StandardButton.Save), Qt.MouseButton.LeftButton)
+    assert not window.settings_dialog.isVisible()
     assert window.project is original and window.transport.index == 1
     from autotalk.project import Project
     assert Project.load(project.manifest).target_minutes == 14
 
 
-def test_cancel_settings_restores_project_and_manifest_after_eager_save(qtbot, project):
+def test_cancel_settings_restores_project_and_manifest_after_eager_save(qtbot, project, monkeypatch):
     from autotalk.project import Project
     window = MainWindow()
     qtbot.addWidget(window)
     window.adopt(project)
     window.show()
     window.transport.select(1)
-    window.talk_dialog.show_section()
+    window.settings_dialog.show_section("Talk & preparation", 1)
     window.minutes.setValue(19)
     window.scope.setPlainText('A different conference')
-    window.language.setCurrentText('German')
+    monkeypatch.setattr('autotalk.app.QInputDialog.getItem', lambda *a, **kw: ('German', True))
+    window.add_version()
     window.save()  # Existing language/reference/worker handlers can save eagerly.
-    window.talk_dialog.reject()
+    window.settings_dialog.reject()
     restored = Project.load(project.manifest)
     assert restored.target_minutes == 10 and restored.language == 'English'
     assert restored.scope != 'A different conference'
@@ -274,20 +276,20 @@ def test_preferences_cancel_restores_retention_and_sampling(qtbot, project):
     window.adopt(project)
     window.show()
     original = window.gpu_retention.checkedButton().property("value")
-    window.preferences_dialog.show_section(1)
+    window.settings_dialog.show_section("AI & speech engine", 0)
     next(b for b in window.gpu_retention.buttons() if b.property('value') == 'operation').click()
     assert window.speech.retention == original  # Draft policies do not act before Save.
-    window.preferences_dialog.reject()
+    window.settings_dialog.reject()
     assert window.gpu_retention.checkedButton().property("value") == original
     assert window.speech.retention == original
-    window.talk_dialog.show_section(6)
+    window.settings_dialog.show_section("AI & speech engine", 1)
     window.options.override.setChecked(True)
     window.options.sampling['temperature'].setValue(.4)
-    window.talk_dialog.reject()
+    window.settings_dialog.reject()
     assert window.project.delivery.sampling == {}
 
 
-def test_quick_reuses_settings_fields_without_losing_edits(qtbot, project):
+def test_quick_keeps_basics_in_main_window_and_cancel_restores_settings(qtbot, project):
     window = MainWindow()
     qtbot.addWidget(window)
     window.adopt(project)
@@ -298,17 +300,18 @@ def test_quick_reuses_settings_fields_without_losing_edits(qtbot, project):
     assert window.minutes.isVisible() and window.language.isVisible()
     window.minutes.setValue(7)
     assert project.target_minutes == 7
-    window.talk_dialog.show_section()
-    assert window.basics.parentWidget() is window.general_form
+    parent = window.minutes.parentWidget()
+    window.settings_dialog.show_section("Talk & preparation", 1)
+    assert window.minutes.parentWidget() is parent
     window.minutes.setValue(9)
-    window.talk_dialog.reject()
+    window.settings_dialog.reject()
     qtbot.wait(30)
-    assert window.basics.parentWidget() is window.quick_form
+    assert window.minutes.parentWidget() is parent
     assert window.minutes.value() == window.project.target_minutes == 7
     assert window.language.isVisible()
     from PySide6.QtCore import QPoint
     bottom = window.language.mapTo(window, QPoint(0, window.language.height()))
-    assert window.workspace.geometry().contains(bottom)
+    assert window.overview.geometry().contains(bottom)
 
 
 def test_commands_and_dialogs_cannot_bypass_job_or_playback_lock(qtbot, project):
@@ -318,24 +321,24 @@ def test_commands_and_dialogs_cannot_bypass_job_or_playback_lock(qtbot, project)
     make_audio(project)
     window.adopt(project)
     window.show()
-    window.talk_dialog.show_section(1)
+    window.settings_dialog.show_section("AI & speech engine", 1)
     release = Event()
     window.start_job('Checking command availability', lambda task: release.wait(5))
     try:
         assert not window.talk_action.isEnabled()
         assert window.narration.isReadOnly()
-        assert not window.talk_dialog.pages.isEnabled()
-        assert not window.present_button.isEnabled()
+        assert not window.codex_model.isEnabled() and not window.options.override.isEnabled()
+        assert not window.more_presentation.isEnabled()
         assert not window.welcome.isEnabled()
         assert all(not a.isEnabled() for a in window.actions)
         for action, control in window.control_actions:
             assert action.isEnabled() == control.isEnabled()
-        window.talk_dialog.reject()
-        assert window.talk_dialog.isVisible()
+        window.settings_dialog.reject()
+        assert window.settings_dialog.isVisible()
     finally:
         release.set()
         qtbot.waitUntil(lambda: window.job is None)
-    window.talk_dialog.reject()
+    window.settings_dialog.reject()
     window.transport.state = 'paused'
     window.refresh()
     assert window.narration.isReadOnly() and not window.talk_action.isEnabled()
@@ -353,7 +356,7 @@ def test_minimum_editor_layout_keeps_inspector_controls_separate(qtbot, project)
     window.show()
     qtbot.wait(30)
     from PySide6.QtCore import QPoint
-    window.clip_gain.window().show()
+    window.settings_dialog.show_section("Presentation & recording", 2)
     qtbot.wait(30)
     gain_bottom = window.clip_gain.mapToGlobal(QPoint(0, window.clip_gain.height()))
     placement_top = window.clip_placement.mapToGlobal(QPoint(0, 0))
@@ -362,33 +365,33 @@ def test_minimum_editor_layout_keeps_inspector_controls_separate(qtbot, project)
     assert window.narration.height() >= 100
 
 
-def test_recording_dialog_uses_same_checkbox_and_cancel_restores_choice(qtbot, project):
-    window = MainWindow()
-    qtbot.addWidget(window)
-    window.adopt(project)
-    window.show()
+def test_recording_checkbox_stays_in_main_window_and_dialog_cancel_restores_settings(qtbot, project):
+    window = MainWindow(); qtbot.addWidget(window); window.adopt(project); window.show()
     checkbox = window.options.record
-    window.talk_dialog.show_section(5)
-    qtbot.waitUntil(checkbox.isVisible)
-    assert checkbox.parentWidget() is window.recording_form
-    from PySide6.QtCore import QPoint
-    qtbot.mouseClick(checkbox, Qt.MouseButton.LeftButton, pos=QPoint(40, checkbox.height()//2))
+    checkbox.click()
     assert window.project.record_presentation
-    window.talk_dialog.reject()
-    assert not window.project.record_presentation
-    qtbot.waitUntil(checkbox.isVisible)
-    assert checkbox.parentWidget() is window.record_footer
+    parent = checkbox.parentWidget()
+    window.settings_dialog.show_section("Presentation & recording", 1)
+    assert checkbox.parentWidget() is parent and checkbox.isVisible()
+    window.options.fields['recording_source'].setCurrentIndex(1)
+    assert window.project.recording_source == 'screen'
+    window.settings_dialog.reject()
+    assert window.project.record_presentation and window.project.recording_source == 'slides'
+    assert checkbox.parentWidget() is parent and checkbox.isVisible()
 
 
 @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
 def test_numeric_editors_fit_native_style_geometry(qtbot, project, mode):
-    from PySide6.QtWidgets import QAbstractSpinBox, QSpinBox, QStyle, QStyleOptionSpinBox
+    from PySide6.QtWidgets import QAbstractSpinBox, QSpinBox, QStyle, QStyleOptionSpinBox, QPushButton
     project.mode = mode
     window = MainWindow(); qtbot.addWidget(window); window.adopt(project)
     window.resize(940, 680); window.show()
     seen = set()
-    for section in range(window.talk_dialog.navigation.count()):
-        window.talk_dialog.show_section(section)
+    for dialog in (window.settings_dialog,):
+      for item in dialog.navigation.findItems("", Qt.MatchFlag.MatchContains | Qt.MatchFlag.MatchRecursive):
+        dialog.show_section(item.text())
+        for button in dialog.findChildren(QPushButton):
+            if button.isCheckable(): button.setChecked(True)
         qtbot.wait(1)
         for spin in window.findChildren(QAbstractSpinBox):
             if not spin.isVisible():
@@ -399,5 +402,6 @@ def test_numeric_editors_fit_native_style_geometry(qtbot, project, mode):
             assert spin.lineEdit().geometry() == expected, (spin.text(), spin.lineEdit().geometry(), expected)
             assert spin.rect().contains(spin.lineEdit().geometry())
             seen.add(type(spin))
+      dialog.reject()
     assert QSpinBox in seen and len(seen) >= 2
-    window.talk_dialog.reject()
+    window.settings_dialog.reject()

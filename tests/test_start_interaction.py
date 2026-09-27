@@ -118,10 +118,10 @@ def test_audio_preview_restores_play_label_without_refresh(qtbot, project, endin
 def test_dialog_labels_have_ellipses_and_direct_actions_do_not(qtbot, project):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project)
     labels = {a.text() for a in w.findChildren(QAction)} | {b.text() for b in w.findChildren(QPushButton)}
-    for text in ('Open PDF', 'Open saved talk', 'Talk settings', 'Preferences', 'Save preset',
+    for text in ('Open PDF', 'Open saved talk', 'Talk settings', 'Application settings', 'Save preset',
                  'Rewrite slide text', 'Fit duration', 'Getting started', 'Keyboard shortcuts', 'About AutoTalk'):
         assert text + '…' in labels and text not in labels
-    for text in ('Create slide audio', 'Play audio', 'Prepare and start', 'Save', 'Diagnostics'):
+    for text in ('Create slide audio', 'Play audio', 'Prepare and start', 'Save', 'Operation details'):
         assert text in labels and text + '…' not in labels
     w.narration.clear()
     assert w.regenerate_button.text() == 'Create slide text'

@@ -45,7 +45,7 @@ def test_language_policies_validate_passages(project):
 
 def test_effective_voice_and_slide_directions_invalidate_only_affected_audio(project):
     make_audio(project)
-    project.slides[0].directions = "Start calmly"
+    project.set_setting("delivery.instructions", "Start calmly", project.slides[0])
     assert not project.ready(project.slides[0])
     assert project.ready(project.slides[1])
     project.voice.speaker = "Aiden"

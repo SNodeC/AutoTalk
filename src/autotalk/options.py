@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog
     QFormLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QMessageBox, QPushButton, QScrollArea, QSpinBox,
     QVBoxLayout, QWidget)
 
-from .project import Delivery, STYLES
+from .project import Delivery, STYLES, SETTING_DEFAULTS, read_settings
 from .runtime import data_dir
 
 ATTRIBUTES = {
@@ -29,8 +29,10 @@ SAMPLING = {"temperature": (0.0, 2.0, 0.9), "top_k": (1, 200, 50),
 class SettingsPanel(QWidget):
     changed = Signal()
 
-    def __init__(self):
+    def __init__(self, window):
         super().__init__()
+        self.window = window
+        self.inheritance = {}
         self.project = None
         self.loading = False
         self.fields = {}
@@ -59,7 +61,8 @@ class SettingsPanel(QWidget):
         delivery_box = QVBoxLayout(self.delivery_widget)
         self.form = QFormLayout()
         delivery_box.addLayout(self.form)
-        self.combo("delivery.style", "Writing / delivery style", [(s, s) for s in STYLES])
+        self.combo("writing_style", "Writing style", [(s, s) for s in STYLES])
+        self.combo("delivery.style", "Spoken delivery", [(s, s) for s in STYLES])
         self.presets = QComboBox()
         self.form.addRow("Saved delivery presets", self.presets)
         row = QHBoxLayout()
@@ -72,7 +75,7 @@ class SettingsPanel(QWidget):
         advanced = QWidget()
         self.form = QFormLayout(advanced)
         advanced.hide()
-        toggle = QPushButton("More vocal attributes ▾")
+        toggle = QPushButton("More vocal attributes")
         toggle.setCheckable(True)
         toggle.toggled.connect(advanced.setVisible)
         delivery_box.addWidget(toggle)
@@ -111,8 +114,8 @@ class SettingsPanel(QWidget):
         self.form = QFormLayout(self.recording_widget)
         self.record = QCheckBox("Record presentation as a video")
         self.fields["record_presentation"] = self.record
-        self.record.toggled.connect(lambda: self.edit("record_presentation"))
-        self.record.setToolTip("Recording begins when the presentation starts. Choose slides or screen recording in Talk settings → Recording.")
+        self.record.toggled.connect(lambda value: self.window.edit_setting("record_presentation", value))
+        self.record.setToolTip("Recording begins when the presentation starts. Choose slides or screen recording in Presentation settings → Recording.")
         self.combo("recording_source", "Recording source", [("Slide video + narration", "slides"), ("Screen + system audio (Linux)", "screen")])
         microphone = QCheckBox("Include microphone in screen recording")
         self.bind("capture_microphone", "Live commentary", microphone, microphone.toggled)
@@ -144,94 +147,87 @@ class SettingsPanel(QWidget):
             widget.addItem(text, value)
         return self.bind(path, label, widget, widget.currentIndexChanged)
 
-    def owner(self, path):
-        parts = path.split(".")
-        current = self.project
-        for part in parts[:-1]:
-            current = current[part] if isinstance(current, dict) else getattr(current, part)
-        return current, parts[-1]
+    def add_inheritance(self, path, widget):
+        parent = widget.parentWidget()
+        container = QWidget(parent)
+        parent.layout().replaceWidget(widget, container)
+        box = QHBoxLayout(container)
+        box.setContentsMargins(0, 0, 0, 0)
+        box.addWidget(widget, 1)
+        reset = QPushButton()
+        reset.setToolTip("Remove this override and use the parent setting")
+        reset.clicked.connect(lambda: self.window.edit_setting(path, None, inherit=True))
+        box.addWidget(reset)
+        self.inheritance[path] = (container, reset)
 
     def edit(self, path):
-        if self.loading or not self.project:
+        if self.loading:
             return
         widget = self.fields[path]
-        if isinstance(widget, QComboBox):
-            value = widget.currentData()
-        elif isinstance(widget, QCheckBox):
-            value = widget.isChecked()
-        elif isinstance(widget, QLineEdit):
-            value = widget.text()
-        else:
-            value = widget.value()
-        owner, key = self.owner(path)
-        if isinstance(owner, dict):
-            if value:
-                owner[key] = value
-            else:
-                owner.pop(key, None)
-        else:
-            setattr(owner, key, value)
-        if path == "recording_source":
-            self.load(self.project)
-        if path == "speech_priority":
-            self.project.buffer_seconds = 2 if value == "earliest" else 5
-            self.load(self.project)
-        if path == "delivery.style":
-            presets = {
-                "Professional": {"energy": "Moderate", "articulation": "Precise", "projection": "Confident"},
-                "Conversational": {"projection": "Conversational", "articulation": "Natural"},
-                "Energetic": {"energy": "High", "pace": "Brisk"},
-                "Calm and understated": {"energy": "Low", "pace": "Slow", "projection": "Soft"},
-                "Lightly humorous": {"projection": "Conversational", "expression": "Restrained laughter"},
-                "Academic": {"pace": "Moderate", "articulation": "Precise"},
-                "Storytelling": {"texture": "Warm", "projection": "Conversational"},
-                "Inspirational": {"energy": "High", "projection": "Confident"},
-            }
-            self.project.delivery.attributes = presets[value].copy()
-            self.load(self.project)
-        self.changed.emit()
+        value = widget.currentData() if isinstance(widget, QComboBox) else widget.isChecked() if isinstance(widget, QCheckBox) else widget.text() if isinstance(widget, QLineEdit) else widget.value()
+        if path in SETTING_DEFAULTS:
+            self.window.edit_setting(path, value)
+        elif self.project:
+            setattr(self.project, path, value)
+            self.changed.emit()
 
     def sampling_changed(self, *_):
-        if self.loading or not self.project:
-            return
-        self.project.delivery.sampling = {k: v.value() for k, v in self.sampling.items()} if self.override.isChecked() else {}
-        for spin in self.sampling.values():
-            spin.setEnabled(self.override.isChecked())
-        self.changed.emit()
+        if not self.loading:
+            self.window.edit_setting("delivery.sampling", {k: v.value() for k, v in self.sampling.items()} if self.override.isChecked() else {})
 
     def load(self, project):
         self.project, self.loading = project, True
+        w = self.window
+        scope = w.settings_scope()
         for path, widget in self.fields.items():
-            owner, name = self.owner(path)
-            value = owner.get(name, "") if isinstance(owner, dict) else getattr(owner, name)
+            value = w.setting_value(path) if path in SETTING_DEFAULTS else getattr(project, path, "")
+            if path == "background_gain":
+                value *= 100
             if isinstance(widget, QComboBox):
-                widget.setCurrentIndex(max(0, widget.findData(value)))
+                index = widget.findData(value)
+                widget.setCurrentIndex(index if index >= 0 else max(0, widget.findText(str(value))))
             elif isinstance(widget, QCheckBox):
-                widget.setChecked(value)
+                widget.setChecked(bool(value))
             elif isinstance(widget, QLineEdit):
                 widget.setText(value)
             else:
                 widget.setValue(value)
-        self.fields["capture_microphone"].setEnabled(project.recording_source == "screen")
-        self.fields["recording_policy"].setEnabled(project.recording_source == "slides")
-        self.override.setChecked(bool(project.delivery.sampling))
-        self.override.setEnabled(project.mode != "Quick")
-        self.fields["delivery.style"].setEnabled(project.mode != "Quick")
-        for name, spin in self.sampling.items():
-            spin.setValue(project.delivery.sampling.get(name, SAMPLING[name][2]))
-            spin.setEnabled(self.override.isChecked() and project.mode != "Quick")
-        supported = project.voice.source != "Base" and project.mode != "Quick"
+            if path in self.inheritance:
+                container, reset = self.inheritance[path]
+                applicable = scope in SETTING_DEFAULTS[path][1]
+                container.setVisible(applicable)
+                layout = container.parentWidget().layout()
+                caption = layout.labelForField(container) if isinstance(layout, QFormLayout) else None
+                if caption:
+                    caption.setVisible(applicable)
+                source = w.setting_source(path)
+                inherited = source != ("Slide override" if scope == 2 else "Talk setting")
+                reset.setText("From " + ("app" if source == "Application default" else "talk") if inherited else "Use " + ("talk" if scope == 2 else "app"))
+                reset.setVisible(scope > 0)
+                reset.setEnabled(not inherited)
+            widget.setEnabled(w.job is None)
+        voice = w.setting_value("voice")
+        supported = voice.source != "Base"
+        self.fields["delivery.style"].setEnabled(supported and w.job is None)
         for widget in self.vocal:
-            widget.setEnabled(supported)
-        self.fields["delivery.attributes.accent"].setEnabled(supported and project.language == "Chinese")
-        self.fields["delivery.attributes.age"].setEnabled(supported and project.voice.source == "VoiceDesign")
-        self.explanation.setText("Base cloning reuses the reference identity and delivery; direct vocal controls are unavailable. Writing style still applies to narration."
-            if project.voice.source == "Base" else "CustomVoice and VoiceDesign accept delivery instructions. Dialect presets apply to Chinese; use previews to assess pronunciation and expression.")
-        for path, applicable in (("quick_timing", project.mode == "Quick"), ("realtime_script", project.mode == "Realtime"),
-                                 ("buffer_seconds", project.mode == "Realtime"), ("speech_priority", project.mode == "Realtime")):
-            widget = self.fields[path]
-            widget.setVisible(applicable)
-            self.form.labelForField(widget).setVisible(applicable)
+            widget.setEnabled(supported and w.job is None)
+        self.fields["delivery.attributes.accent"].setEnabled(supported and w.setting_value("language") == "Chinese")
+        self.fields["delivery.attributes.age"].setEnabled(voice.source == "VoiceDesign")
+        self.explanation.setText("Reference voices reuse the recorded delivery; direct vocal controls are unavailable. Writing style still applies to new text." if not supported else "Delivery instructions guide speech; listen to assess the result.")
+        sampling = w.setting_value("delivery.sampling")
+        self.override.setChecked(bool(sampling))
+        for name, spin in self.sampling.items():
+            spin.setValue(sampling.get(name, SAMPLING[name][2]))
+            spin.setEnabled(bool(sampling) and w.job is None)
+        self.fields["capture_microphone"].setEnabled(w.setting_value("recording_source") == "screen")
+        self.fields["recording_policy"].setEnabled(w.setting_value("recording_source") == "slides")
+        for path, applicable in (("quick_timing", w.setting_value("mode") == "Quick"), ("realtime_script", w.setting_value("mode") == "Realtime"), ("speech_priority", w.setting_value("mode") == "Realtime")):
+            container = self.inheritance.get(path, (self.fields[path],))[0]
+            container.setVisible(applicable)
+            caption = self.form.labelForField(container)
+            if caption:
+                caption.setVisible(applicable)
+        self.fields["language"].setEnabled(w.job is None and (scope != 2 or w.setting_value("language_policy") != "version"))
         self.loading = False
 
     def choose_destination(self):
@@ -250,29 +246,26 @@ class SettingsPanel(QWidget):
         self.use_preset_button.setEnabled(bool(self.presets.count()))
 
     def save_preset(self):
-        if not self.project:
-            return
         name, accepted = QInputDialog.getText(self, "Save delivery", "Preset name")
         if accepted and name.strip():
             try:
                 directory = data_dir() / "delivery"
                 directory.mkdir(parents=True, exist_ok=True)
                 (directory / (uuid.uuid4().hex + ".json")).write_text(json.dumps({
-                    "name": name.strip(), "delivery": asdict(self.project.delivery)}, ensure_ascii=False), encoding="utf-8")
+                    "name": name.strip(), "delivery": {k: v for k, v in asdict(self.window.voice_context().delivery).items() if k != "sampling"}}, ensure_ascii=False), encoding="utf-8")
                 self.refresh_presets()
             except OSError as error:
                 QMessageBox.warning(self, "Save preset", str(error))
 
     def use_preset(self):
-        if not self.project or not self.presets.currentData():
+        if not self.presets.currentData():
             return
-        previous = self.project.delivery
         try:
             value = json.loads(self.presets.currentData().read_text(encoding="utf-8"))["delivery"]
-            self.project.delivery = Delivery(**value)
-            self.project.validate()
-            self.load(self.project)
-            self.changed.emit()
+            delivery = Delivery(**(value | {"sampling": {}}))
+            settings = {key: delivery.attributes.get(key.split(".")[2], "") if key.startswith("delivery.attributes.") else getattr(delivery, key.split(".")[1])
+                        for key in SETTING_DEFAULTS if key.startswith("delivery.") and key != "delivery.sampling"}
+            for key, setting in read_settings(settings).items():
+                self.window.edit_setting(key, setting)
         except (OSError, ValueError, TypeError, KeyError) as error:
-            self.project.delivery = previous
             QMessageBox.warning(self, "Load preset", str(error))

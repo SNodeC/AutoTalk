@@ -5,6 +5,168 @@ complete agreed product scope below. Implementation targets 0.3. Testing for
 this refinement pass is **Linux only**; Windows/macOS support is retained.
 See [behavior](../README.md) and [measured verification](VERIFICATION.md).
 
+## Recorded issue — Ctrl+C does not stop AutoTalk
+
+- **Status:** open; recorded only, not investigated or fixed.
+- **Reported:** 27 September 2026, Linux.
+- **Observed:** pressing Ctrl+C does not stop the application.
+- **Expected:** when launched from a terminal, Ctrl+C should request a clean
+  shutdown, including cleanup of active speech, playback and recording resources.
+- **Follow-up:** confirm the launch context and reproduce before diagnosing
+  interrupt handling. No cause has been established.
+
+## Recorded issue — settings unavailable after conference preparation
+
+- **Status:** open; recorded only, no application changes made.
+- **Reported:** 27 September 2026, Linux, with a screenshot.
+- **Observed:** after opening a PDF and reading/preparing the conference website
+  with Codex, some settings remain unavailable. In **Talk & preparation → This
+  talk**, the screenshot shows **Allowed timing difference** and **Preparation
+  mode** disabled while other talk fields remain editable.
+- **Expected:** applicable configuration controls should be editable when the
+  operation has finished and no presentation or recording is active.
+- **Follow-up:** reproduce the completed-operation state and check availability
+  across settings pages. Distinguish configuration controls from actions with
+  prerequisites; the screenshot also shows **Fit duration…** disabled, whose
+  narration prerequisite needs checking separately. Root cause is unconfirmed.
+
+## Recorded issue — delivery-preset UX is not meaningful
+
+- **Status:** open; recorded only, no application changes made.
+- **Reported:** 27 September 2026, with a screenshot of **Voice & language →
+  This talk → Writing & delivery**.
+- **User finding:** saving delivery presets is meaningless in the current UX.
+  The screenshot shows an empty **Saved delivery presets** selector, **Save
+  preset…**, disabled **Use preset**, and a separate **Save reusable voice…**
+  action on the same page.
+- **Follow-up:** reconsider the purpose, grouping and save/use flow of delivery
+  presets, including their distinction from reusable voices and the dialog's
+  **Save** action. Clarify what is saved, where it applies and how it is reused.
+  No redesign or removal decision has been made.
+
+## Recorded issue — raw ANSI color codes in Operation details
+
+- **Status:** open; recorded only, no application changes made.
+- **Reported:** 27 September 2026, Linux, with a screenshot during Realtime
+  speech-model loading.
+- **Observed:** **Operation details** displays terminal escape/color sequences
+  such as `[0;36m` and `[0;0m` alongside speech-engine log messages, making the
+  output harder to read.
+- **Expected:** readable log text without exposed terminal formatting codes.
+- **Follow-up:** trace subprocess output into the details widget and handle
+  terminal formatting at the appropriate boundary. No fix has been selected.
+
+## Recorded issue — stopping leaves the interface disabled
+
+- **Status:** open; blocks returning to editing and starting over. No application
+  changes made.
+- **Reported:** 27 September 2026. The user stopped the whole presentation process
+  intending to start again, but reports that the whole UI remained disabled.
+- **Expected:** stopping must visibly complete and restore applicable editing and
+  start controls. Any necessary cancellation or recording finalization must be
+  clearly identified while it runs; the interface must recover when it finishes.
+- **Initial code inspection:** main-window editability depends on the worker,
+  playback, fullscreen and voice-recorder states. Settings loading also assigns
+  individual disabled states based on worker presence. These are investigation
+  leads, not a reproduced diagnosis of this reported stop sequence.
+- **Follow-up:** reproduce stop during preparation and playback in all three modes,
+  including recording and worker cancellation; verify return to editing and a
+  successful subsequent start through actual user controls.
+- **UX feedback:** the user considers the current UI/UX unacceptable and suggests
+  starting its design afresh. Reassess complete task flows and lifecycle behavior
+  before further layout changes; no full rewrite has been agreed or started.
+
+## Recorded issue — speech model repeatedly unloads
+
+- **Status:** open; user-reported, not reproduced or fixed.
+- **Reported:** 27 September 2026. The user reports that the speech model
+  "always gets unloaded", disrupting the workflow.
+- **Expected:** model retention must follow the selected policy. With **Never
+  unload**, the application must not automatically unload an otherwise usable
+  model between operations while AutoTalk remains open. Manual unloading,
+  application exit, failures or required model changes must be distinguishable
+  from automatic retention-policy actions.
+- **Follow-up:** establish the selected policy and exact triggering operations;
+  trace model ownership through preparation, preview, presentation stop and
+  cancellation. Check policy persistence and show why an unload or reload occurs.
+  Do not assume a cause or change the selected policy as a workaround.
+
+## Recorded requirement — Realtime startup in approximately 15–20 seconds
+
+- **Status:** open; performance requirement recorded, not measured or implemented
+  in this pass.
+- **Reported:** 27 September 2026. The first Realtime presentation start is
+  extremely slow even when the speech model is already loaded.
+- **Target:** approximately **15–20 seconds from clicking Start to the first
+  audible narration with its slide displayed**, with the required speech model
+  already loaded and ready. This includes opening narration generation when no
+  prepared narration/audio exists; cached playback alone cannot validate it.
+- **Progress UX:** show the actual current stage, elapsed time and measurable
+  completed/total work wherever available. Report narration generation, opening
+  audio synthesis and playback buffering separately. Never invent a percentage
+  or use a timer-driven estimate as measured progress. If a stage supplies no
+  measurable total, say so and show its activity and elapsed time explicitly.
+- **Verification:** record end-to-end and per-stage timings on the target Linux
+  machine across repeated starts, documenting deck, voice, generation settings,
+  cache state and engine readiness. Distinguish already-loaded startup from cold
+  loading/downloads and cached-audio playback. Confirm that stopping/restarting
+  does not cause unnecessary model unloading or regeneration.
+- **Constraint:** preserve coherent opening narration and the chosen voice/delivery;
+  the startup target is an acceptance goal, not an achieved or guaranteed result.
+
+## Recorded UX requirement — justify every interaction's placement
+
+- **Status:** open; requirements recorded, no application changes made.
+- **Reported:** 27 September 2026. Some controls still appear arbitrarily placed;
+  the user rejects the overall interaction structure, not merely isolated defects.
+  Earlier placement assessments do not establish ordinary-user usability.
+- **Required design basis:** map each interaction to a concrete user task, its
+  scope, the point in the workflow where it is needed, and its importance. Group
+  related controls together. Keep P1 actions directly visible and reachable with
+  the fewest clicks; place P2/P3 controls progressively deeper where appropriate.
+  Any repeated entry points must have a clear task-based reason and invoke the
+  same behavior. Existing widget placement is not a reason to retain it.
+- **Explicit settings requirement from this discussion:** provide separate
+  **Application defaults**, **Talk settings — [title]**, and **Slide settings —
+  [number]** dialogs. Remove the in-dialog scope selector. Keep shared inheritable
+  settings consistently ordered and labelled across the three; clearly identify
+  scope-specific controls and inheritance. Reuse underlying editors/resolution
+  rather than duplicating their implementation.
+- **Acceptance:** review complete ordinary-user journeys and a clickable proposal,
+  including preparation, presentation, stop, return to editing and restart. Each
+  placement must be explainable through those tasks and assessed by visibility,
+  clicks, grouping and scope clarity. Do not declare placements correct merely
+  because they match the previous proposal or pass widget-level tests.
+- **Scope:** redesign interaction structure first. Preserve required capabilities
+  and platform-native appearance; no new implementation or full code rewrite is
+  authorized by this issue entry.
+
+## Flat settings and three scopes — historical implementation, superseded UX
+
+The description below records the existing implementation, not the accepted
+direction for the next UX design. The explicit settings dialogs required above
+replace its scope-selector approach in the proposed redesign.
+
+The nested settings tree is replaced by five meaningful flat pages with an
+application/talk/slide scope selector. The [scoped settings contract](design/SCOPED_SETTINGS_IMPLEMENTATION.md)
+records ownership, inheritance, persistence and verification requirements. Voice
+origin is preserved independently of the synthesis backend. Quick, Prepared and
+Realtime resolve the same settings and audio validity. Product/platform scope
+below is retained; this pass is tested on Linux only.
+
+## Task-based UX placement — implemented, 27 September 2026
+
+The accepted [placement contract](design/UX_PLACEMENT_PROPOSAL.md) now governs the
+main window, task dialogs, sidebars, seven menus and presentation controls.
+[Placement verification](design/UX_PLACEMENT_VERIFICATION.md) maps every contract
+group to its implemented route and Linux checks. This replaces the earlier
+earlier interaction structure while preserving the product/platform scope below.
+The subsequent settings consolidation is implemented: all configuration shares
+one Settings dialog; existing shortcuts select a named section, with one common
+Save/Cancel transaction across sections. Recordings & export remains a task window.
+The [user guide](USER_GUIDE.md) documents the current Prepared, Quick and Realtime
+journeys, whole-talk and per-slide preparation, voices, engine policies and recording.
+
 ## Restored start/editor interaction — current refinement
 
 The fixed upper-right actions are Prepared: **Prepare and start**; Quick and

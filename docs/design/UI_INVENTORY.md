@@ -1,13 +1,15 @@
 # AutoTalk interaction inventory
 
-Recorded: **26 September 2026**. Scope: the current implementation after restoring
+Recorded: **26 September 2026**. Scope: the implementation before the 27 September UX refactor after restoring
 fixed Start commands, removing text approval, and correcting audio-preview state.
-This is an inventory of existing behavior, not a redesign or a list of approved
+This is a preserved historical inventory of behavior, not a redesign or a list of approved
 future features. Linux is the inspected platform; native dialogs vary by desktop.
 
-The [revised UX placement proposal](UX_PLACEMENT_PROPOSAL.md) describes the proposed
-replacement interaction structure and its priority/access metric. It is separate
-from this inventory of current behavior and is not marked implemented.
+The [accepted UX placement contract](UX_PLACEMENT_PROPOSAL.md) replaces these
+locations. See its [implementation verification](UX_PLACEMENT_VERIFICATION.md)
+and the [current user guide](../USER_GUIDE.md) for today's routes. Priority and
+feature coverage in this baseline remain traceable; obsolete routes below are
+retained as review evidence, not current instructions.
 
 Each functional group is subdivided by **where the user currently encounters the
 control**: main window, menu, dialog, presentation window, or external system.

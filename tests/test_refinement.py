@@ -63,12 +63,13 @@ def test_old_context_stamps_do_not_block_saved_audio(project, version_number):
     assert Project.load(loaded.manifest).prepared
     assert 'narration_context' not in loaded.manifest.read_text()
 
-def test_language_selection_creates_translation_and_preserves_original(qtbot,project):
+def test_language_selection_creates_translation_and_preserves_original(qtbot,project, monkeypatch):
     make_audio(project)
     original = project.active_version
     texts = [s.narration for s in project.slides]
     w=MainWindow();qtbot.addWidget(w);w.adopt(project)
-    w.language.setCurrentText('German')
+    monkeypatch.setattr('autotalk.app.QInputDialog.getItem', lambda *a, **kw: ('German', True))
+    w.add_version()
     assert project.active_version != original
     assert project.language == project.version.name == 'German'
     assert not all(s.text_ready for s in project.included_slides)
@@ -80,14 +81,14 @@ def test_language_selection_creates_translation_and_preserves_original(qtbot,pro
 
 
 def test_delivery_keeps_style_and_sets_override_precedence(project):
-    project.delivery.style='Professional'
-    project.delivery.attributes={'pitch':'Low'}
-    project.delivery.instructions='Speak slowly'
-    project.slides[0].directions='Speak briskly'
+    project.set_setting("delivery.style", 'Professional')
+    project.set_setting('delivery.attributes.pitch', 'Low')
+    project.set_setting("delivery.instructions", 'Speak slowly')
+    project.set_setting("delivery.instructions", 'Speak briskly', project.slides[0])
     direction=project.directions(project.slides[0])
     assert 'Professional' in direction and 'pitch: Low' in direction
     assert 'slide directions override custom global directions' in direction
-    assert 'Speak slowly' in direction and 'Speak briskly' in direction
+    assert 'Speak slowly' not in direction and 'Speak briskly' in direction
 
 
 @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
@@ -95,7 +96,7 @@ def test_common_delivery_reaches_every_synthesis_passage(project, mode):
     from autotalk.services import synthesize
     project.mode = mode
     project.slides[0].narration = 'One sentence about reliable software. ' * 20
-    project.slides[1].directions = 'Use more energy for the conclusion'
+    project.set_setting("delivery.instructions", 'Use more energy for the conclusion', project.slides[1])
     requests = []
     class Session:
         def generate(self, request, on_event=None):
@@ -109,7 +110,7 @@ def test_common_delivery_reaches_every_synthesis_passage(project, mode):
         direction = instructions.pop()
         assert 'steady pace' in direction and 'consistent vocal character' in direction
         assert all(len(p['text']) <= 300 for p in item['passages'])
-    assert ('Use more energy for the conclusion' in items[1]['passages'][0]['instructions']) == (mode != 'Quick')
+    assert ('Use more energy for the conclusion' in items[1]['passages'][0]['instructions']) == True
 
 
 def test_new_common_delivery_invalidates_previous_audio(project, monkeypatch):
@@ -127,12 +128,12 @@ def test_new_common_delivery_invalidates_previous_audio(project, monkeypatch):
 
 def test_base_does_not_receive_unsupported_delivery_instructions(project):
     project.voice.source = 'Base'
-    project.delivery.instructions = 'Very energetic'
-    project.slides[0].directions = 'Whisper'
+    project.set_setting("delivery.instructions", 'Very energetic')
+    project.set_setting("delivery.instructions", 'Whisper', project.slides[0])
     assert project.directions(project.slides[0]) == ''
     project.mode = 'Quick'
-    assert project.effective_voice.source == 'CustomVoice'
-    assert 'steady pace' in project.directions(project.slides[0])
+    assert project.voice.source == 'Base'
+    assert project.directions(project.slides[0]) == ''
     assert 'Whisper' not in project.directions(project.slides[0])
 
 
@@ -222,16 +223,16 @@ def test_desktop_workspaces_and_remembered_policy(qtbot,project):
     assert w.workspace.currentWidget() is w.quick_page
     w.mode.setCurrentText('Realtime')
     assert w.workspace.currentWidget() is w.editor
-    w.preferences_dialog.show_section(1)
+    w.settings_dialog.show_section("AI & speech engine", 0)
     next(b for b in w.gpu_retention.buttons() if b.property('value') == 'idle').click()
     assert w.speech.retention == 'session'
-    w.preferences_dialog.accept()
+    w.settings_dialog.accept()
     assert w.speech.retention=='idle'
     w2=MainWindow();qtbot.addWidget(w2)
     assert w2.gpu_retention.checkedButton().property('value')=='idle'
-    w.preferences_dialog.show_section(1)
+    w.settings_dialog.show_section("AI & speech engine", 0)
     next(b for b in w.gpu_retention.buttons() if b.property('value') == 'session').click()
-    w.preferences_dialog.accept()
+    w.settings_dialog.accept()
 
 
 def test_selected_segmentation_invalidates_audio(project):
@@ -350,7 +351,7 @@ def test_realtime_planning_receives_translation_style_and_timing(project):
     from autotalk.services import narration_result
     project.add_version('German', translate=True)
     project.mode = 'Realtime'
-    project.delivery.style = 'Conversational'
+    project.set_setting("writing_style", 'Conversational')
     class Client:
         def generate(self, prompt, schema, images, **options):
             data = json.loads(prompt.split('INPUT:\n')[1])
@@ -476,11 +477,11 @@ def test_excluded_slides_are_preserved_but_not_synthesized_or_exported(project, 
     make_audio(project)
     project.slides[0].included = False
     project.slides[0].narration = ''
-    project.slides[1].after = 'demo'
+    project.set_setting("after", 'demo', project.slides[1])
     project.save()
     loaded = Project.load(project.manifest)
     assert loaded.prepared and len(loaded.slides) == 2
-    assert loaded.slides[1].after == 'demo'
+    assert loaded.setting('after', loaded.slides[1]) == 'demo'
     assert loaded.total_seconds == pytest.approx(.3)
     requested = []
     class Session:
@@ -496,7 +497,7 @@ def test_excluded_slides_are_preserved_but_not_synthesized_or_exported(project, 
 def test_after_slide_pause_continues_to_next_included_slide(qtbot, project):
     from autotalk.playback import Playback
     make_audio(project)
-    project.slides[0].after = 'pause'
+    project.set_setting("after", 'pause', project.slides[0])
     player = Playback();player.timer.stop();player.load(project)
     player._offset = round(.3 * RATE)
     player.state = 'paused'
@@ -530,25 +531,26 @@ def test_voice_library_preview_selection_and_cancel(qtbot, project, monkeypatch,
     voices.save_voice(project, 'My conference voice')
     project.voice.speaker = original
     w = MainWindow();qtbot.addWidget(w);w.adopt(project);w.show()
-    w.talk_dialog.show_section(7)
+    w.settings_dialog.show_section("Voice & language", 1)
+    w.voice_source.setCurrentIndex(3)
     assert w.voice_library.rowCount() == 1
     assert w.voice_library.item(0, 0).text() == 'My conference voice'
     w.library_use.click()
     assert w.project.voice.speaker == 'Aiden'
-    assert w.talk_dialog.navigation.currentItem().text() == 'Voice'
+    assert w.settings_dialog.navigation.currentItem().text() == "Voice & language"
     assert w.voice_library.item(w.voice_library.currentRow(), 0).text() == 'My conference voice'
-    w.talk_dialog.reject()
+    w.settings_dialog.reject()
     assert w.project.voice.speaker == original
 
 
 def test_recording_sources_update_capabilities_and_restore_on_cancel(qtbot, project):
     w = MainWindow();qtbot.addWidget(w);w.adopt(project);w.show()
-    w.talk_dialog.show_section(5)
+    w.settings_dialog.show_section("Presentation & recording", 1)
     w.options.fields['recording_source'].setCurrentIndex(1)
     assert project.recording_source == 'screen'
     assert w.options.fields['capture_microphone'].isEnabled()
     assert not w.options.fields['recording_policy'].isEnabled()
-    w.talk_dialog.reject()
+    w.settings_dialog.reject()
     assert w.project.recording_source == 'slides'
 
 
@@ -612,7 +614,7 @@ def test_excluding_final_slide_updates_pause_audio_key_and_language_copy(project
     make_audio(project)
     previous_key = project.speech_key(project.slides[0])
     project.slides[1].included = False
-    project.slides[0].after = 'demo'
+    project.set_setting("after", 'demo', project.slides[0])
     assert project.speech_key(project.slides[0]) != previous_key
     assert not project.ready(project.slides[0])
     requests = []
@@ -621,4 +623,4 @@ def test_excluding_final_slide_updates_pause_audio_key_and_language_copy(project
     synthesize(project, Task(), session=Session())
     assert [item['pause'] for item in requests] == [0]
     project.add_version('German', translate=True)
-    assert not project.slides[1].included and project.slides[0].after == 'demo'
+    assert not project.slides[1].included and project.setting('after', project.slides[0]) == 'demo'

@@ -1,5 +1,181 @@
 # 0.3 refinement verification — Linux only
 
+## Missing talk-duration editor — 2026-09-27
+
+Talk & preparation showed a read-only target summary, but its duration editor
+remained in the main window behind the modal dialog. Added **Talk duration** at
+the top of **Talk & conference**, available for This talk. Both duration editors
+write the existing `Project.target_minutes` through the same details handler;
+refresh projects that single value back to the editors without resetting input
+that the user is still typing. No new persisted state or settings scope was added.
+The existing dialog transaction owns Save/Cancel.
+
+Linux native Qt/Breeze Xvfb verification: **81 tests passed in 20.75 s** across
+settings, UI, scoped settings and placement. Six added cases use real keyboard
+entry in both editors, including fractional minutes, all three modes, scope/page
+changes and Save/Cancel with JSON reopen. Screenshots at 920×760 and 760×580
+confirm that the editor is visible at the top of the page. The first standalone
+screenshot process exited with a native segmentation fault; the diagnostic rerun
+completed successfully. No cause is established for that isolated render failure.
+`git diff --check` passed. Evidence: `artifacts/duration-editor/`.
+
+This fix adds **9 / removes 3 production lines: +6 net** and adds **32 test lines**.
+The scope/settings implementation therefore uses **291 of the approved 500 net
+production lines**. The extra lines expose the missing editor and present the same
+existing talk value at both entry points; the redundant adoption-time assignment
+was removed.
+
+## Flat settings and three-level inheritance — 2026-09-27
+
+The [settings contract](design/SCOPED_SETTINGS_IMPLEMENTATION.md) replaces the
+nested navigation described in the historical entry below. The dialog now has
+five flat, combined pages. Application defaults live in application config;
+talk and slide overrides live in schema-4 talk JSON. One resolver supplies the
+same effective settings to editors, narration, synthesis, playback and audio
+validity. Missing overrides remain distinct from explicit zero, false and empty
+values. Older saved settings migrate to explicit overrides; verified unchanged
+legacy audio remains usable. Quick retains its simple start workflow while
+honouring the same effective settings as Prepared and Realtime.
+
+Voice identity distinguishes predefined, own, designed and ambiguous legacy
+reference voices independently of the Qwen backend. Accepted designs remain
+labelled Designed. Save/Cancel covers pending changes across scopes; account,
+manual engine and explicit library actions remain immediate. A single existing
+speech-session owner handles compatible reuse and necessary model transitions.
+
+Final native Qt/Breeze Linux verification under Xvfb:
+
+- **319 tests passed in 56.51 s** across the complete suite.
+- **75 settings, placement and GPU-lifecycle tests passed in 21.06 s at 150% scaling**.
+- All five pages rendered at 920×760 and 760×580 for applicable scopes. Voice,
+  talk, presentation, AI and application layouts were visually inspected; the
+  pages scroll at smaller sizes without nested navigation.
+- Regression coverage includes precedence, explicit empty/zero values, per-slide
+  voice/language generation in all three modes, cache identity, legacy migration,
+  cross-scope Save/Cancel, config/JSON separation, portable pinned settings,
+  designed-voice acceptance/library/reopen, model transition reuse, background
+  loop editing and reference-transcript cursor preservation.
+- `git diff --check` passed. Generation and engine-transition tests use controlled
+  substitutes. No new real-Qwen quality/performance measurement, Windows/macOS
+  execution or Wayland permission test is claimed.
+
+Against the saved pre-change tree, production changes are **667 added / 382
+removed: +285 net lines**; tests are **342 added / 105 removed: +237 net lines**.
+This is below the approved **500 net production lines**. Growth supplies persisted
+scope semantics and shared resolution/bindings that the previous flat talk model
+could not represent; it replaces the former direct fields, Quick substitutions,
+nested navigation and separate effective-voice calculation. Evidence is in
+`artifacts/scoped-settings/`.
+
+The rebuilt installed Linux bundle opened the saved-project smoke fixture from
+this repository with an empty PATH and exited 0. Its 27 audited Qt/plugin files
+matched their expected sources; all 18 mapped Qt libraries came from the bundle,
+and native Breeze loaded. The shell launcher emitted a missing-`dirname` warning
+under that deliberately empty PATH, so this check does not establish launcher
+independence from system utilities or arbitrary working directories. The previous
+bundle is preserved in the evidence directory. The release archive and its SHA-256
+are checked separately in `package-result.json`.
+
+## Canonical Settings dialog — 2026-09-27
+
+All six configuration-dialog instances are consolidated into one Settings dialog
+with 13 grouped sections. Existing menus, buttons and internal links select the
+named section. One snapshot owns pending project/display edits across sections;
+Save/Cancel also applies automatic engine policies. Account actions, manual model
+operations and explicit library saves remain immediate. The recordings browser
+remains a separate task window. No compatibility dialog aliases remain.
+
+Native Qt/Breeze Linux verification under Xvfb:
+
+- **302 tests passed in 47.72 s**, including 13 new canonical-settings cases.
+- After the final native navigation width adjustment, **52 settings, placement
+  and slide-audio tests passed at 150% scaling in 9.75 s**.
+- All 13 sections rendered at 780×700 and 660×550; navigation labels and shared
+  Save/Cancel inspected. Pages scroll when necessary at the minimum size.
+- Cross-section Save/Cancel, preserved edits through internal links, no-talk
+  availability, completed background results, playback and GPU lifecycle tested.
+- An initial lifecycle failure exposed disabled hidden-page ancestry affecting
+  the engine action. Enabling pages by their scope fixed the ownership boundary;
+  all 44 UI/lifecycle tests then passed in 15.05 s before the full suite.
+- `git diff --check` passed. Services use controlled substitutes; no new real-model
+  download/synthesis, Windows/macOS or Wayland screen-sharing test is claimed.
+
+This consolidation adds **13 net production lines** and **126 net test lines**
+relative to the preceding tree. Overall production growth from baseline 117fb8b is
+**101 lines**, below the approved 160; overall test growth is **419 lines**. The
+small production increase provides grouped navigation and one transaction/lifetime
+boundary, replacing separate instances and per-dialog policy. Evidence:
+`artifacts/canonical-settings/`.
+
+The installed Linux bundle passed its saved-project launch with an empty PATH:
+27 Qt/plugin files matched their expected sources, all 18 mapped Qt libraries
+came from the bundle, native Breeze loaded, and the smoke test exited 0. The
+previous installed bundle is preserved in the same evidence directory.
+
+## Empty AI notes — 2026-09-27
+
+The notes action now follows the selected slide's stored notes. Empty or whitespace-only
+notes show a disabled **No AI notes** button. Available notes use **Show AI notes / Hide
+AI notes**; changing slides collapses the old content. No notes are invented or generated
+by this control, and narration remains unchanged.
+
+Native Qt/Breeze Xvfb interaction checks passed for empty, whitespace-only and populated
+notes, show/hide, and changing slides in Prepared and Realtime. All **23 placement tests
+passed in 5.09 s**. This focused change adds **4 net production lines** and **0 test lines**;
+combined production growth since the saved baseline is **88**, within the approved 160.
+Evidence: `artifacts/notes-empty/`.
+
+## Task-based UX refactor — 2026-09-27
+
+Baseline saved before implementation: **117fb8b**. The accepted
+[placement contract](design/UX_PLACEMENT_PROPOSAL.md) and
+[placement assessment](design/UX_PLACEMENT_VERIFICATION.md) cover all task groups.
+The [user guide](USER_GUIDE.md) now follows the implemented routes.
+
+Architectural invariant: each task has one command implementation and predictable
+scope; primary authoring controls are immediately visible; Save/Cancel affects
+pending configuration, while explicit engine/account/library actions are immediate.
+The existing dialog abstraction and project/preparation/playback owners are reused.
+Obsolete widget relocation, duplicate language selection, separate Presenter Start,
+and style-driven hidden attribute replacement were removed. No approval workflow
+or parallel synthesis/preparation implementation was introduced.
+
+Verification:
+
+- Baseline: **266 tests passed in 37.53 s** before refactoring.
+- Standard Qt regression: **289 tests passed in 40.71 s**, running
+  `QT_QPA_PLATFORM=xcb xvfb-run -a .venv/bin/pytest -q`.
+- Final native Qt/Breeze regression: **289 tests passed in 44.51 s**, under Xvfb
+  with the same Qt libraries and plugins used by the packaged application.
+- **39 placement/per-slide audio tests passed in 7.19 s at 150% scaling with native
+  Qt/Breeze**, with an explicitly
+  selected X11 backend and a 1920×1440 Xvfb display. Checks include 940×680 and
+  1100×850 workspaces, the minimum voice dialog, long names, Quick restrictions,
+  independent text/audio preparation, audition without selection, transactional
+  rollback, presets, language transitions, shared F5/Start routing and minimum-size
+  Presenter previews in stopped/playing/paused/finished states.
+- Existing tests retain per-slide/realtime cache reuse, media export, recording,
+  fullscreen pause/continue, GPU lifetime and account discovery coverage.
+- Screenshots inspected for all main modes and task-dialog sections. Final evidence
+  uses Xvfb/X11; early exploratory runs inherited the host's Wayland selection.
+- A native Qt crash occurred during one exploratory window-creation run. It did not
+  recur in subsequent complete runs. The diagnostic log is retained; no speculative
+  production workaround was introduced or claim made that a native Qt issue is fixed.
+- Native Linux package: **27 library/plugin files verified**, **18 mapped Qt
+  libraries all from the bundle**, **Breeze confirmed loaded**, saved-project smoke
+  test with an empty PATH exited **0**. The matching system Qt/Breeze build is retained.
+- `git diff --check` passes. No Windows/macOS tests, fresh GPU synthesis benchmark,
+  first-use model download, recruited-user trial or new Wayland capture acceptance
+  is claimed by this UX refactor.
+
+Production Python **+406 / −322 = +84 net**, within the approved **+160** allowance.
+Tests **+384 / −91 = +293 net**, including 23 new acceptance cases. Production growth
+provides task-dialog placement, direct whole-talk preparation, the shared audition
+area, explicit language destinations and unsaved-change indication; it reuses the
+existing services and replaces the obsolete paths in the same change.
+Evidence: `artifacts/ux-placement/`, especially `final-xvfb.log`,
+`final-scale-150.log`, `installed-audit.log` and the workspace/dialog screenshots.
+
 ## Project folders beside the source PDF — 2026-09-26
 
 New imports use `<PDF folder>/autotalk/<PDF name>-AutoTalk/`. The import entry point

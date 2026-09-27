@@ -363,10 +363,9 @@ def speech_session(task, config, preload=False):
             session.idle_timer = None
         session.release_requested = False
         try:
-            if not session.matches(config):
-                session.close()
-            session.task, session.config = task, config
-            yield session.__enter__()
+            session.task = task
+            session.configure(config)
+            yield session
         except BaseException:
             session.close()
             if not task.cancelled.is_set():
@@ -521,7 +520,16 @@ class SpeechSession:
             deadline = time.monotonic() + 1200
         raise TimeoutError("Speech generation stopped responding. Completed slides have been retained.")
 
+    def configure(self, config):
+        requested = self.release_requested
+        if not self.matches(config):
+            self.close()
+        self.config = {k: config[k] for k in ("backend", "model", "source", "speaker", "sampling")}
+        self.__enter__()
+        self.release_requested = requested
+
     def generate(self, request, on_event=None):
+        self.configure(self.config | request)
         self.phase = "generating"
         try:
             self._send({**self.config, "items": request["items"]})

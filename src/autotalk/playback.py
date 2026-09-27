@@ -291,9 +291,9 @@ class Playback(QObject):
                 if complete:
                     if self.preview_path:
                         self._finish()
-                    elif self.project.slides[self.index].after != "advance":
+                    elif self.project.setting("after", self.project.slides[self.index]) != "advance":
                         self.pause()
-                        if self.project.slides[self.index].after == "demo":
+                        if self.project.setting("after", self.project.slides[self.index]) == "demo":
                             self.demo_requested.emit()
                     else:
                         self.step(1)

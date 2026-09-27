@@ -7,6 +7,7 @@ import re
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from itertools import groupby
 from contextlib import nullcontext
 import shutil
 import tempfile
@@ -132,12 +133,13 @@ def narration_result(project, task, client, fit=False, pages=None, outline=None,
             "audience": "General conference audience" if quick else project.audience,
             "objective": "Explain the key ideas and takeaways" if quick else project.objective,
             "language": project.language, "language_policy": project.language_policy,
-            "style": "Professional" if quick else project.delivery.style,
+            "style": project.writing_style,
             "target_seconds": project.target_minutes*60, "transition_pause_seconds": project.pause_seconds,
             "fixed_clip_seconds": sum(c.seconds for s in project.included_slides for c in s.clips),
             "requested_pages": pages, "outline": ({"instruction": "Follow the complete plan already in this thread", "slides": [s for s in outline["slides"] if s["page"] in pages]} if outline else None),
             "slides": [{"page": s.page, "source_text": s.source_text,
-                        "current_narration": s.narration,
+                        "current_narration": s.narration, "language": project.setting("language", s),
+                        "style": project.setting("writing_style", s), "pause_after_seconds": project.pause_after(s),
                         "measured_seconds": s.duration if project.ready(s) else None,
                         "requested_seconds": s.budget_seconds if not fit and len(pages) == 1 and s.budget_seconds > 0 else None} for s in project.slides if not outline or s.page in pages]}
     if any(s.narration_origin == "translation" for s in project.slides):
@@ -146,12 +148,12 @@ def narration_result(project, task, client, fit=False, pages=None, outline=None,
                    if fit else "Write a coherent conference talk for the requested pages, following the complete deck's structure.")
     if opening:
         instruction = f"Plan this complete talk. Write FINAL natural spoken narration for slide {opening}; use short outlines in the other slides' narration fields."
-    prompt = instruction + " Allocate uneven time according to substance, including introduction and conclusion. Account for fixed clips and pauses. Write natural spoken language, not Markdown or stage directions. Preserve explicit [Language] paragraph markers for intentionally mixed passages; otherwise use the requested talk language. Never invent unsupported facts. Notes are for factual uncertainty or missing context. Use images and extracted text together. Return the requested pages in order, with time budgets in seconds. Respect requested_seconds when supplied for a single slide.\nINPUT:\n" + json.dumps(data, ensure_ascii=False)
+    prompt = instruction + " Allocate uneven time according to substance, including introduction and conclusion. Account for fixed clips and pauses. Write natural spoken language, not Markdown or stage directions. Preserve explicit [Language] paragraph markers for intentionally mixed passages; otherwise use each slide’s requested language and style. Never invent unsupported facts. Notes are for factual uncertainty or missing context. Use images and extracted text together. Return the requested pages in order, with time budgets in seconds. Respect requested_seconds when supplied for a single slide.\nINPUT:\n" + json.dumps(data, ensure_ascii=False)
     started = time.monotonic()
     task.report("Planning the complete deck while loading speech…" if opening else "Codex is creating narration…")
     result = client.generate(prompt, NARRATION_SCHEMA, [project.image(project.slides[p-1]) for p in pages],
-                             model="" if quick else project.codex_model,
-                             effort="" if quick else project.codex_effort)
+                             model=project.codex_model,
+                             effort=project.codex_effort)
     validate_narration(result, len(pages), pages)
     task.event({"type": "measurement", "stage": "Codex planning" if opening else "Codex fitting" if fit else "Codex narration", "seconds": time.monotonic()-started})
     task.check()
@@ -188,14 +190,14 @@ def narrate(project, task, fit=False, pages=None):
     return apply_narration(project, result, task, fit or pages is not None)
 
 
-def speech_config(project):
+def speech_config(project, slide=None):
     backend = speech_backend()
-    voice = project.effective_voice
+    voice = project.setting("voice", slide)
     if voice.source == "VoiceDesign" and not voice.description.strip():
         raise ValueError("Describe the voice you want to design before generating a preview or talk.")
     return {"backend": backend, "model": MODELS[("mlx-" if backend == "mlx" else "") + voice.source],
             "source": voice.source, "speaker": voice.speaker,
-            "sampling": {} if project.mode == "Quick" else project.delivery.sampling}
+            "sampling": project.delivery.sampling}
 
 
 def split_speech(text, limit=300, earliest=False):
@@ -233,7 +235,7 @@ PREVIEWS = {
 
 def preview_text(project):
     text = PREVIEWS[project.language]
-    return text + " " + text if project.effective_voice.source == "VoiceDesign" else text
+    return text + " " + text if project.voice.source == "VoiceDesign" else text
 
 
 def preview_path(project):
@@ -243,7 +245,6 @@ def preview_path(project):
 
 
 def synthesize(project, task, preview=False, *, pages=None, session=None, force=False):
-    voice = project.effective_voice
     items = []
     selected = [s for s in project.slides if pages is None or s.page in pages]
     if preview:
@@ -257,11 +258,12 @@ def synthesize(project, task, preview=False, *, pages=None, session=None, force=
             raise ValueError(f"Create or translate narration for slide {slide.page} before creating its audio.")
         if not preview and not force and project.ready(slide):
             continue
+        voice = project.setting("voice", slide)
         passages = []
         for passage in project.effective_passages(slide):
             reference = {}
             if voice.source == "Base":
-                ref = project.reference(passage.language)
+                ref = project.reference(passage.language, slide)
                 if not ref.file:
                     raise ValueError("Record or import a reference before using My voice.")
                 path = project.asset(ref.file)
@@ -275,12 +277,10 @@ def synthesize(project, task, preview=False, *, pages=None, session=None, force=
         output = preview_path(project) if preview else project.asset(project.audio_name(slide, key))
         if force:
             output = output.with_stem(output.stem + "-" + uuid.uuid4().hex)
-        items.append({"page": slide.page, "key": key, "passages": passages, "output": str(output),
+        items.append({"config": speech_config(project, slide), "page": slide.page, "key": key, "passages": passages, "output": str(output),
                       "pause": project.pause_after(slide)})
     if not items:
         return project
-    config = speech_config(project)
-    request = {**config, "items": items}
     expected = {item["page"]: item for item in items}
 
     def event(value):
@@ -317,10 +317,12 @@ def synthesize(project, task, preview=False, *, pages=None, session=None, force=
     relay = copy.copy(task)
     relay.event = event
     try:
-        if session:
-            session.generate(request, on_event=event)
-        else:
-            speech_command(relay, request)
+        for config, batch in groupby(items, key=lambda item: item["config"]):
+            request = {**config, "items": [{k: v for k, v in item.items() if k != "config"} for item in batch]}
+            if session:
+                session.generate(request, on_event=event)
+            else:
+                speech_command(relay, request)
     finally:
         if not preview:
             project.save()
@@ -328,7 +330,7 @@ def synthesize(project, task, preview=False, *, pages=None, session=None, force=
 
 
 def freeze_designed_voice(project, task):
-    if project.effective_voice.source != "VoiceDesign":
+    if all(project.setting("voice", slide).source != "VoiceDesign" for slide in project.included_slides):
         return
     raise ValueError("Preview and accept the designed voice before starting the talk.")
 
@@ -339,13 +341,13 @@ def prepare(project, task, fit=False, *, pages=None, force=False):
         synthesize(project, task, pages=pages, force=force)
         project.save()
         return project
-    fixed = sum(c.seconds for s in project.included_slides for c in s.clips) + project.pause_seconds * (len(project.included_slides)-1)
+    fixed = sum(c.seconds for s in project.included_slides for c in s.clips) + sum(project.pause_after(s) for s in project.included_slides)
     if fit and fixed > project.target_minutes * 60 + project.tolerance_seconds:
         raise ValueError("Clips and fixed pauses already exceed the requested duration.")
     if project.prepared and (not fit or project.within_target):
         return project
     freeze_designed_voice(project, task)
-    with (Codex(task) if fit else nullcontext()) as client, speech_session(task, speech_config(project)) as session:
+    with (Codex(task) if fit else nullcontext()) as client, speech_session(task, speech_config(project, next((s for s in project.included_slides if not project.ready(s)), None))) as session:
         synthesize(project, task, session=session)
         if fit:
             for attempt in range(3):
@@ -367,7 +369,7 @@ def workflow(project, task):
     freeze_designed_voice(project, task)
     missing = [s.page for s in project.included_slides if not s.text_ready]
     needs_codex = missing or project.mode == "Quick" and project.quick_timing != "once"
-    context = speech_session(task, speech_config(project))
+    context = speech_session(task, speech_config(project, next((s for s in project.included_slides if not project.ready(s)), None)))
     with (Codex(task) if needs_codex else nullcontext()) as client, ThreadPoolExecutor(max_workers=2) as workers:
         loading = workers.submit(context.__enter__)
         try:

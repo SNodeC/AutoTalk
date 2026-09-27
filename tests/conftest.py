@@ -4,7 +4,7 @@ import pytest
 from PySide6.QtCore import QRectF, QSettings
 from PySide6.QtGui import QColor, QFont, QPainter, QPdfWriter
 
-from autotalk.project import file_hash, wav_duration
+from autotalk.project import Voice, file_hash, wav_duration
 from autotalk.runtime import Task
 from autotalk.services import import_pdf
 
@@ -43,6 +43,7 @@ def sample_pdf(tmp_path, qapp):
 @pytest.fixture
 def project(sample_pdf, tmp_path):
     p = import_pdf(sample_pdf, tmp_path / "talk", Task(lambda _: None))
+    p.voice = Voice()
     p.scope = "Software engineering and dependable desktop applications"
     for s in p.slides:
         s.narration = f"This is the spoken explanation for slide {s.page}."

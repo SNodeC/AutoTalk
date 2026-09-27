@@ -58,7 +58,7 @@ def test_cancelled_stream_retains_only_completed_slides(project, local_speech):
 
 
 @pytest.mark.parametrize("policy,fit", [("once", False), ("fit", True), ("require", True)])
-def test_quick_mode_uses_automatic_defaults(project, monkeypatch, local_speech, policy, fit):
+def test_quick_mode_uses_resolved_settings(project, monkeypatch, local_speech, policy, fit):
     project.mode, project.quick_timing = "Quick", policy
     project.codex_model, project.codex_effort = "configured-model", "high"
     project.voice.speaker = "Aiden"
@@ -75,8 +75,8 @@ def test_quick_mode_uses_automatic_defaults(project, monkeypatch, local_speech, 
     services.workflow(project, Task())
     assert len(seen) == (4 if fit else 1)
     assert seen[0][1]["scope"] == ""
-    assert seen[0][0] == {"model": "", "effort": ""}
-    assert project.effective_voice.speaker == "Ryan"
+    assert seen[0][0] == {"model": "configured-model", "effort": "high"}
+    assert project.voice.speaker == "Aiden"
     assert project.voice.speaker == "Aiden"
 
 
