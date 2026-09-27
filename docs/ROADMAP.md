@@ -5,6 +5,17 @@ complete agreed product scope below. Implementation targets 0.3. Testing for
 this refinement pass is **Linux only**; Windows/macOS support is retained.
 See [behavior](../README.md) and [measured verification](VERIFICATION.md).
 
+## Independent Claude review — 27 September 2026
+
+At the owner's request, Claude CLI reviewed source snapshot `8d06f96` on
+`review/claude-ui-ux-2026-09-27`. The [verbatim verdict](reviews/2026-09-27-claude-verdict.md)
+contains code-quality, UI/UX placement, startup timing, overall assessment and
+button-convention findings. See the [review brief](reviews/2026-09-27-claude-review-brief.md)
+and [provenance/evidence](reviews/2026-09-27-claude-review-method.md) for scope,
+verification, factual follow-ups and limitations. Recommendations are recorded
+for consideration; they are not implemented fixes or new approvals. Existing
+requirements and open issues below remain in effect.
+
 ## Recorded issue — Ctrl+C does not stop AutoTalk
 
 - **Status:** open; recorded only, not investigated or fixed.
