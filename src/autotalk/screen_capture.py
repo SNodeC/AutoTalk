@@ -24,34 +24,90 @@ class BufferAttr(ctypes.Structure):
 
 
 class PulseInput:
-    def __init__(self, device):
-        self.library = ctypes.CDLL("libpulse-simple.so.0")
-        self.library.pa_simple_new.restype = ctypes.c_void_p
-        self.library.pa_simple_new.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p,
-            ctypes.POINTER(SampleSpec), ctypes.c_void_p, ctypes.POINTER(BufferAttr), ctypes.POINTER(ctypes.c_int)]
-        self.library.pa_simple_read.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(ctypes.c_int)]
-        self.library.pa_simple_get_latency.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int)]
-        self.library.pa_simple_get_latency.restype = ctypes.c_uint64
-        self.library.pa_simple_free.argtypes = [ctypes.c_void_p]
-        spec, attr, error = SampleSpec(3, RATE, 2), BufferAttr(*([2**32-1]*4), 3840), ctypes.c_int()
-        self.stream = self.library.pa_simple_new(None, b"AutoTalk", 2, device, b"Presentation recording",
-                                                ctypes.byref(spec), None, ctypes.byref(attr), ctypes.byref(error))
-        if not self.stream:
-            raise RuntimeError(f"Cannot open the recording audio source (PulseAudio {error.value}).")
+    """A worker-owned nonblocking PulseAudio connection, including cancellation."""
+    def __init__(self, device, stopping):
+        self.stopping = stopping
+        self.library = ctypes.CDLL("libpulse.so.0")
+        pointer, integer = ctypes.c_void_p, ctypes.c_int
+        signatures = {
+            "mainloop_new": (pointer, []), "mainloop_get_api": (pointer, [pointer]),
+            "mainloop_iterate": (integer, [pointer, integer, ctypes.POINTER(integer)]),
+            "mainloop_free": (None, [pointer]),
+            "context_new": (pointer, [pointer, ctypes.c_char_p]),
+            "context_connect": (integer, [pointer, ctypes.c_char_p, integer, pointer]),
+            "context_get_state": (integer, [pointer]),
+            "context_disconnect": (None, [pointer]), "context_unref": (None, [pointer]),
+            "stream_new": (pointer, [pointer, ctypes.c_char_p, ctypes.POINTER(SampleSpec), pointer]),
+            "stream_connect_record": (integer, [pointer, ctypes.c_char_p, ctypes.POINTER(BufferAttr), integer]),
+            "stream_get_state": (integer, [pointer]),
+            "stream_peek": (integer, [pointer, ctypes.POINTER(pointer), ctypes.POINTER(ctypes.c_size_t)]),
+            "stream_drop": (integer, [pointer]),
+            "stream_get_latency": (integer, [pointer, ctypes.POINTER(ctypes.c_uint64), ctypes.POINTER(integer)]),
+            "stream_disconnect": (integer, [pointer]), "stream_unref": (None, [pointer]),
+        }
+        for name, (result, arguments) in signatures.items():
+            function = getattr(self.library, "pa_" + name)
+            function.restype, function.argtypes = result, arguments
+        self.loop = self.library.pa_mainloop_new()
+        self.context = self.library.pa_context_new(self.library.pa_mainloop_get_api(self.loop), b"AutoTalk")
+        self.stream = None
+        try:
+            if self.library.pa_context_connect(self.context, None, 0, None) < 0:
+                raise RuntimeError("Cannot connect to the recording audio server.")
+            deadline = time.monotonic() + 10
+            while self.library.pa_context_get_state(self.context) != 4:
+                if not self.poll(deadline):
+                    return
+            spec, attr = SampleSpec(3, RATE, 2), BufferAttr(*([2**32-1]*4), 3840)
+            self.stream = self.library.pa_stream_new(self.context, b"Presentation recording", ctypes.byref(spec), None)
+            # INTERPOLATE_TIMING | AUTO_TIMING_UPDATE: measured device latency.
+            if self.library.pa_stream_connect_record(self.stream, device, ctypes.byref(attr), 0xA) < 0:
+                raise RuntimeError("Cannot open the recording audio source.")
+            while self.library.pa_stream_get_state(self.stream) != 2:
+                if not self.poll(deadline):
+                    return
+        except Exception:
+            self.close()
+            raise
+
+    def poll(self, deadline):
+        if self.stopping.wait(.005):
+            return False
+        if (self.library.pa_mainloop_iterate(self.loop, 0, None) < 0
+                or self.library.pa_context_get_state(self.context) >= 5
+                or self.stream and self.library.pa_stream_get_state(self.stream) >= 3):
+            raise RuntimeError("Recording audio source disconnected.")
+        if time.monotonic() > deadline:
+            raise RuntimeError("Recording audio source stopped responding.")
+        return True
 
     def read(self):
-        data, error = ctypes.create_string_buffer(3840), ctypes.c_int()
-        if self.library.pa_simple_read(self.stream, data, len(data), ctypes.byref(error)) < 0:
-            raise RuntimeError(f"Recording audio source failed (PulseAudio {error.value}).")
-        latency = self.library.pa_simple_get_latency(self.stream, ctypes.byref(error))
-        if error.value:
-            raise RuntimeError("Cannot determine recording audio latency.")
-        return data.raw, latency / 1e6
+        deadline = time.monotonic() + 10
+        while self.poll(deadline):
+            latency, negative = ctypes.c_uint64(), ctypes.c_int()
+            if self.library.pa_stream_get_latency(self.stream, ctypes.byref(latency), ctypes.byref(negative)) < 0:
+                continue
+            data, size = ctypes.c_void_p(), ctypes.c_size_t()
+            if self.library.pa_stream_peek(self.stream, ctypes.byref(data), ctypes.byref(size)) < 0:
+                raise RuntimeError("Recording audio source failed.")
+            if size.value:
+                raw = ctypes.string_at(data, size.value) if data else bytes(size.value)
+                self.library.pa_stream_drop(self.stream)
+                return raw, latency.value / 1e6 * (-1 if negative.value else 1)
+        return None
 
     def close(self):
         if self.stream:
-            self.library.pa_simple_free(self.stream)
+            self.library.pa_stream_disconnect(self.stream)
+            self.library.pa_stream_unref(self.stream)
             self.stream = None
+        if self.context:
+            self.library.pa_context_disconnect(self.context)
+            self.library.pa_context_unref(self.context)
+            self.context = None
+        if self.loop:
+            self.library.pa_mainloop_free(self.loop)
+            self.loop = None
 
 
 class ScreenCapture(Capture):
@@ -141,12 +197,15 @@ class ScreenCapture(Capture):
     def sound(self, device, filename):
         source = None
         try:
-            source = PulseInput(device)
+            source = PulseInput(device, self.stopping)
             with (self.root / filename).open("wb") as output:
                 committed = 0
                 while not self.stopping.is_set():
-                    raw, latency = source.read()
-                    at = max(0, round((time.monotonic()-latency-self.started-.02)*RATE))
+                    packet = source.read()
+                    if packet is None:
+                        break
+                    raw, latency = packet
+                    at = max(0, round((time.monotonic()-latency-self.started)*RATE)-len(raw)//4)
                     # Place each input on the common clock, including initial device latency.
                     if at > committed:
                         output.write(b"\0" * ((at-committed)*4))

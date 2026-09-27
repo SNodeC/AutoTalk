@@ -380,16 +380,24 @@ class Playback(QObject):
 
     def _finalize_capture(self):
         if self.capture:
-            root = self.capture.close()
+            try:
+                root = self.capture.close()
+            except (OSError, RuntimeError) as error:
+                self.failed.emit(f"Recording could not finish: {error} Use End presentation to retry saving.")
+                return False
             frames = self.capture.frames
             self.capture = None
             if frames:
                 self.recording_ready.emit(root)
+        return True
 
     def stop(self):
         was_presenting = self.active and not self.preview_path
         self._reset_sink()
-        self._finalize_capture()
+        if not self._finalize_capture():
+            self.state = "paused"
+            self.changed.emit()
+            return
         self._offset = 0
         self.preview_path = None
         self.preview_audio = None
@@ -404,7 +412,10 @@ class Playback(QObject):
             return
         was_presenting = self.active and not self.preview_path
         if not self.capture or not hasattr(self.capture, "ready"):
-            self._finalize_capture()
+            if not self._finalize_capture():
+                self.state = "paused"
+                self.changed.emit()
+                return
         self.state = "finished"
         self.finished.emit()
         self.changed.emit()

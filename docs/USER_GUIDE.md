@@ -77,7 +77,9 @@ choose Prepared or Realtime to edit slides. Drag pane dividers or use **View →
 Slide navigator / Slide inspector / Restore default layout**. **Enlarge slide…**
 opens a larger preview.
 
-All settings share one **Settings** window. The left navigation is flat:
+Settings open in three distinct windows: **Application defaults**,
+**Talk settings — [title]**, and **Slide settings — [number]**. Each window has
+flat navigation and only the sections relevant to its scope:
 
 | Page | Settings grouped here |
 | --- | --- |
@@ -87,9 +89,10 @@ All settings share one **Settings** window. The left navigation is flat:
 | **AI & speech engine** | Codex model/reasoning, Qwen sampling and application GPU controls. |
 | **Application** | Account, display selection and system audio access. |
 
-Use **Settings for** to select **Application defaults**, **This talk**, or the
-numbered **This slide**. Only applicable scopes and settings are available.
-**Talk duration** is editable at the top of **Talk & preparation → This talk**,
+The window title identifies what you are editing; there is no scope selector.
+Use **Settings → Application settings…**, the main **Talk settings…** button, or
+**Slide voice & language… / Additional audio…** in the inspector.
+**Talk duration** is editable at the top of the talk window’s **Talk & preparation** page,
 as well as beside Duration in the main window. Both edit the same talk target;
 Save keeps changes and Cancel restores the previous value. The target belongs
 to the talk, so it is hidden under Application defaults.
@@ -113,11 +116,14 @@ references, together with their scope. Saved is a library location, not a voice 
 
 Changing application defaults affects existing talks that still inherit them.
 Settings saved into the talk override those defaults. To keep a talk independent of
-another computer's defaults, choose **This talk → Talk & preparation → Keep these
+another computer's defaults, choose **Talk settings → Talk & preparation → Keep these
 settings for this talk**. Required personal-voice assets are included in the talk.
 
-**Save** keeps pending changes across all pages/scopes. **Cancel** restores the
-starting configuration, including manifest changes saved during a settings operation.
+**Save** keeps changes across the pages of that window, in that scope only.
+**Cancel** restores that scope’s starting configuration, including manifest changes
+saved during a settings operation. Saving application defaults from a nested window
+is not undone by cancelling talk settings. Slide settings stay bound to the slide
+identified in the window title.
 Account, manual model, external system-audio and explicitly saved library operations
 are immediate. Stop a preparation or voice-recording operation started in Settings
 before closing it. Closing engine settings during playback does not stop presentation.
@@ -167,7 +173,7 @@ Example: prepare a five-minute conference talk in German and listen to it before
 1. Open the PDF and choose **Prepared**.
 2. Set **Duration** to 5 minutes and **Language** to German in the main window.
 3. Optionally configure **Talk settings → Talk & conference** and
-   **Voice & language → Voice / Writing & delivery**. Save the shared Settings dialog.
+   **Voice & language → Voice / Writing & delivery**. Save the Talk settings window.
 4. Use **Create talk text** to fill missing narration for all included slides in
    the active language version. Existing wording is preserved. Edit it, then use
    **Create talk audio** to prepare missing/outdated audio without presenting.

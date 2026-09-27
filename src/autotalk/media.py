@@ -198,7 +198,8 @@ class Capture:
         if not self.audio.closed:
             self.audio.close()
             self.journal.close()
-            info = json.loads((self.root / "session.json").read_text())
+        info = json.loads((self.root / "session.json").read_text())
+        if info["status"] == "recording":
             info["status"] = "pending"
             (self.root / "session.json").write_text(json.dumps(info, indent=2))
         return self.root

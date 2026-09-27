@@ -36,6 +36,7 @@ BINARIES = {
 }
 MODELS = json.loads(Path(__file__).with_name("models.json").read_text())
 _spawn_lock = threading.Lock()
+ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
 
 def data_dir() -> Path:
@@ -55,7 +56,7 @@ class Cancelled(Exception):
 class Task:
     def __init__(self, report=print, open_url=lambda url: None, log=None, event=lambda value: None):
         self.report = report
-        self.log = log or report
+        self.log = lambda value: (log or report)(ANSI_ESCAPE.sub("", value))
         self.open_url = open_url
         self.cancelled = threading.Event()
         self.event = event
@@ -171,6 +172,7 @@ def run(command, task: Task, *, env=None, cwd=None):
                 value = messages.get(timeout=0.2)
             except queue.Empty:
                 continue
+            value = ANSI_ESCAPE.sub("", value)
             tail = (tail + value)[-12000:]
             task.log(value.strip())
         task.check()
@@ -367,6 +369,7 @@ def speech_session(task, config, preload=False):
             session.configure(config)
             yield session
         except BaseException:
+            task.report("Stopping speech worker: " + ("operation cancelled" if task.cancelled.is_set() else "speech operation failed") + ".")
             session.close()
             if not task.cancelled.is_set():
                 session.phase = "failed"
@@ -381,7 +384,7 @@ def speech_session(task, config, preload=False):
 
 def backend_loading_progress(line):
     """Decode only the pinned vLLM 0.28 loading diagnostics; never infer readiness."""
-    line = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", line)
+    line = ANSI_ESCAPE.sub("", line)
     engine = re.search(r"(?:StageEngineCoreProc_stage|\[StageRuntime\] Stage )(\d+)", line)
     prefix = f"Speech engine {int(engine[1])+1}: " if engine else ""
     event = {"type": "model_progress", "stage": ""}
@@ -523,6 +526,9 @@ class SpeechSession:
     def configure(self, config):
         requested = self.release_requested
         if not self.matches(config):
+            if self.process:
+                changed = ", ".join(k for k in ("backend", "model", "source", "sampling") if self.config.get(k) != config[k])
+                self.task.report("Reloading speech model: " + ("changed " + changed if changed else "previous worker exited") + ".")
             self.close()
         self.config = {k: config[k] for k in ("backend", "model", "source", "speaker", "sampling")}
         self.__enter__()

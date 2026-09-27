@@ -133,18 +133,18 @@ def test_discovery_updates_ui_without_changing_saved_selections(fake_server, qtb
     window.connect_chatgpt(interactive=False)
     qtbot.waitUntil(lambda: window.job is None)
     assert 'Connected to ChatGPT' in window.connection.text()
-    assert window.codex_model.itemText(0) == 'Account default (Vision)'
-    assert window.codex_model.currentData() == 'test-vision'
-    assert window.codex_effort.currentData() == 'high'
-    assert window.codex_model.isEnabled()
+    assert window.settings[1].codex_model.itemText(0) == 'Account default (Vision)'
+    assert window.settings[1].codex_model.currentData() == 'test-vision'
+    assert window.settings[1].codex_effort.currentData() == 'high'
+    assert window.settings[1].codex_model.isEnabled()
     saved = Project.load(project.manifest)
     assert (saved.codex_model, saved.codex_effort) == ('test-vision', 'high')
     # A different talk reuses account discovery but retains its own unavailable selections.
     saved.codex_model, saved.codex_effort = 'old-model', 'old-effort'
     window.adopt(saved)
-    assert window.codex_model.currentData() == 'old-model'
-    assert window.codex_effort.currentData() == 'old-effort'
-    assert 'refresh availability' in window.codex_model.currentText()
+    assert window.settings[1].codex_model.currentData() == 'old-model'
+    assert window.settings[1].codex_effort.currentData() == 'old-effort'
+    assert 'refresh availability' in window.settings[1].codex_model.currentText()
 
 
 @pytest.mark.parametrize('failure', ['missing', 'offline', 'cancel'])
@@ -179,8 +179,8 @@ def test_application_startup_discovers_without_pdf_and_preserves_launch_project(
     def event_loop():
         qtbot.waitUntil(lambda: bool(windows[0].codex_settings) and windows[0].job is None)
         assert bool(windows[0].project) == open_saved
-        assert windows[0].codex_model.count() == 2
-        assert windows[0].codex_effort.findData('high') >= 0
+        assert windows[0].settings[1 if open_saved else 0].codex_model.count() == 2
+        assert windows[0].settings[1 if open_saved else 0].codex_effort.findData('high') >= 0
         windows[0].close()
         return 0
     project.save()
@@ -207,7 +207,7 @@ def test_discovery_protocol_failure_can_be_retried_explicitly(fake_server, monke
     fake_server.write_text(healthy)
     window.connect_chatgpt()
     qtbot.waitUntil(lambda: window.job is None)
-    assert window.codex_model.count() == 2 and 'Connected' in window.connection.text()
+    assert window.settings[1].codex_model.count() == 2 and 'Connected' in window.connection.text()
 
 
 def test_ui_displays_configured_effort_instead_of_catalog_suggestion(fake_server, qtbot, project):
@@ -218,8 +218,8 @@ def test_ui_displays_configured_effort_instead_of_catalog_suggestion(fake_server
     window = MainWindow(); qtbot.addWidget(window); window.adopt(project)
     window.connect_chatgpt(interactive=False)
     qtbot.waitUntil(lambda: window.job is None)
-    assert window.codex_effort.currentText() == 'Codex default (high)'
-    assert window.codex_effort.currentData() == ''
+    assert window.settings[1].codex_effort.currentText() == 'Codex default (high)'
+    assert window.settings[1].codex_effort.currentData() == ''
     assert project.codex_model == project.codex_effort == ''
 
 
@@ -261,8 +261,8 @@ def test_auth_buttons_follow_account_and_logout_preserves_talk(fake_server, qtbo
     qtbot.waitUntil(lambda: window.job is None)
     assert window.codex_signin.isEnabled() and not window.codex_signout.isEnabled()
     assert not window.codex_settings['signed_in'] and window.codex_settings['models'] == []
-    assert window.codex_model.currentData() == 'test-vision'
-    assert window.codex_effort.currentData() == 'high'
+    assert window.settings[1].codex_model.currentData() == 'test-vision'
+    assert window.settings[1].codex_effort.currentData() == 'high'
     saved = Project.load(project.manifest)
     assert (saved.codex_model, saved.codex_effort) == ('test-vision', 'high')
     methods = [r['method'] for r in requests(fake_server)[before:]]

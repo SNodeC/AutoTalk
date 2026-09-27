@@ -42,6 +42,10 @@ def test_mono_narration_reaches_both_stereo_channels(qtbot, tmp_path, monkeypatc
                 "--channel-map=front-left,front-right", "--latency-msec=20", "--raw"],
                 stdout=output, stderr=subprocess.PIPE)
             qtbot.wait(200)
+            # Session policy may create even a new virtual output muted. Initialize
+            # only this disposable sink; never change the user's physical output.
+            subprocess.run(['pactl', 'set-sink-mute', name, '0'], check=True)
+            subprocess.run(['pactl', 'set-sink-volume', name, '100%'], check=True)
             player = Playback()
             player.failed.connect(errors.append)
             player.preview(source)

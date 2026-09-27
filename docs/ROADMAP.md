@@ -12,9 +12,18 @@ At the owner's request, Claude CLI reviewed source snapshot `8d06f96` on
 contains code-quality, UI/UX placement, startup timing, overall assessment and
 button-convention findings. See the [review brief](reviews/2026-09-27-claude-review-brief.md)
 and [provenance/evidence](reviews/2026-09-27-claude-review-method.md) for scope,
-verification, factual follow-ups and limitations. Recommendations are recorded
-for consideration; they are not implemented fixes or new approvals. Existing
-requirements and open issues below remain in effect.
+verification, factual follow-ups and limitations. The owner subsequently made
+the verdict authoritative and approved the implementation plan. See the
+[implementation and evidence ledger](reviews/2026-09-27-verdict-implementation.md)
+for actual progress and remaining checks; the overall refactor is not complete.
+The recorded reports below preserve their original context. **28 September update:**
+the fixed-scope settings refactor, state recovery, save semantics, ANSI cleanup,
+recording shutdown/retry, button disclosures and Ctrl+C handling are implemented.
+Linux verification: 346 tests, native theme/scaling interaction, real GPU policies,
+real generation interrupted by SIGINT, and a repeated real Wayland capture/export.
+The 15–20-second startup target is still unmet (five warm runs: 91.36–98.81 s),
+and one intermittent native PipeWire initialization crash remains unexplained.
+See the ledger for the 39-group placement matrix and precise evidence boundaries.
 
 ## Recorded issue — Ctrl+C does not stop AutoTalk
 
@@ -253,7 +262,8 @@ Implemented in the working tree:
   Destination is under Talk settings → Recording; outputs are in Export / recordings. Settings lock during presentation.
 - The existing delivery resolver supplies steady-pace, restrained-expression and
   consistent-character guidance. Style/custom/slide overrides remain explicit;
-  Base receives no unsupported vocal instruction and Quick uses its default voice.
+  Base receives no unsupported vocal instruction. All modes, including Quick,
+  use the resolved slide → talk → application voice settings.
   Effective instructions remain part of audio freshness. Splitting is unchanged.
 - The sampling override label identifies its main-generator scope. Sampling
   defaults are unchanged; both-stage comparison and listening acceptance remain open.
@@ -596,7 +606,7 @@ Optional audio clips, with technical generation parameters under Advanced.
   synchronized slide changes, pause/resume, and recorded video. Style changes can
   change duration. Changed settings must invalidate affected prepared or queued
   audio before it can be played.
-- Prepared exposes full authoring. Quick uses the default voice and automatic
+- Prepared exposes full authoring. Quick uses the resolved voice and automatic
   delivery settings without conference input. Realtime uses supported selected settings with
   visible buffering and no promised first-audio latency until measured locally.
 - The article's Dialect, Singing, Paralanguage, and Background Sound Reconstruction

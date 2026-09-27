@@ -74,12 +74,12 @@ guarantee uninterrupted playback on every GPU.
 
 The main window retains the prototype's **slide navigator**, **PDF/narration editor**
 and **slide inspector**, with system styling. Duration, language/version, voice,
-recording and preparation are directly accessible. One **Settings** dialog has five
-flat pages: **Voice & language**, **Talk & preparation**, **Presentation & recording**,
-**AI & speech engine**, and **Application**. Existing shortcuts open the relevant
-page and scope.
-
-Choose **Application defaults**, **This talk**, or **This slide** where applicable.
+recording and preparation are directly accessible. Three separate settings windows
+identify their scope: **Application defaults**, **Talk settings — [title]**, and
+**Slide settings — [number]**. They share flat, consistently ordered pages for
+voice/language, talk/preparation, presentation/recording, AI/speech engine and
+application resources; only applicable pages appear. Existing shortcuts open the
+appropriate window and section. There is no in-dialog scope selector.
 Slide overrides take precedence over talk settings, then application defaults.
 Voice summaries identify **Predefined**, **Own**, **Designed**, or a legacy
 **Reference** voice and the source of the effective setting. **From app / From talk**

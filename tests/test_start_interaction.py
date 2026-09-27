@@ -109,7 +109,7 @@ def test_audio_preview_restores_play_label_without_refresh(qtbot, project, endin
         if ending == 'stop': w.preview_button.click()
         qtbot.waitUntil(lambda: not w.transport.preview_path, timeout=5000)
         assert w.preview_button.text() == w.preview_action.text() == 'Play audio'
-        assert w.voice_preview_button.text() == 'Listen to a sample'
+        assert w.settings[1].voice_preview_button.text() == 'Listen to a sample'
         assert w.transport.state == 'stopped'
         assert w.preview_button.isEnabled()
         assert 'Presentation finished' not in w.duration_label.text()
@@ -118,7 +118,7 @@ def test_audio_preview_restores_play_label_without_refresh(qtbot, project, endin
 def test_dialog_labels_have_ellipses_and_direct_actions_do_not(qtbot, project):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project)
     labels = {a.text() for a in w.findChildren(QAction)} | {b.text() for b in w.findChildren(QPushButton)}
-    for text in ('Open PDF', 'Open saved talk', 'Talk settings', 'Application settings', 'Save preset',
+    for text in ('Open PDF', 'Open saved talk', 'Talk settings', 'Application settings', 'Save delivery preset',
                  'Rewrite slide text', 'Fit duration', 'Getting started', 'Keyboard shortcuts', 'About AutoTalk'):
         assert text + '…' in labels and text not in labels
     for text in ('Create slide audio', 'Play audio', 'Prepare and start', 'Save', 'Operation details'):
@@ -132,11 +132,11 @@ def test_dialog_labels_have_ellipses_and_direct_actions_do_not(qtbot, project):
 def test_account_default_and_explicit_model_use_identical_name(qtbot, display):
     w = MainWindow(); qtbot.addWidget(w)
     w.codex_settings = {'model': 'gpt-6-astra', 'models': [{'model': 'gpt-6-astra', 'displayName': display}]}
-    w.refresh_models()
+    w.settings[1].refresh_models()
     name = display or 'gpt-6-astra'
-    assert w.codex_model.itemText(0) == f'Account default ({name})'
-    assert w.codex_model.itemText(1) == name
-    assert w.codex_model.itemData(0) == '' and w.codex_model.itemData(1) == 'gpt-6-astra'
+    assert w.settings[1].codex_model.itemText(0) == f'Account default ({name})'
+    assert w.settings[1].codex_model.itemText(1) == name
+    assert w.settings[1].codex_model.itemData(0) == '' and w.settings[1].codex_model.itemData(1) == 'gpt-6-astra'
 
 
 def test_save_shortcut_persists_edited_narration(qtbot, project):

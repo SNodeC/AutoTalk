@@ -30,6 +30,7 @@ class SettingsPanel(QWidget):
     changed = Signal()
 
     def __init__(self, window):
+        from .ui import disclosure
         super().__init__()
         self.window = window
         self.inheritance = {}
@@ -64,22 +65,17 @@ class SettingsPanel(QWidget):
         self.combo("writing_style", "Writing style", [(s, s) for s in STYLES])
         self.combo("delivery.style", "Spoken delivery", [(s, s) for s in STYLES])
         self.presets = QComboBox()
-        self.form.addRow("Saved delivery presets", self.presets)
+        self.form.addRow("Delivery presets — shared by all talks", self.presets)
         row = QHBoxLayout()
         self.use_preset_button = QPushButton("Use preset")
-        for button, callback in ((QPushButton("Save preset…"), self.save_preset), (self.use_preset_button, self.use_preset)):
+        for button, callback in ((QPushButton("Save delivery preset…"), self.save_preset), (self.use_preset_button, self.use_preset)):
             button.clicked.connect(callback)
             row.addWidget(button)
         self.form.addRow(row)
         self.refresh_presets()
         advanced = QWidget()
         self.form = QFormLayout(advanced)
-        advanced.hide()
-        toggle = QPushButton("More vocal attributes")
-        toggle.setCheckable(True)
-        toggle.toggled.connect(advanced.setVisible)
-        delivery_box.addWidget(toggle)
-        delivery_box.addWidget(advanced)
+        disclosure(self.delivery_widget, "More vocal attributes", advanced)
         for name, values in ATTRIBUTES.items():
             widget = self.combo("delivery.attributes." + name, name.capitalize(),
                                 [("Model default", "")] + [(v, v) for v in values])
@@ -126,9 +122,9 @@ class SettingsPanel(QWidget):
         path = QLineEdit()
         path.setPlaceholderText("Default: a new video in this project's recordings folder")
         self.bind("recording_destination", "Video destination", path, path.textChanged)
-        choose = QPushButton("Choose video destination…")
-        choose.clicked.connect(self.choose_destination)
-        self.form.addRow(choose)
+        self.destination_button = QPushButton("Choose video destination…")
+        self.destination_button.clicked.connect(self.choose_destination)
+        self.form.addRow(self.destination_button)
         self.combo("export_rate", "Export audio sample rate", [("24 kHz (native)", 24000), ("44.1 kHz", 44100), ("48 kHz", 48000)])
         self.combo("export_bitrate", "MP4 / M4A audio encoding", [("AAC 96 kbit/s", 96000), ("AAC 128 kbit/s", 128000), ("AAC 192 kbit/s", 192000)])
         self.form = main_form
@@ -178,7 +174,7 @@ class SettingsPanel(QWidget):
     def load(self, project):
         self.project, self.loading = project, True
         w = self.window
-        scope = w.settings_scope()
+        scope = w.scope
         for path, widget in self.fields.items():
             value = w.setting_value(path) if path in SETTING_DEFAULTS else getattr(project, path, "")
             if path == "background_gain":
@@ -205,12 +201,11 @@ class SettingsPanel(QWidget):
                 reset.setText("From " + ("app" if source == "Application default" else "talk") if inherited else "Use " + ("talk" if scope == 2 else "app"))
                 reset.setVisible(scope > 0)
                 reset.setEnabled(not inherited)
-            widget.setEnabled(w.job is None)
         voice = w.setting_value("voice")
         supported = voice.source != "Base"
-        self.fields["delivery.style"].setEnabled(supported and w.job is None)
+        self.fields["delivery.style"].setEnabled(supported)
         for widget in self.vocal:
-            widget.setEnabled(supported and w.job is None)
+            widget.setEnabled(supported)
         self.fields["delivery.attributes.accent"].setEnabled(supported and w.setting_value("language") == "Chinese")
         self.fields["delivery.attributes.age"].setEnabled(voice.source == "VoiceDesign")
         self.explanation.setText("Reference voices reuse the recorded delivery; direct vocal controls are unavailable. Writing style still applies to new text." if not supported else "Delivery instructions guide speech; listen to assess the result.")
@@ -218,16 +213,21 @@ class SettingsPanel(QWidget):
         self.override.setChecked(bool(sampling))
         for name, spin in self.sampling.items():
             spin.setValue(sampling.get(name, SAMPLING[name][2]))
-            spin.setEnabled(bool(sampling) and w.job is None)
+            spin.setEnabled(bool(sampling))
         self.fields["capture_microphone"].setEnabled(w.setting_value("recording_source") == "screen")
         self.fields["recording_policy"].setEnabled(w.setting_value("recording_source") == "slides")
+        destination = self.fields["recording_destination"]
+        destination.setVisible(scope == 1)
+        self.recording_widget.layout().labelForField(destination).setVisible(scope == 1)
+        self.destination_button.setVisible(scope == 1)
         for path, applicable in (("quick_timing", w.setting_value("mode") == "Quick"), ("realtime_script", w.setting_value("mode") == "Realtime"), ("speech_priority", w.setting_value("mode") == "Realtime")):
             container = self.inheritance.get(path, (self.fields[path],))[0]
             container.setVisible(applicable)
             caption = self.form.labelForField(container)
             if caption:
                 caption.setVisible(applicable)
-        self.fields["language"].setEnabled(w.job is None and (scope != 2 or w.setting_value("language_policy") != "version"))
+        self.fields["language"].setEnabled(scope != 2 or w.setting_value("language_policy") != "version")
+        self.setVisible(w.setting_value("mode") != "Prepared")
         self.loading = False
 
     def choose_destination(self):

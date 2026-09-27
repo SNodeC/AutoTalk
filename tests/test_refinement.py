@@ -223,16 +223,16 @@ def test_desktop_workspaces_and_remembered_policy(qtbot,project):
     assert w.workspace.currentWidget() is w.quick_page
     w.mode.setCurrentText('Realtime')
     assert w.workspace.currentWidget() is w.editor
-    w.settings_dialog.show_section("AI & speech engine", 0)
+    w.settings[0].show_section("AI & speech engine")
     next(b for b in w.gpu_retention.buttons() if b.property('value') == 'idle').click()
     assert w.speech.retention == 'session'
-    w.settings_dialog.accept()
+    w.settings[0].accept()
     assert w.speech.retention=='idle'
     w2=MainWindow();qtbot.addWidget(w2)
     assert w2.gpu_retention.checkedButton().property('value')=='idle'
-    w.settings_dialog.show_section("AI & speech engine", 0)
+    w.settings[0].show_section("AI & speech engine")
     next(b for b in w.gpu_retention.buttons() if b.property('value') == 'session').click()
-    w.settings_dialog.accept()
+    w.settings[0].accept()
 
 
 def test_selected_segmentation_invalidates_audio(project):
@@ -383,7 +383,7 @@ def test_accepted_designed_voice_uses_exact_preview(qtbot, project, monkeypatch,
         f.setparams((1, 2, 24000, 0, 'NONE', 'not compressed'))
         f.writeframes(b'\1\0' * 24000 * 4)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project)
-    assert w.accept_designed_voice()
+    assert w.settings[1].accept_designed_voice()
     assert project.voice.source == 'Base'
     assert file_hash(project.asset(project.reference().file)) == file_hash(preview)
     assert w.job is None
@@ -531,26 +531,26 @@ def test_voice_library_preview_selection_and_cancel(qtbot, project, monkeypatch,
     voices.save_voice(project, 'My conference voice')
     project.voice.speaker = original
     w = MainWindow();qtbot.addWidget(w);w.adopt(project);w.show()
-    w.settings_dialog.show_section("Voice & language", 1)
-    w.voice_source.setCurrentIndex(3)
-    assert w.voice_library.rowCount() == 1
-    assert w.voice_library.item(0, 0).text() == 'My conference voice'
-    w.library_use.click()
+    w.settings[1].show_section("Voice & language")
+    w.settings[1].voice_source.setCurrentIndex(3)
+    assert w.settings[1].voice_library.rowCount() == 1
+    assert w.settings[1].voice_library.item(0, 0).text() == 'My conference voice'
+    w.settings[1].library_use.click()
     assert w.project.voice.speaker == 'Aiden'
-    assert w.settings_dialog.navigation.currentItem().text() == "Voice & language"
-    assert w.voice_library.item(w.voice_library.currentRow(), 0).text() == 'My conference voice'
-    w.settings_dialog.reject()
+    assert w.settings[1].navigation.currentItem().text() == "Voice & language"
+    assert w.settings[1].voice_library.item(w.settings[1].voice_library.currentRow(), 0).text() == 'My conference voice'
+    w.settings[1].reject()
     assert w.project.voice.speaker == original
 
 
 def test_recording_sources_update_capabilities_and_restore_on_cancel(qtbot, project):
     w = MainWindow();qtbot.addWidget(w);w.adopt(project);w.show()
-    w.settings_dialog.show_section("Presentation & recording", 1)
-    w.options.fields['recording_source'].setCurrentIndex(1)
+    w.settings[1].show_section("Presentation & recording")
+    w.settings[1].options.fields['recording_source'].setCurrentIndex(1)
     assert project.recording_source == 'screen'
-    assert w.options.fields['capture_microphone'].isEnabled()
-    assert not w.options.fields['recording_policy'].isEnabled()
-    w.settings_dialog.reject()
+    assert w.settings[1].options.fields['capture_microphone'].isEnabled()
+    assert not w.settings[1].options.fields['recording_policy'].isEnabled()
+    w.settings[1].reject()
     assert w.project.recording_source == 'slides'
 
 
