@@ -1,0 +1,19 @@
+From: Qt upstream, commit 1c6fb56a9686ad012b35ecbee9a67cc6686b6099
+Subject: Pipewire: Fix heap-use-after-free in CoreEventListener destructor
+
+Backport of https://github.com/qt/qtmultimedia/commit/1c6fb56a9686ad012b35ecbee9a67cc6686b6099
+Copyright (C) 2025 The Qt Company Ltd.
+SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+Synchronize hook removal with PipeWire event-loop dispatch. Keep the native
+Qt 6.10.2 ABI and system style plugins; do not replace the audio backend.
+
+--- a/src/multimedia/pipewire/qpipewire_async_support.cpp
++++ b/src/multimedia/pipewire/qpipewire_async_support.cpp
+@@ -84,3 +84,5 @@ CoreEventListener::~CoreEventListener()
+ {
+-    removeHooks();
++    QAudioContextManager::withEventLoopLock([&] {
++        removeHooks();
++    });
+ }

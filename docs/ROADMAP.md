@@ -21,8 +21,10 @@ the fixed-scope settings refactor, state recovery, save semantics, ANSI cleanup,
 recording shutdown/retry, button disclosures and Ctrl+C handling are implemented.
 Linux verification: 346 tests, native theme/scaling interaction, real GPU policies,
 real generation interrupted by SIGINT, and a repeated real Wayland capture/export.
-The 15–20-second startup target is still unmet (five warm runs: 91.36–98.81 s),
-and one intermittent native PipeWire initialization crash remains unexplained.
+The [startup/audio follow-up](reviews/2026-09-28-startup-and-audio.md) subsequently
+reproduced the native PipeWire crash in a Qt-only process and applied Qt's upstream
+lifetime fix. Both Linux Qt variants pass 349 tests. Concise whole-deck outlines
+reduced three warm starts to 61.12–62.25 s; the 15–20-second target remains open.
 See the ledger for the 39-group placement matrix and precise evidence boundaries.
 
 ## Recorded issue — Ctrl+C does not stop AutoTalk

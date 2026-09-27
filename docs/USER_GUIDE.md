@@ -727,9 +727,13 @@ remain on the machine. Prepared playback uses saved content.
 
 **Text ready** counts included slides with usable narration in the active language version.
 **Prepared slides** counts included slides with current audio. During a job the
-bars can show the active narration/audio stage. The separate moving progress bar
-means work is in progress; **Operation details** shows messages and measured stages.
-When a settings dialog is open, operation progress appears there.
+bars can show the active narration/audio stage. The separate operation bar shows
+the current stage and measured counts where available. Codex first shows
+**Awaiting response**, then the actual number of response characters received.
+Its total is unknown; this is not a percentage or a count of completed slides.
+The complete response is validated before AutoTalk uses it. **Operation details**
+shows messages and measurements. When a settings dialog is open, operation
+progress appears there.
 
 **Cancel operation** stops the current task. Completed slide audio is retained;
 the unfinished slide needs generation again. In Realtime, cancellation pauses active

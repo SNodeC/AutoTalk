@@ -51,6 +51,43 @@ def test_app_server_keeps_early_events_and_structured_output(fake_server):
     assert result == {"scope": "Engineering"}
 
 
+def test_response_progress_counts_only_current_turn_and_resets(fake_server, qtbot, project):
+    from autotalk.app import MainWindow
+    from threading import Event
+    fake_server.write_text(fake_server.read_text().replace(
+        "  # Events may arrive before the request response.", """  # Progress can also arrive before the request response.
+  for thread,turn,text in [('foreign','turn-test','ignore'),('thread-test','old','ignore'),
+                            ('thread-test','turn-test','{\"scope\":'),('thread-test','turn-test','\"Engineering\"}')]:
+   send({'method':'item/agentMessage/delta','params':{'threadId':thread,'turnId':turn,'delta':text}})
+"""))
+    window = MainWindow(); window.adopt(project); window.show()
+    release = Event()
+    qtbot.addWidget(window, before_close_func=lambda _: release.set())
+    events, results = [], []
+    def work(task):
+        def report(value):
+            events.append(value); task.event(value)
+        with codex.Codex(Task(event=report)) as client:
+            for _ in range(2):
+                results.append(client.generate('Scope', codex.SCOPE_SCHEMA))
+        assert release.wait(10)
+    try:
+        window.start_job('Creating talk text…', work)
+        qtbot.waitUntil(lambda: '23 characters received' in window.progress.text())
+        assert 'total unknown' in window.progress.text() and '%' not in window.progress.text()
+        assert window.progress.value() == 0 and window.progress.maximum() == 1
+        if directory := os.environ.get('AUTOTALK_EVIDENCE_DIR'):
+            from pathlib import Path
+            target = Path(directory); target.mkdir(parents=True, exist_ok=True)
+            window.grab().save(str(target / 'codex-response-progress.png'))
+        qtbot.waitUntil(lambda: len(results) == 2)
+        assert results == [{'scope': 'Engineering'}] * 2
+        assert [e.get('completed') for e in events if e['type'] == 'model_progress'] == [None, 9, 23, None, 9, 23]
+    finally:
+        release.set()
+        qtbot.waitUntil(lambda: window.job is None)
+
+
 def test_discovery_and_effort_validation(fake_server):
     with codex.Codex(Task()) as client:
         assert client.models()[0]["model"] == "test-vision"
@@ -116,9 +153,10 @@ def test_configured_default_is_used_for_effort_only_and_catalog_paginates(fake_s
     events = []
     with codex.Codex(Task(event=events.append)) as client:
         client.generate('Scope', codex.SCOPE_SCHEMA, effort='high')
-    assert events[-1]['model'] == 'configured-vision'
-    assert events[-1]['effort'] == 'high'
-    assert len(events[-1]['models']) == 2
+    settings = [e for e in events if e['type'] == 'codex_settings'][-1]
+    assert settings['model'] == 'configured-vision'
+    assert settings['effort'] == 'high'
+    assert len(settings['models']) == 2
     turn = next(r['params'] for r in requests(fake_server) if r['method'] == 'turn/start')
     assert turn['model'] == 'configured-vision' and turn['effort'] == 'high'
 

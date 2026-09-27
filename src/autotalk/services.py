@@ -147,7 +147,7 @@ def narration_result(project, task, client, fit=False, pages=None, outline=None,
     instruction = ("Revise the existing talk to fit the target using measured slide durations. Preserve correct content."
                    if fit else "Write a coherent conference talk for the requested pages, following the complete deck's structure.")
     if opening:
-        instruction = f"Plan this complete talk. Write FINAL natural spoken narration for slide {opening}; use short outlines in the other slides' narration fields."
+        instruction = f"Plan this complete talk. Write FINAL natural spoken narration for slide {opening}; use one concise outline sentence per remaining slide (about 10–15 words); retain the key point, narrative connection and allocated time for every slide. Leave notes empty unless a specific factual uncertainty or missing context needs attention; do not repeat shared caveats."
     prompt = instruction + " Allocate uneven time according to substance, including introduction and conclusion. Account for fixed clips and pauses. Write natural spoken language, not Markdown or stage directions. Preserve explicit [Language] paragraph markers for intentionally mixed passages; otherwise use each slide’s requested language and style. Never invent unsupported facts. Notes are for factual uncertainty or missing context. Use images and extracted text together. Return the requested pages in order, with time budgets in seconds. Respect requested_seconds when supplied for a single slide.\nINPUT:\n" + json.dumps(data, ensure_ascii=False)
     started = time.monotonic()
     task.report("Planning the complete deck while loading speech…" if opening else "Codex is creating narration…")

@@ -27,7 +27,8 @@ local Linux bundle at `dist/autotalk/autotalk`.
 
 AutoTalk follows the system light/dark appearance through Qt, including theme
 changes while it is open. Controls, dialogs, and checkboxes use the system palette.
-The current Linux bundle also includes this build machine's Qt 6.10.2, Plasma
+The current Linux bundle also includes this build machine's Qt 6.10.2 (with the
+upstream Multimedia callback-lifetime fix), Plasma
 integration, and Breeze widget style. Plasma selects the appearance; AutoTalk
 does not force Breeze. Other styles require a compatible included style plugin.
 
@@ -330,15 +331,29 @@ QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest -q
 .venv/bin/python tools/build.py
 ```
 
-To bundle a Linux build machine's Qt libraries and desktop style plugins, use
-`.venv/bin/python tools/build.py --system-qt`. This build option requires
-`qtpaths6` and a system Qt version matching the Linux PySide6 dependency (currently
-6.10.2). It stages the bindings with installed Qt modules and discovers the system
+Standard builds use Qt/PySide6 6.11.2, which includes the upstream PipeWire
+callback-lifetime fix. To bundle a Linux build machine's Qt libraries and desktop
+style plugins, use `tools/build.py --system-qt` with matching PySide6 bindings.
+For this machine's Qt 6.10.2, an isolated build invocation is:
+
+```sh
+uv run --extra dev --with PySide6==6.10.2 python tools/build.py --system-qt
+```
+
+The Qt 6.10.2 build automatically downloads the checksum-pinned Qt Multimedia
+source, applies the included upstream lifetime fix, and rebuilds that library.
+The build host needs CMake, Ninja, patch, matching Qt base/private and shader-tools
+development packages, and PipeWire, PulseAudio and FFmpeg development headers.
+Other matching system Qt versions use the installed modules directly.
+This build option requires `qtpaths6`. It stages the bindings with installed Qt
+modules and the corrected Multimedia library, and discovers the system
 plugins through the existing PyInstaller hooks. The packaging recipe also includes
 KDE's local filesystem plugin when present, so native file dialogs can browse
 directories. Missing optional modules, such as
 Qt PDF on this machine, come from the same-version binding package. The original
-Python environment and system installation are not modified by staging.
+Python environment and system installation are not modified by staging. The
+corrected library's source archive, patch and build recipe accompany the bundle
+in `qt-multimedia-source/`.
 
 This is a build-host requirement, not an end-user setup step. The resulting bundle
 contains the collected libraries/plugins. Its Linux/glibc baseline follows the

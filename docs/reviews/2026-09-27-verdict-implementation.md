@@ -5,6 +5,10 @@ The owner subsequently made that verdict authoritative and approved implementing
 the plan, with direct interaction and visual verification under Xvfb. This record
 does not modify the independent review or claim the entire refactor is complete.
 
+**Subsequent update:** the [startup/audio follow-up](2026-09-28-startup-and-audio.md)
+reproduces and corrects the native Qt lifetime fault and measures faster whole-deck
+planning. The measurements below are the original refactor's baseline evidence.
+
 ## Decisions and completion gate
 
 - Keep whole-deck planning in Realtime, even if the latency target is missed.

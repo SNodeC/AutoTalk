@@ -171,13 +171,22 @@ class Codex:
                                        "outputSchema": schema, **options})["turn"]["id"]
         deadline = time.monotonic() + 1200
         answers = []
+        received = 0
         self.task.report("Codex is preparing the talk…")
+        self.task.event({"type": "model_progress", "stage": "Codex: awaiting response"})
         try:
             while True:
                 event = self.next_event(deadline)
                 method, params = event.get("method"), event.get("params", {})
                 if params.get("threadId") not in (None, thread):
                     continue
+                if params.get("turnId") not in (None, turn):
+                    continue
+                if method == "item/agentMessage/delta":
+                    received += len(params.get("delta", ""))
+                    self.task.event({"type": "model_progress", "stage": "Codex: writing response",
+                                     "completed": received, "unit": "characters",
+                                     "detail": f"{received:,} characters received · total unknown"})
                 if method == "item/completed":
                     item = params.get("item", {})
                     if item.get("type") == "agentMessage":
