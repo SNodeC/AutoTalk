@@ -25,7 +25,7 @@ historical observations; their old status text is explicitly labeled as such.
 The [recording follow-up](reviews/2026-09-28-recording-followup.md) reproduces and
 corrects audio-reader throttling and shutdown loss found during acceptance.
 A real X11/PipeWire journey with a silent virtual output verifies live-demo and
-post-slide footage in the saved video. Supervised Wayland capture remains pending;
+post-slide footage in the saved video. The later Wayland acceptance is recorded below;
 further input compaction did not demonstrate a startup gain and was rejected.
 
 **Current priority (owner decision, 28 September):** defer further startup
@@ -35,12 +35,21 @@ capture, continued recording after the slides finish, and the complete saved
 video. Use a silent virtual audio output; leave physical audio settings untouched.
 The [native Wayland attempt](reviews/2026-09-28-wayland-verification.md) now
 identifies a KDE sharing-service crash and missing failure propagation in Qt's
-portal-response handler. Successful capture remains unverified; these findings
-replace the earlier assumption that the check was only awaiting permission.
+portal-response handler. Those initial failures replaced the earlier assumption
+that the check was only awaiting permission.
 The [failure-recovery fix](reviews/2026-09-28-wayland-failure-fix.md) now reports
 failed/cancelled portal requests in the native Qt 6.10.2 bundle, closes failed
-capture once and restores editing/retry. KDE's virtual-display crash and real
-Wayland success-path acceptance remain open.
+capture once and restores editing/retry. The subsequent
+[routing isolation and correction](reviews/2026-09-28-wayland-routing-isolation.md)
+removed a global override that erased the portal-selected video target while
+preserving system audio-output switching. Two full existing-display Wayland
+recordings now pass, including live-demo and post-slide footage, audio and MP4
+export; one uses the unchanged release Qt library. KDE's virtual-display crash
+remains open. The subsequent
+[native lifecycle correction](reviews/2026-09-28-wayland-lifecycle.md) reproduces
+and fixes initialization with multiple advertised sources and an early-failure
+cleanup crash. It also stops callback dispatch before stream destruction; the
+historical destructor crash itself has not been reproduced deterministically.
 
 ## Independent Claude review — 27 September 2026
 

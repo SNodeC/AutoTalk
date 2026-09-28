@@ -1,5 +1,5 @@
 From: Qt upstream, commit 1c6fb56a9686ad012b35ecbee9a67cc6686b6099
-Subject: PipeWire callback lifetime and portal failure reporting
+Subject: PipeWire callback lifetime, selected-source ownership and portal failures
 
 Backport of https://github.com/qt/qtmultimedia/commit/1c6fb56a9686ad012b35ecbee9a67cc6686b6099
 Copyright (C) 2025 The Qt Company Ltd.
@@ -10,7 +10,9 @@ Qt 6.10.2 ABI and system style plugins; do not replace the audio backend.
 
 The first change is the upstream lifetime backport above. The second is an
 AutoTalk correction: report unsuccessful portal responses through the existing
-capture error interface after resetting request state. It does not repair KDE.
+capture error interface after resetting request state. The final changes keep
+registry callbacks scoped to the portal-selected source and stop their event
+loop before stream teardown. They do not repair KDE.
 
 --- a/src/multimedia/pipewire/qpipewire_async_support.cpp
 +++ b/src/multimedia/pipewire/qpipewire_async_support.cpp
@@ -33,3 +35,29 @@ capture error interface after resetting request state. It does not repair KDE.
 +                    result == 1 ? u"Screen sharing was cancelled."_s : u"The screen-sharing service could not start capture."_s);
          return;
      }
+
+--- a/src/multimedia/pipewire/qpipewire_screencapturehelper.cpp
++++ b/src/multimedia/pipewire/qpipewire_screencapturehelper.cpp
+@@ -533,7 +533,8 @@
+
+ void QPipeWireCaptureHelper::onRegistryEventGlobal(uint32_t id, uint32_t permissions, const char *type, uint32_t version, const spa_dict *props)
+ {
+-    Q_UNUSED(id)
++    if (id != m_streams[0].nodeId)
++        return;
+     Q_UNUSED(permissions)
+     Q_UNUSED(version)
+
+@@ -778,9 +779,10 @@
+     if (!globalState)
+         return;
+     m_state = Stopping;
++    if (m_threadLoop)
++        pw_thread_loop_stop(m_threadLoop.get());
++
+     destroyStream(false);
+-
+-    pw_thread_loop_stop(m_threadLoop.get());
+
+     m_registry = {};
+     m_core = {};

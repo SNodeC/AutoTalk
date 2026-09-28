@@ -32,9 +32,9 @@ class Playback(QObject):
         super().__init__(parent)
         self.producer_active = producer_active
         if sys.platform == "linux":
-            # Qt's PipeWire backend pins a node and forbids reconnects. Leave
-            # destination selection and per-application restoration to the OS.
-            os.environ.setdefault("PIPEWIRE_PROPS", '{ application.name = "AutoTalk" node.dont-reconnect = false node.target = null }')
+            # Allow system audio routing without clearing stream targets: the
+            # screen recorder must retain its portal-selected PipeWire source.
+            os.environ.setdefault("PIPEWIRE_PROPS", '{ application.name = "AutoTalk" node.dont-reconnect = false }')
         self.project = None
         self.index = 0
         self.state = "stopped"

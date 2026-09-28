@@ -62,6 +62,45 @@ No successful sharing selection was observed. Its silent virtual audio output
 was removed; physical speaker settings were untouched. Successful real Wayland
 recording remains an acceptance gap, distinct from the verified failure handling.
 
+### Supervised retests after installation
+
+A fresh attempt around 13:44 CEST reproduced the KDE crash. The new core (portal
+PID 2717179) again resolves to virtual-output startup and deletion of an active
+selection delegate. The user subsequently said they think they selected
+“Share virtual screen.” Unlike the unpatched attempt, the actual failed portal
+request delivered exactly one AutoTalk error, “The screen-sharing service could
+not start capture.” The probe closed and removed its virtual audio output.
+This confirms error propagation against a real backend crash, beyond the
+private-bus regression probe. The acceptance harness collected the error instead
+of showing a modal dialog; visible dialog/editor recovery is covered separately
+above.
+
+A second fresh attempt targeted the existing eDP-1 laptop display and aligned
+the test presentation and demo windows with the main window's display. It
+reached its 240-second timeout without a ready stream or an application error,
+then closed and removed its virtual audio output. Physical-display recording
+remains unverified. Raw evidence is retained in `artifacts/wayland-retest/` and
+`artifacts/wayland-physical-retest/`; no production code changed for these retests.
+
+At 13:51 CEST, another supervised attempt progressed through sharing selection
+but exposed a different native Qt failure. Qt reported “Failed to open pipewire
+remote file descriptor”; the test then exited with SIGSEGV during shutdown.
+The saved core for test PID 2758059 resolves to pw_stream_destroy from
+QPipeWireCaptureHelper's member destruction. Its state was NoState, while
+m_hasSource was true, m_initDone false and m_err true. Thus discovery reached
+a video source, but capture initialization did not complete, and native resource
+cleanup was unsafe. The precise initialization failure and teardown repair still
+require investigation; a generic descriptor error does not establish a permission
+denial or a bad operating-system descriptor.
+
+This attempt did not crash the KDE portal. It used a silent virtual audio output
+with microphone recording explicitly disabled, and left physical audio settings
+unchanged. The runner removed the virtual output despite the child crash. No
+video was saved. Logs and the private core remain in
+`artifacts/wayland-laptop-retest/`. This newly observed failure means native
+Wayland recording is still not accepted, despite the previously verified
+rejected-request recovery. No additional production changes were made here.
+
 An intermediate focused test command did not explicitly select X11 for Xvfb;
 two popup-interaction cases failed under the inherited Wayland environment. It
 is not accepted as Xvfb verification. Final full-suite runs explicitly select
@@ -82,3 +121,12 @@ approved allowance to **247/250**. The tracked patch file additionally includes
 patch context and explanatory metadata; its file diff is +17/-1.
 Tests/probes: **90 additions, no deletions**. Raw logs, the private-bus runner,
 native build and isolated acceptance artifacts are in `artifacts/wayland-fix/`.
+
+### Follow-up: audio-routing isolation
+
+The [routing-isolation investigation](2026-09-28-wayland-routing-isolation.md)
+subsequently obtained real laptop-screen frames and clean native teardown with
+routing overrides removed. It also exposed process-global audio routing affecting
+video in both the prior harness and AutoTalk's production configuration. Further
+actual-recorder runs still failed initialization without those overrides, so this
+is not yet a complete diagnosis or a successful full recording acceptance.
