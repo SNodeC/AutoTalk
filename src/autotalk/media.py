@@ -6,6 +6,7 @@ import shutil
 import time
 import uuid
 import wave
+from contextlib import AbstractContextManager, ExitStack, closing
 from fractions import Fraction
 from pathlib import Path
 
@@ -50,24 +51,33 @@ def import_clip(project, source, task, placement="before"):
         temporary.unlink(missing_ok=True)
 
 
-class AudioFile:
+class AudioFile(AbstractContextManager):
     """One open asset; reads use absolute 48 kHz stereo frame coordinates."""
     def __init__(self, path, *, frames=None, offset=None, gain=1.0, loop=False):
         self.path, self.gain, self.loop = Path(path), gain, loop
         self.stream = self.path.open("rb")
-        if offset is None:
-            with wave.open(self.stream, "rb") as wav:
-                self.source_rate, self.channels = wav.getframerate(), wav.getnchannels()
-                if wav.getsampwidth() != 2 or self.channels not in (1, 2):
-                    raise ValueError("Audio assets must be mono or stereo PCM16 WAV.")
-                self.source_frames, self.offset = wav.getnframes(), self.stream.tell()
-        else:
-            self.source_frames, self.offset, self.source_rate, self.channels = frames, offset, 24000, 1
-        self.frames = round(self.source_frames * RATE / self.source_rate)
+        try:
+            if offset is None:
+                with wave.open(self.stream, "rb") as wav:
+                    self.source_rate, self.channels = wav.getframerate(), wav.getnchannels()
+                    if wav.getsampwidth() != 2 or self.channels not in (1, 2):
+                        raise ValueError("Audio assets must be mono or stereo PCM16 WAV.")
+                    self.source_frames, self.offset = wav.getnframes(), self.stream.tell()
+            else:
+                self.source_frames, self.offset, self.source_rate, self.channels = frames, offset, 24000, 1
+            self.frames = round(self.source_frames * RATE / self.source_rate)
+        except BaseException:
+            self.close()
+            raise
 
-    def __del__(self):
+    def close(self):
         if hasattr(self, "stream"):
             self.stream.close()
+
+    __del__ = close
+
+    def __exit__(self, *args):
+        self.close()
 
     def read(self, start, count):
         if count <= 0 or self.frames <= 0:
@@ -105,26 +115,46 @@ class Mix:
         self.parts = [[] for _ in project.slides]
         self.complete = [False for _ in project.slides]
         self.background = None
-        self.update()
+        try:
+            self.update()
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self):
+        for parts in self.parts:
+            for part in parts:
+                part.close()
+        if self.background:
+            self.background.close()
 
     def update(self, index=None, event=None):
         p = self.project
         if index is None:
-            self.background = AudioFile(p.asset(p.background.file), gain=p.background_gain, loop=p.background_loop) if p.background else None
+            background = AudioFile(p.asset(p.background.file), gain=p.background_gain, loop=p.background_loop) if p.background else None
+            if self.background:
+                self.background.close()
+            self.background = background
         for i in range(len(p.slides)) if index is None else [index]:
             slide = p.slides[i]
             if not slide.included:
+                for part in self.parts[i]:
+                    part.close()
                 self.parts[i], self.complete[i] = [], True
                 continue
             ready = p.ready(slide)
-            parts = [AudioFile(p.asset(c.file), gain=c.gain) for c in slide.clips if c.placement == "before"]
-            if ready:
-                parts.append(AudioFile(p.audio(slide)))
-            elif event and slide.text_ready and event["key"] == p.speech_key(slide):
-                parts.append(AudioFile(event["path"], frames=event["frames"], offset=event["offset"]))
-            if ready:
-                parts.extend(AudioFile(p.asset(c.file), gain=c.gain) for c in slide.clips if c.placement == "after")
-            self.parts[i], self.complete[i] = parts, ready
+            with ExitStack() as pending:
+                parts = [pending.enter_context(AudioFile(p.asset(c.file), gain=c.gain)) for c in slide.clips if c.placement == "before"]
+                if ready:
+                    parts.append(pending.enter_context(AudioFile(p.audio(slide))))
+                elif event and slide.text_ready and event["key"] == p.speech_key(slide):
+                    parts.append(pending.enter_context(AudioFile(event["path"], frames=event["frames"], offset=event["offset"])))
+                if ready:
+                    parts.extend(pending.enter_context(AudioFile(p.asset(c.file), gain=c.gain)) for c in slide.clips if c.placement == "after")
+                for part in self.parts[i]:
+                    part.close()
+                self.parts[i], self.complete[i] = parts, ready
+                pending.pop_all()
 
     def frames(self, index):
         return sum(part.frames for part in self.parts[index])
@@ -332,17 +362,17 @@ def export_recording(root, task, destination=None):
 def export_prepared(project, task, destination):
     if not project.prepared:
         raise ValueError("Accept the current script and generate all audio before exporting.")
-    mix = Mix(project)
-    capture = Capture(project)
-    try:
-        for index in range(len(project.slides)):
-            for start in range(0, mix.frames(index), RATE):
-                task.check()
-                capture.append(mix.read(index, start, min(RATE, mix.frames(index)-start)), index+1)
-            task.event({"type": "progress", "stage": "Mix audio", "completed": index+1, "total": len(project.slides)})
-    except BaseException:
-        capture.close()
-        shutil.rmtree(capture.root)
-        raise
-    root = capture.close()
+    with closing(Mix(project)) as mix:
+        capture = Capture(project)
+        try:
+            for index in range(len(project.slides)):
+                for start in range(0, mix.frames(index), RATE):
+                    task.check()
+                    capture.append(mix.read(index, start, min(RATE, mix.frames(index)-start)), index+1)
+                task.event({"type": "progress", "stage": "Mix audio", "completed": index+1, "total": len(project.slides)})
+        except BaseException:
+            capture.close()
+            shutil.rmtree(capture.root)
+            raise
+        root = capture.close()
     return export_recording(root, task, destination)

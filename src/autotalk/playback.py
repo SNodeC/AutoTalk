@@ -88,6 +88,8 @@ class Playback(QObject):
     def load(self, project):
         self.stop()
         self.project = project
+        if self.mix:
+            self.mix.close()
         self.mix = Mix(project)
         self.production_samples.clear()
         self.preview_path = None
@@ -400,11 +402,18 @@ class Playback(QObject):
             return
         self._offset = 0
         self.preview_path = None
+        if self.preview_audio:
+            self.preview_audio.close()
         self.preview_audio = None
         self.state = "stopped"
         self.changed.emit()
         if was_presenting:
             self.presentation_ended.emit()
+
+    def close(self):
+        self.stop()
+        if not self.capture and self.mix:
+            self.mix.close()
 
     def _finish(self):
         if self.preview_path:

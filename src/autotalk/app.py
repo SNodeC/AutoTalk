@@ -1203,6 +1203,7 @@ class MainWindow(QMainWindow):
             event.ignore()
             return
         if self.save():
+            self.transport.close()
             self.speech.release()
             event.accept()
         else:

@@ -89,3 +89,124 @@ def test_separate_recordings_have_distinct_destinations(project, tmp_path):
     assert first.destination != second.destination
     first.close()
     second.close()
+
+
+@pytest.fixture
+def retained_readers(monkeypatch):
+    """Retain diagnostic references so cleanup cannot depend on CPython refcounts."""
+    from autotalk import media, playback
+    readers = []
+    class Retained(AudioFile):
+        def __init__(self, *args, **kwargs):
+            readers.append(self)
+            super().__init__(*args, **kwargs)
+    monkeypatch.setattr(media, 'AudioFile', Retained)
+    monkeypatch.setattr(playback, 'AudioFile', Retained)
+    return readers
+
+
+def test_mix_replacement_releases_superseded_assets(project, retained_readers):
+    from autotalk.media import Mix
+    from conftest import make_audio
+    make_audio(project)
+    mix = Mix(project)
+    old = list(retained_readers)
+    mix.update(0)
+    assert old[0].stream.closed and not old[1].stream.closed
+    assert len(mix.read(0, 0, 120)) == 120
+    project.slides[1].included = False
+    mix.update(1)
+    assert old[1].stream.closed
+    mix.close()
+    assert all(r.stream.closed for r in retained_readers)
+
+
+@pytest.mark.parametrize('failure', ['capture', 'read', 'cancel', 'success', 'invalid_audio'])
+def test_export_closes_audio_even_with_retained_traceback(project, retained_readers, monkeypatch, tmp_path, failure):
+    from autotalk import media
+    from autotalk.runtime import Cancelled
+    from conftest import make_audio
+    make_audio(project)
+    task = Task(lambda _: None)
+    if failure == 'cancel': task.cancelled.set()
+    if failure == 'capture':
+        def fail(*args, **kwargs): raise OSError('Capture failed')
+        monkeypatch.setattr(media, 'Capture', fail)
+    elif failure == 'read':
+        def fail(*args, **kwargs): raise OSError('Read failed')
+        monkeypatch.setattr(media.Mix, 'read', fail)
+    elif failure == 'invalid_audio':
+        project.audio(project.slides[1]).write_bytes(b'invalid wave')
+    if failure == 'success':
+        assert media.export_prepared(project, task, tmp_path/'out.wav').exists()
+    else:
+        with pytest.raises((OSError, EOFError, wave.Error, Cancelled)) as captured:
+            media.export_prepared(project, task, tmp_path/'out.wav')
+        assert captured.traceback  # Deliberately still alive when checking handles.
+    assert retained_readers and all(r.stream.closed for r in retained_readers)
+
+
+def test_preview_project_change_and_shutdown_release_audio(qtbot, project, retained_readers):
+    from autotalk.app import MainWindow
+    from conftest import make_audio
+    make_audio(project, seconds=3)
+    w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+    project_readers = list(retained_readers)
+    w.preview_button.click()
+    preview = retained_readers[-1]
+    w.transport.pause()
+    assert not preview.stream.closed
+    w.preview_button.click()
+    assert preview.stream.closed
+    assert all(not reader.stream.closed for reader in project_readers)
+    w.adopt(project)
+    assert all(reader.stream.closed for reader in project_readers)
+    w.close()
+    assert all(reader.stream.closed for reader in retained_readers)
+
+
+def test_failed_mix_update_keeps_old_audio_and_closes_partial_replacement(project, retained_readers, tmp_path):
+    from autotalk.media import Mix
+    from autotalk.project import Clip
+    from conftest import make_audio
+    make_audio(project)
+    mix = Mix(project)
+    previous = retained_readers[0]
+    expected = mix.read(0, 0, 120)
+    invalid = project.asset('bad.wav'); invalid.write_bytes(b'bad wave')
+    project.slides[0].clips = [
+        Clip(project.slides[0].audio_file, '', .3, 'before'),
+        Clip('bad.wav', '', .3, 'after')]
+    with pytest.raises((EOFError, wave.Error)) as captured:
+        mix.update(0)
+    assert captured.traceback and not previous.stream.closed
+    assert all(r.stream.closed for r in retained_readers[2:])
+    assert np.array_equal(mix.read(0, 0, 120), expected)
+    mix.close()
+
+
+def test_repeated_background_and_stream_updates_bound_owned_handles(project, retained_readers):
+    from autotalk.media import Mix
+    from autotalk.project import Clip
+    from conftest import make_audio
+    make_audio(project)
+    project.background = Clip(project.slides[0].audio_file, '', .3)
+    mix = Mix(project)
+    for _ in range(20):
+        mix.update()
+        assert sum(not r.stream.closed for r in retained_readers) == 3
+    project.background = None
+    mix.update()
+    assert sum(not r.stream.closed for r in retained_readers) == 2
+    slide = project.slides[0]; slide.audio_key = ''
+    with wave.open(str(project.audio(slide)), 'rb') as wav:
+        frames = wav.getnframes()
+    with project.audio(slide).open('rb') as stream:
+        with wave.open(stream, 'rb') as wav:
+            offset = stream.tell()
+    for _ in range(20):
+        mix.update(0, {'key':project.speech_key(slide),'path':str(project.audio(slide)), 'frames':frames,'offset':offset})
+        assert sum(not r.stream.closed for r in retained_readers) == 2
+        assert len(mix.read(0, 0, 120)) == 120
+    mix.close()
+    assert all(r.stream.closed for r in retained_readers)
