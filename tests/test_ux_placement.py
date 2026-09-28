@@ -4,7 +4,7 @@ import json
 
 import pytest
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtWidgets import QPushButton
+from PySide6.QtWidgets import QPushButton, QStyle, QStyleOptionComboBox
 
 from autotalk import app, options, voices
 from autotalk import settings
@@ -40,6 +40,13 @@ def test_p1_controls_are_visible_without_scroll_and_do_not_overlap(qtbot, projec
                         w.slide_audio_button, w.preview_button, w.slide_list):
             visible_inside(control, w)
         assert w.image.height() >= 100 and w.narration.height() >= 110
+        for inherited in ('advance', 'pause', 'demo'):
+            w.project.set_setting('after', inherited)
+            w.show_slide(0)
+            option = QStyleOptionComboBox(); w.slide_after.initStyleOption(option)
+            field = w.slide_after.style().subControlRect(QStyle.CC_ComboBox, option, QStyle.SC_ComboBoxEditField, w.slide_after)
+            for item in range(w.slide_after.count()):
+                assert w.slide_after.fontMetrics().horizontalAdvance(w.slide_after.itemText(item)) <= field.width()
         for control in (w.regenerate_button, w.slide_audio_button, w.preview_button):
             assert not control.geometry().intersects(w.narration.geometry())
     else:

@@ -380,7 +380,8 @@ class MainWindow(QMainWindow):
         self.slide_directions.setText(self.project.setting("delivery.instructions", slide))
         self.slide_budget.setValue(slide.budget_seconds)
         self.slide_include.setChecked(slide.included)
-        self.slide_after.setItemText(0, "Use talk setting — " + {"advance": "advance", "pause": "wait", "demo": "live demo"}[self.project.setting("after")])
+        self.slide_after.setItemText(0, "Talk: " + {"advance": "advance", "pause": "wait", "demo": "live demo"}[self.project.setting("after")])
+        self.slide_after.setToolTip("Use this talk’s setting: " + self.slide_after.itemText(0).removeprefix("Talk: ") + ". Choose another action to override it for this slide.")
         self.slide_after.setCurrentIndex(self.slide_after.findData(slide.overrides.get("after")))
         self.inherit_delivery.setChecked("delivery.instructions" not in slide.overrides)
         self.loading = False

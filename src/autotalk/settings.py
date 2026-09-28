@@ -513,7 +513,7 @@ def build_settings(w):
     w.settings_after = combo([("Advance automatically", "advance"), ("Pause for live demo", "demo"), ("Wait for presenter", "pause")], lambda: w.edit_setting("after", w.settings_after.currentData()))
     form(playback).addRow("After slide", w.settings_after)
     if w.scope == 1:
-        playback.layout().addWidget(button("Display & sound settings…", lambda: w.window.settings[0].show_section("Application", focus=w.window.screen)))
+        playback.layout().addWidget(button("Display && sound settings…", lambda: w.window.settings[0].show_section("Application", focus=w.window.screen)))
     recording = w.add("Recording", "Presentation & recording", (0, 1))
     form(recording).addRow("Recording", w.options.record)
     recording.layout().addWidget(label("Screen capture continues until End presentation and save video. Slides-and-speech recordings finish after the last slide. Screen sharing is authorized separately from the presentation display."))

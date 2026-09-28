@@ -14,7 +14,7 @@ from conftest import make_audio
 
 @pytest.mark.parametrize('caption, section, scope', [
     ('Talk settings…', 'Talk & preparation', 1),
-    ('Voice & speech…', 'Voice & language', 1),
+    ('Voice && speech…', 'Voice & language', 1),
     ('Presentation settings…', 'Presentation & recording', 1),
     ('Language options…', 'Voice & language', 1),
     ('Additional audio…', 'Presentation & recording', 2),
