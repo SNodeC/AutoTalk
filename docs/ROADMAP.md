@@ -28,6 +28,20 @@ A real X11/PipeWire journey with a silent virtual output verifies live-demo and
 post-slide footage in the saved video. Supervised Wayland capture remains pending;
 further input compaction did not demonstrate a startup gain and was rejected.
 
+**Current priority (owner decision, 28 September):** defer further startup
+optimization and focus on supervised native Wayland recording acceptance.
+The 15–20-second target remains open, not waived. Verify permission, live-demo
+capture, continued recording after the slides finish, and the complete saved
+video. Use a silent virtual audio output; leave physical audio settings untouched.
+The [native Wayland attempt](reviews/2026-09-28-wayland-verification.md) now
+identifies a KDE sharing-service crash and missing failure propagation in Qt's
+portal-response handler. Successful capture remains unverified; these findings
+replace the earlier assumption that the check was only awaiting permission.
+The [failure-recovery fix](reviews/2026-09-28-wayland-failure-fix.md) now reports
+failed/cancelled portal requests in the native Qt 6.10.2 bundle, closes failed
+capture once and restores editing/retry. KDE's virtual-display crash and real
+Wayland success-path acceptance remain open.
+
 ## Independent Claude review — 27 September 2026
 
 At the owner's request, Claude CLI reviewed source snapshot `8d06f96` on

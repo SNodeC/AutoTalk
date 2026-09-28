@@ -177,6 +177,8 @@ class MainWindow(QMainWindow):
             self.progress.setVisible(self.job is not None)
 
     def error(self, message):
+        if self.presentation and self.transport.state == "stopped":
+            self.stop_presentation()
         self.log_message(message)
         QMessageBox.warning(self, "AutoTalk", message)
 

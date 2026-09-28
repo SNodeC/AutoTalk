@@ -23,6 +23,8 @@ The corresponding source archive, LGPL/GPL license texts, patch and build recipe
 are provided in the bundle's `qt-multimedia-source/` directory (license texts are
 inside the source archive). It remains a replaceable, dynamically linked library.
 Standard Qt 6.11.2 builds already include this fix.
+The native 6.10.2 patch also includes AutoTalk's portal-failure notification
+correction; that additional correction is not supplied to stock Qt wheels.
 
 The packaged prototype uses dynamically loaded Qt libraries. Speech dependencies
 and model weights are downloaded into the user's private application data

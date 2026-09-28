@@ -26,6 +26,7 @@ class Playback(QObject):
     presentation_ended = Signal()
     recording_ready = Signal(object)
     demo_requested = Signal()
+    capture_failed = Signal(str)
 
     def __init__(self, parent=None, producer_active=lambda: False):
         super().__init__(parent)
@@ -43,6 +44,7 @@ class Playback(QObject):
         self.preview_audio = None
         self.production_samples = deque(maxlen=32)
         self.capture = None
+        self.capture_failed.connect(self._capture_failed, Qt.ConnectionType.QueuedConnection)
         self.sink = None
         self.device = None
         self.writer = None
@@ -259,8 +261,6 @@ class Playback(QObject):
             if not self.playing:
                 return
             if self.capture and hasattr(self.capture, "ready"):
-                if self.capture.error:
-                    raise RuntimeError(self.capture.error)
                 if not self.capture.ready:
                     self.changed.emit()
                     return
@@ -341,7 +341,7 @@ class Playback(QObject):
                 try:
                     if self.project.recording_source == "screen":
                         from .screen_capture import ScreenCapture
-                        self.capture = ScreenCapture(self.project, self.failed.emit)
+                        self.capture = ScreenCapture(self.project, self.capture_failed.emit)
                     else:
                         self.capture = Capture(self.project)
                 except (OSError, RuntimeError) as error:
@@ -380,6 +380,10 @@ class Playback(QObject):
         self.preview_path = Path(path)
         self.preview_audio = AudioFile(path)
         self.play()
+
+    def _capture_failed(self, message):
+        self.stop()
+        self.failed.emit(message)
 
     def _finalize_capture(self):
         if self.capture:

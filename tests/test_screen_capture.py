@@ -1,5 +1,6 @@
 """Desktop audio timing and backpressure at the recording-source boundary."""
 import ctypes
+import sys
 import threading
 import time
 from types import SimpleNamespace
@@ -65,3 +66,42 @@ def test_recorded_packet_uses_latency_of_first_unread_sample(tmp_path, monkeypat
     assert (tmp_path / 'audio.pcm').read_bytes() == bytes(first * 4) + raw
     assert capture.frames == first + 480 and capture.ready
     assert closed == [True] and not failures
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Linux desktop capture")
+@pytest.mark.parametrize("paused", [False, True])
+def test_capture_failure_closes_once_on_ui_thread_and_allows_retry(qtbot, project, monkeypatch, paused):
+    from PySide6.QtCore import QThread
+    from PySide6.QtMultimedia import QScreenCapture
+    from PySide6.QtWidgets import QMessageBox
+    from autotalk.app import MainWindow
+    from conftest import make_audio
+
+    make_audio(project)
+    project.record_presentation, project.recording_source = True, "screen"
+    monkeypatch.setattr(QScreenCapture, "start", lambda self: None)
+    errors = []
+    def warning(*args):
+        assert QThread.currentThread() == window.thread()
+        assert window.transport.capture is None
+        assert window.presentation is None
+        errors.append(args[2])
+    monkeypatch.setattr(QMessageBox, "warning", warning)
+    window = MainWindow(); qtbot.addWidget(window); window.adopt(project)
+    window.start_button.click()
+    capture = window.transport.capture
+    if paused:
+        window.transport.pause()
+    # Audio/encoder failures can arrive while narration is paused, off the UI thread.
+    worker = threading.Thread(target=capture.fail, args=("Capture failed",))
+    worker.start(); worker.join()
+    qtbot.waitUntil(lambda: bool(errors))
+    qtbot.wait(50)
+    assert errors == ["Capture failed"]
+    assert window.transport.state == "stopped" and not window.transport.active
+    assert not window.pending_exports
+    window.start_button.click()
+    assert window.transport.capture is not None and window.transport.capture is not capture
+    assert not window.transport.capture.error
+    window.stop_presentation()
+    assert window.transport.capture is None

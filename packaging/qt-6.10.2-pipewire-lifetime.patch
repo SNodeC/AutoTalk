@@ -1,5 +1,5 @@
 From: Qt upstream, commit 1c6fb56a9686ad012b35ecbee9a67cc6686b6099
-Subject: Pipewire: Fix heap-use-after-free in CoreEventListener destructor
+Subject: PipeWire callback lifetime and portal failure reporting
 
 Backport of https://github.com/qt/qtmultimedia/commit/1c6fb56a9686ad012b35ecbee9a67cc6686b6099
 Copyright (C) 2025 The Qt Company Ltd.
@@ -7,6 +7,10 @@ SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-on
 
 Synchronize hook removal with PipeWire event-loop dispatch. Keep the native
 Qt 6.10.2 ABI and system style plugins; do not replace the audio backend.
+
+The first change is the upstream lifetime backport above. The second is an
+AutoTalk correction: report unsuccessful portal responses through the existing
+capture error interface after resetting request state. It does not repair KDE.
 
 --- a/src/multimedia/pipewire/qpipewire_async_support.cpp
 +++ b/src/multimedia/pipewire/qpipewire_async_support.cpp
@@ -17,3 +21,15 @@ Qt 6.10.2 ABI and system style plugins; do not replace the audio backend.
 +        removeHooks();
 +    });
  }
+
+--- a/src/multimedia/pipewire/qpipewire_screencapturehelper.cpp
++++ b/src/multimedia/pipewire/qpipewire_screencapturehelper.cpp
+@@ -140,6 +140,7 @@ void QPipeWireCaptureHelper::gotRequestResponse(uint result, const QVariantMap &map)
+     if (result != 0) {
+         m_operationState = NoOperation;
+-        qWarning() << "Failed to capture screen via pipewire, perhaps because user cancelled the operation.";
+         m_requestToken = -1;
++        updateError(QPlatformSurfaceCapture::InternalError,
++                    result == 1 ? u"Screen sharing was cancelled."_s : u"The screen-sharing service could not start capture."_s);
+         return;
+     }
