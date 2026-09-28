@@ -75,6 +75,7 @@ def row(*widgets):
 
 def form(parent):
     box = QFormLayout()
+    box.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
     box.setVerticalSpacing(12)
     parent.layout().addLayout(box)
     return box

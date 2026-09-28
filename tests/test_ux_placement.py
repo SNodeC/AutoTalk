@@ -82,6 +82,33 @@ def test_dialog_destinations_and_direct_voice_sources(qtbot, project):
     w.settings[1].reject()
 
 
+@pytest.mark.parametrize('scope', [0, 1])
+@pytest.mark.parametrize('size', [(760, 580), (920, 760)])
+def test_language_arrangement_choices_fit_native_field(qtbot, project, scope, size):
+    w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+    dialog = w.settings[scope]
+    dialog.show_section('Voice & language')
+    dialog.resize(*size)
+    combo = dialog.options.fields['language_policy']
+    scroll = dialog.pages.currentWidget()
+    for index in range(combo.count()):
+        scroll.ensureWidgetVisible(combo)
+        combo.setFocus()
+        qtbot.keyClick(combo, Qt.Key_Home)
+        for _ in range(index):
+            qtbot.keyClick(combo, Qt.Key_Down)
+        qtbot.wait(20)
+        assert combo.currentIndex() == index
+        assert dialog.setting_value('language_policy') == combo.itemData(index)
+        option = QStyleOptionComboBox(); combo.initStyleOption(option)
+        field = combo.style().subControlRect(QStyle.CC_ComboBox, option, QStyle.SC_ComboBoxEditField, combo)
+        assert combo.fontMetrics().horizontalAdvance(combo.currentText()) <= field.width()
+        assert (dialog.width(), dialog.height()) == size
+        assert scroll.horizontalScrollBar().maximum() == 0
+        visible_inside(combo, dialog)
+    dialog.reject()
+
+
 @pytest.mark.parametrize('mode', ['Prepared', 'Realtime'])
 def test_whole_talk_text_then_audio_preserves_edits_and_does_not_present(qtbot, project, monkeypatch, local_speech, mode):
     project.mode = mode

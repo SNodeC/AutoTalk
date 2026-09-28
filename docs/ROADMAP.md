@@ -17,11 +17,13 @@ settings, workflows, ownership and packaging. It recommends preserving the
 architecture and continuing refinement. No application fixes were made during
 this review.
 
-**New F17, low severity / P3:** the current selection in Language arrangement
-clips for two options at the 760×580 settings-dialog size. Measured text widths
-236/255 px exceed the native edit field's 234 px. The dropdown popup is readable;
-the normal 920×760 dialog fits all choices. Record a narrow sizing/eliding fix
-and a minimum-size regression check as proposed work, not completed work.
+**F17, low severity / P3 — fixed after owner approval:** Language arrangement
+clipped two choices at 760×580 (236/255 px text versus a 234 px edit field).
+The [content-sizing/form fix](reviews/2026-09-28-language-selector-fix.md) restores
+native content sizing and wraps form rows when needed, preserving the supported
+dialog size and inheritance control. App/talk scope regressions, both 376-test
+Linux suites and light/dark 100%/150% interaction checks pass. Startup optimization
+remains owner-deferred.
 
 F6's corrected retention path, F12/F13 labels and F14 cleanup remain verified
 within their recorded evidence. F7's 15–20-second startup target is still open

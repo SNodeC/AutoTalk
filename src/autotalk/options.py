@@ -131,14 +131,13 @@ class SettingsPanel(QWidget):
 
     def bind(self, path, label, widget, signal):
         self.fields[path] = widget
+        self.form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         self.form.addRow(label, widget)
         signal.connect(lambda *args, p=path: self.edit(p))
         return widget
 
     def combo(self, path, label, choices):
         widget = QComboBox()
-        widget.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
-        widget.setMinimumContentsLength(10)
         for text, value in choices:
             widget.addItem(text, value)
         return self.bind(path, label, widget, widget.currentIndexChanged)
