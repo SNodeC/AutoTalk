@@ -238,7 +238,8 @@ In all modes, Start fills missing/translation text without replacing other slide
 Realtime checks cached opening audio immediately while later preparation continues.
 
 The slide preview plays narration and its prepared pause. It does not mix imported
-clips or background music; use a presentation to hear the complete mix.
+clips or background music; use a presentation to hear the complete mix. Selecting
+another slide ends the preview and leaves the editor ready for that slide.
 
 ## Quick: prepare and start automatically
 
@@ -738,6 +739,9 @@ progress appears there.
 **Cancel operation** stops the current task. Completed slide audio is retained;
 the unfinished slide needs generation again. In Realtime, cancellation pauses active
 playback. Pause/Continue controls affect playback instead and do not cancel preparation.
+Canceling narration retains a healthy loaded speech model according to your retention
+policy. Canceling active synthesis terminates its unfinished worker request, so a
+later synthesis may need to reload the model.
 
 The upper-right command is **Prepare and start** in Prepared mode and **Start** in
 Quick/Realtime. It stays visible and enabled for a loaded talk. If another operation

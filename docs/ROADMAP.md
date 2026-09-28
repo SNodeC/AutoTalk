@@ -5,6 +5,23 @@ complete agreed product scope below. Implementation targets 0.3. Testing for
 this refinement pass is **Linux only**; Windows/macOS support is retained.
 See [behavior](../README.md) and [measured verification](VERIFICATION.md).
 
+## Refinement following the second Claude review — 28 September 2026
+
+The [second verdict](reviews/2026-09-28-claude-verdict.md) is recorded with its
+[method and evidence](reviews/2026-09-28-claude-review-method.md). The owner
+approved refinement of labels/clipping, model retention, measured startup and
+audio-resource ownership, followed by Linux interaction/recording acceptance.
+See the [current refinement ledger](reviews/2026-09-28-refinement.md) for changes,
+measurements and outstanding checks. This sequence preserves all product and
+platform requirements below; it does not restart the UI architecture.
+
+Current dispositions: F12/F13 label/readability fixes are implemented; F6 has a
+reproduced and corrected narration-interruption unload path, without claiming
+that every historical unloading report has the same cause; F14 adds deterministic
+resource cleanup. F7's 15–20-second warm Realtime target remains open. F15 was
+retracted by Claude and requires no change. The original reports below retain
+historical observations; their old status text is explicitly labeled as such.
+
 ## Independent Claude review — 27 September 2026
 
 At the owner's request, Claude CLI reviewed source snapshot `8d06f96` on
@@ -29,7 +46,7 @@ See the ledger for the 39-group placement matrix and precise evidence boundaries
 
 ## Recorded issue — Ctrl+C does not stop AutoTalk
 
-- **Status:** open; recorded only, not investigated or fixed.
+- **Status when recorded:** open; recorded only, not investigated or fixed.
 - **Reported:** 27 September 2026, Linux.
 - **Observed:** pressing Ctrl+C does not stop the application.
 - **Expected:** when launched from a terminal, Ctrl+C should request a clean
@@ -39,7 +56,7 @@ See the ledger for the 39-group placement matrix and precise evidence boundaries
 
 ## Recorded issue — settings unavailable after conference preparation
 
-- **Status:** open; recorded only, no application changes made.
+- **Status when recorded:** open; recorded only, no application changes made.
 - **Reported:** 27 September 2026, Linux, with a screenshot.
 - **Observed:** after opening a PDF and reading/preparing the conference website
   with Codex, some settings remain unavailable. In **Talk & preparation → This
@@ -54,7 +71,7 @@ See the ledger for the 39-group placement matrix and precise evidence boundaries
 
 ## Recorded issue — delivery-preset UX is not meaningful
 
-- **Status:** open; recorded only, no application changes made.
+- **Status when recorded:** open; recorded only, no application changes made.
 - **Reported:** 27 September 2026, with a screenshot of **Voice & language →
   This talk → Writing & delivery**.
 - **User finding:** saving delivery presets is meaningless in the current UX.
@@ -68,7 +85,7 @@ See the ledger for the 39-group placement matrix and precise evidence boundaries
 
 ## Recorded issue — raw ANSI color codes in Operation details
 
-- **Status:** open; recorded only, no application changes made.
+- **Status when recorded:** open; recorded only, no application changes made.
 - **Reported:** 27 September 2026, Linux, with a screenshot during Realtime
   speech-model loading.
 - **Observed:** **Operation details** displays terminal escape/color sequences
@@ -80,7 +97,7 @@ See the ledger for the 39-group placement matrix and precise evidence boundaries
 
 ## Recorded issue — stopping leaves the interface disabled
 
-- **Status:** open; blocks returning to editing and starting over. No application
+- **Status when recorded:** open; blocks returning to editing and starting over. No application
   changes made.
 - **Reported:** 27 September 2026. The user stopped the whole presentation process
   intending to start again, but reports that the whole UI remained disabled.
@@ -100,7 +117,7 @@ See the ledger for the 39-group placement matrix and precise evidence boundaries
 
 ## Recorded issue — speech model repeatedly unloads
 
-- **Status:** open; user-reported, not reproduced or fixed.
+- **Status when recorded:** open; user-reported, not reproduced or fixed.
 - **Reported:** 27 September 2026. The user reports that the speech model
   "always gets unloaded", disrupting the workflow.
 - **Expected:** model retention must follow the selected policy. With **Never
@@ -115,7 +132,7 @@ See the ledger for the 39-group placement matrix and precise evidence boundaries
 
 ## Recorded requirement — Realtime startup in approximately 15–20 seconds
 
-- **Status:** open; performance requirement recorded, not measured or implemented
+- **Status when recorded:** open; performance requirement recorded, not measured or implemented
   in this pass.
 - **Reported:** 27 September 2026. The first Realtime presentation start is
   extremely slow even when the speech model is already loaded.
