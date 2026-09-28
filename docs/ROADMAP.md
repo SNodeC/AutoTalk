@@ -22,6 +22,12 @@ resource cleanup. F7's 15–20-second warm Realtime target remains open. F15 was
 retracted by Claude and requires no change. The original reports below retain
 historical observations; their old status text is explicitly labeled as such.
 
+The [recording follow-up](reviews/2026-09-28-recording-followup.md) reproduces and
+corrects audio-reader throttling and shutdown loss found during acceptance.
+A real X11/PipeWire journey with a silent virtual output verifies live-demo and
+post-slide footage in the saved video. Supervised Wayland capture remains pending;
+further input compaction did not demonstrate a startup gain and was rejected.
+
 ## Independent Claude review — 27 September 2026
 
 At the owner's request, Claude CLI reviewed source snapshot `8d06f96` on
