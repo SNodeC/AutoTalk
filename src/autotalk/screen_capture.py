@@ -71,21 +71,29 @@ class PulseInput:
             raise
 
     def poll(self, deadline):
-        if self.stopping.wait(.005):
+        if self.stopping.is_set():
             return False
-        if (self.library.pa_mainloop_iterate(self.loop, 0, None) < 0
+        dispatched = self.library.pa_mainloop_iterate(self.loop, 0, None)
+        if (dispatched < 0
                 or self.library.pa_context_get_state(self.context) >= 5
                 or self.stream and self.library.pa_stream_get_state(self.stream) >= 3):
             raise RuntimeError("Recording audio source disconnected.")
         if time.monotonic() > deadline:
             raise RuntimeError("Recording audio source stopped responding.")
-        return True
+        # Drain ready events without throttling the audio source behind video.
+        if not dispatched:
+            self.stopping.wait(.005)
+        return not self.stopping.is_set()
 
     def read(self):
         deadline = time.monotonic() + 10
-        while self.poll(deadline):
+        while self.stream and (self.stopping.is_set() or self.poll(deadline)):
+            if self.stopping.is_set():
+                self.library.pa_mainloop_iterate(self.loop, 0, None)
             latency, negative = ctypes.c_uint64(), ctypes.c_int()
             if self.library.pa_stream_get_latency(self.stream, ctypes.byref(latency), ctypes.byref(negative)) < 0:
+                if self.stopping.is_set():
+                    break
                 continue
             data, size = ctypes.c_void_p(), ctypes.c_size_t()
             if self.library.pa_stream_peek(self.stream, ctypes.byref(data), ctypes.byref(size)) < 0:
@@ -94,6 +102,8 @@ class PulseInput:
                 raw = ctypes.string_at(data, size.value) if data else bytes(size.value)
                 self.library.pa_stream_drop(self.stream)
                 return raw, latency.value / 1e6 * (-1 if negative.value else 1)
+            if self.stopping.is_set():
+                break
         return None
 
     def close(self):
@@ -200,13 +210,13 @@ class ScreenCapture(Capture):
             source = PulseInput(device, self.stopping)
             with (self.root / filename).open("wb") as output:
                 committed = 0
-                while not self.stopping.is_set():
+                while True:
                     packet = source.read()
                     if packet is None:
                         break
                     raw, latency = packet
-                    at = max(0, round((time.monotonic()-latency-self.started)*RATE)-len(raw)//4)
-                    # Place each input on the common clock, including initial device latency.
+                    at = max(0, round((time.monotonic()-latency-self.started)*RATE))
+                    # Pulse latency locates the first unread sample, not the packet's end.
                     if at > committed:
                         output.write(b"\0" * ((at-committed)*4))
                     elif at < committed:
