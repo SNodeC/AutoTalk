@@ -109,9 +109,47 @@ The rebuilt package audit verifies 27 Qt/plugin hashes, 18 Qt libraries loaded
 from within the bundle, Breeze loaded and smoke exit 0. Its native library is
 built from the checked, reproducibly patched source, with no diagnostic logging.
 
-Live verification status: the two successful real Wayland recording/export runs
-in the routing report predate this additional native correction. A fresh final
-library run is waiting for the user's Plasma screen-sharing selection. It must
-not be counted as a successful recording until that interaction and the remaining
-presentation/export assertions complete. An earlier pending run was closed when
-the final native guard became available; it did not receive sharing permission.
+## Final live Wayland acceptance — passed
+
+The pending final-library run completed after the user granted Plasma sharing
+permission for the existing display. No further permission is needed for this
+verification. This follows the two successful runs in the routing report, which
+predated the additional native correction. An earlier pending run was closed
+when the final guard became available and is not counted as a pass.
+
+The test exercised the real MainWindow and presentation controls on Wayland:
+Start, leave fullscreen, pause for a live demo, Continue, finish both slides,
+continue recording afterward, and End presentation and save video. The editor
+returned with Open video / audio and Open folder enabled. The process exited 0,
+reported no application errors, and removed its disposable virtual audio output.
+No physical speaker or microphone settings were changed by the test.
+
+Evidence is local under `artifacts/wayland-lifecycle/final-live/`: the harness,
+`wayland.log`, `session/result.json`, screenshots and saved recording. Desktop
+images and recordings are deliberately not committed. The final native library
+matches the installed bundle (SHA-256
+`5537cedf957b657d492adf7371147c05446acc78021a116ba9b43fd33b05659f`).
+
+| Measurement | Result |
+| --- | --- |
+| Capture wall time | 9.663 seconds |
+| Raw screen track | 9.500 seconds |
+| Exported MP4 | 9.467 seconds; one video and one audio stream |
+| Fully decoded exported video | 284 frames |
+| Fully decoded exported audio | 222 frames, 227,328 samples at 24 kHz |
+| Recorded test-tone RMS | 529.57 in signed 16-bit sample units |
+| Application errors | None |
+
+Visual inspection of decoded MP4 frames confirms the blue live-demo window and
+the green post-slide window, with the final slide still visible behind it.
+The saved-recording screenshot confirms the editor and enabled result links.
+The first video frame is black; the next frame at 0.033 seconds is nonblack,
+and no other decoded frame is entirely black. This initial frame is recorded
+as an observation, not omitted from the result.
+
+This closes existing-display live recording acceptance for the corrected native
+library. The test uses prepared slides and generated test tones; it does not
+measure Qwen generation, microphone capture, or the deferred Realtime startup
+target. The external KDE virtual-screen crash remains outside this passing path.
+This verification follow-up changes documentation only: zero production or test
+source lines changed.

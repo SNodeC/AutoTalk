@@ -50,6 +50,14 @@ remains open. The subsequent
 and fixes initialization with multiple advertised sources and an early-failure
 cleanup crash. It also stops callback dispatch before stream destruction; the
 historical destructor crash itself has not been reproduced deterministically.
+**Final existing-display acceptance is now complete:** the corrected native
+library passed the live Wayland presentation, live-demo pause/continue,
+post-slide recording, MP4 export and clean shutdown check after Plasma permission
+was granted. The 9.467-second MP4 has decodable video and audio; recorded frames
+were visually inspected. The lifecycle report records measurements and the
+single black opening frame. This closes the pending permission-dependent check;
+Realtime startup optimization remains deferred and the external KDE
+virtual-screen crash remains open.
 
 ## Independent Claude review — 27 September 2026
 
