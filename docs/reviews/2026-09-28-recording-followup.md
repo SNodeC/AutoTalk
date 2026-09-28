@@ -35,7 +35,9 @@ Both positive and negative monitor latency are covered. The export implementatio
 is unchanged: no silence padding or duration override hides lost recording data.
 
 Three initial regressions failed before the source corrections. A fourth case
-then reproduced loss of queued packets at shutdown. All four now pass, alongside
+then reproduced loss of queued packets at shutdown. Final review added a fifth
+case: cancellation arriving during an idle wait must also enter the drain. All
+five pass, alongside
 the existing stalled-device, cancellation, recording-recovery and export tests.
 
 ## Direct recording acceptance
@@ -120,8 +122,8 @@ Raw logs, traces and test recordings remain in ignored `artifacts/refinement-3/`
 
 ## Final regression and package verification
 
-- Standard Qt 6.11.2: **369 passed in 76.83 seconds**, no skips.
-- Native Qt 6.10.2/Breeze: **369 passed in 96.52 seconds**, no skips.
+- Standard Qt 6.11.2: **370 passed in 76.38 seconds**, no skips.
+- Native Qt 6.10.2/Breeze: **370 passed in 95.42 seconds**, no skips.
 - Both final suites used the actual PipeWire backend and a disposable virtual
   output. Test-only selection redirected monitor capture to that output. The
   virtual output was removed after the tests; physical output settings were not
@@ -138,7 +140,7 @@ Raw logs, traces and test recordings remain in ignored `artifacts/refinement-3/`
   use the new version.
 
 Compared with `cf00820`: **17 production additions, 7 deletions, net +10 lines**;
-**65 test additions, no deletions**. Cumulative verdict-refinement growth is now
+**67 test additions, no deletions**. Cumulative verdict-refinement growth is now
 **+240 of the approved +250 production-line allowance**. Growth handles readiness
 and shutdown at the existing source boundary. No second implementation or owner
 was introduced. The original Claude verdict remains unchanged.
