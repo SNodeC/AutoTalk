@@ -87,7 +87,7 @@ class PulseInput:
 
     def read(self):
         deadline = time.monotonic() + 10
-        while self.stream and (self.stopping.is_set() or self.poll(deadline)):
+        while self.stream and (self.poll(deadline) or self.stopping.is_set()):
             if self.stopping.is_set():
                 self.library.pa_mainloop_iterate(self.loop, 0, None)
             latency, negative = ctypes.c_uint64(), ctypes.c_int()

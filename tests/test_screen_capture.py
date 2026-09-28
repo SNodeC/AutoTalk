@@ -10,7 +10,7 @@ from autotalk import screen_capture
 from autotalk.media import RATE
 
 
-@pytest.mark.parametrize('cancelled', [False, True])
+@pytest.mark.parametrize('cancelled', [False, True, 'during_wait'])
 def test_audio_reader_drains_ready_events_before_waiting_and_remains_cancellable(cancelled):
     source = object.__new__(screen_capture.PulseInput)
     source.loop = source.context = source.stream = 1
@@ -18,8 +18,10 @@ def test_audio_reader_drains_ready_events_before_waiting_and_remains_cancellable
     payload = ctypes.create_string_buffer(b'\x01\x00\x02\x00')
     events, waits = [1, 1, 1, 0], []
     available = False
-    if cancelled:
+    if cancelled is True:
         source.stopping.set()
+    if cancelled == 'during_wait':
+        events.insert(0, 0)
     def dispatch(*args):
         nonlocal available
         available = bool(events.pop(0)) if events else False
@@ -38,7 +40,7 @@ def test_audio_reader_drains_ready_events_before_waiting_and_remains_cancellable
         pa_stream_get_latency=lambda *args: 0, pa_stream_peek=peek,
         pa_stream_drop=lambda *args: 0)
     assert [source.read() for _ in range(3)] == [(payload.raw[:4], 0)] * 3
-    assert source.read() is None and waits == ([] if cancelled else [.005])
+    assert source.read() is None and waits == ([] if cancelled is True else [.005])
     # Shutdown drains already available data without blocking for new audio.
     assert source.read() is None and not events
 
