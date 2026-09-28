@@ -5,6 +5,30 @@ complete agreed product scope below. Implementation targets 0.3. Testing for
 this refinement pass is **Linux only**; Windows/macOS support is retained.
 See [behavior](../README.md) and [measured verification](VERIFICATION.md).
 
+## Third independent Claude review — 28 September 2026
+
+The owner requested another detailed review of source `b520f8b` after Wayland
+acceptance. See the [review record and evidence corrections](reviews/2026-09-28-third-claude-review-method.md),
+Claude's [detailed verdict](reviews/2026-09-28-third-claude-verdict.md), and
+[final supplement](reviews/2026-09-28-third-claude-verdict-supplement.md).
+Claude reran both 372-test suites and the 50-cycle native lifecycle probe,
+checked synthetic interactions and native theme/scaling screenshots, and traced
+settings, workflows, ownership and packaging. It recommends preserving the
+architecture and continuing refinement. No application fixes were made during
+this review.
+
+**New F17, low severity / P3:** the current selection in Language arrangement
+clips for two options at the 760×580 settings-dialog size. Measured text widths
+236/255 px exceed the native edit field's 234 px. The dropdown popup is readable;
+the normal 920×760 dialog fits all choices. Record a narrow sizing/eliding fix
+and a minimum-size regression check as proposed work, not completed work.
+
+F6's corrected retention path, F12/F13 labels and F14 cleanup remain verified
+within their recorded evidence. F7's 15–20-second startup target is still open
+and owner-deferred. F15 remains retracted; a new draft CPU concern (F16) was
+also retracted after focused inspection. Existing-display Wayland acceptance
+remains complete; the external KDE virtual-screen crash is separate and open.
+
 ## Refinement following the second Claude review — 28 September 2026
 
 The [second verdict](reviews/2026-09-28-claude-verdict.md) is recorded with its

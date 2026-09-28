@@ -1,0 +1,92 @@
+[
+  {
+    "file": "evidence-f17/f17-closed.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence-f17/f17-closed.png",
+    "sha256": "b8e76dfeff9f57235acb7e393cbf4ea1448e9dc5d4be8616da90dec16b6ddce8"
+  },
+  {
+    "file": "evidence-f17/f17-popup.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence-f17/f17-popup.png",
+    "sha256": "81e6e7ce733fbf3a527496a03cf1c7fbe749dcc320715dff38a728ab03de71ed"
+  },
+  {
+    "file": "evidence-native-dark/940-Quick.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence-native-dark/940-Quick.png",
+    "sha256": "0b10a525b6075f6cc2823f45ebd63e1f1f20346c97c116efe269bc74321f0044"
+  },
+  {
+    "file": "evidence-native-dark/940-menu-File.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence-native-dark/940-menu-File.png",
+    "sha256": "ae5f8b79708cadb647148b15c846f4d8c0751ba6d14fa0a210b2a97aa03589df"
+  },
+  {
+    "file": "evidence-native-dark/940-scope-1-page-0.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence-native-dark/940-scope-1-page-0.png",
+    "sha256": "57778bc3c86e03ceb6810696b39456e712a105a27d9b7becab2737a6e828e5ab"
+  },
+  {
+    "file": "evidence-native-dark/940-scope-1-page-2.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence-native-dark/940-scope-1-page-2.png",
+    "sha256": "7c3f056af84ac1978c1ad6fc0a32d1536bc04fa18127438e687fa41809e2f33d"
+  },
+  {
+    "file": "evidence-native-dark/940-scope-2-page-0.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence-native-dark/940-scope-2-page-0.png",
+    "sha256": "e84a1a9ee7f69a000baa2996fea6dc3dc83b7367d62a6a030799c56973b98502"
+  },
+  {
+    "file": "evidence-native-light-150/940-Prepared.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence-native-light-150/940-Prepared.png",
+    "sha256": "d010def59a27fd2a92c99505b30adc35d4c69180289587bb3b8e3596ed0fd0af"
+  },
+  {
+    "file": "evidence-native-light-150/940-menu-File.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence-native-light-150/940-menu-File.png",
+    "sha256": "bb21b6d318cdfa155cf6a7e08ed3a86015a81009cdd70a884dd3bdf621e5cb6f"
+  },
+  {
+    "file": "evidence-native-light-150/940-scope-0-page-0.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence-native-light-150/940-scope-0-page-0.png",
+    "sha256": "a944680a7c8c33107fa6beafd83b0e038779600d45105528c7a6a2b0f2d448f2"
+  },
+  {
+    "file": "evidence-native-light/940-Quick.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence-native-light/940-Quick.png",
+    "sha256": "71b33f3752577ded378bff6ffe8772c5b55694896115546ddab0e31ac7a8f19a"
+  },
+  {
+    "file": "evidence-native-light/940-Realtime.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence-native-light/940-Realtime.png",
+    "sha256": "17082c28ffd38d568ff7a95846feb29fb61d83d29e6c6b1f8354d5f2f4980ea7"
+  },
+  {
+    "file": "evidence/940-Prepared.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence/940-Prepared.png",
+    "sha256": "3c0005075abeb463de980ba1f789bb441ce341b8e92cd4cc7e7d8bd0cffa9380"
+  },
+  {
+    "file": "evidence/940-menu-File.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence/940-menu-File.png",
+    "sha256": "5959a3f111353b25c5d5d54f4c86e5a4fff836525270b5e0deac2fe390fc7c46"
+  },
+  {
+    "file": "evidence/940-menu-Presentation.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence/940-menu-Presentation.png",
+    "sha256": "70563211fab65fa37433f1a013a6a09d06b1f74f4f171f3727882954de823451"
+  },
+  {
+    "file": "evidence/940-scope-0-page-4.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence/940-scope-0-page-4.png",
+    "sha256": "3ea667995b6594371cb46b66c582a3e27ea0e3e4a3f41b654d2ff88e0312d099"
+  },
+  {
+    "file": "evidence/940-scope-1-page-0.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence/940-scope-1-page-0.png",
+    "sha256": "3616dbf48fcb96329883bfe7e3616459d962a35137c213b8f9a64a7ba168ed16"
+  },
+  {
+    "file": "evidence/940-scope-1-page-2.png",
+    "reviewer_original_path": "/tmp/autotalk-claude-review-third/evidence/940-scope-1-page-2.png",
+    "sha256": "873b4d3579a7eac9aad49a8e7304b2b89494d4ed3b717ab32e36c81f28f2d1db"
+  }
+]
