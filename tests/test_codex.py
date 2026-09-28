@@ -47,8 +47,13 @@ for line in sys.stdin:
 def test_app_server_keeps_early_events_and_structured_output(fake_server):
     with codex.Codex(Task(lambda _: None)) as client:
         assert client.login() == "Connected to ChatGPT (plus)"
-        result = client.generate("Summarize scope", codex.SCOPE_SCHEMA)
+        result = client.generate("Summarize scope", codex.SCOPE_SCHEMA, images=[fake_server])
     assert result == {"scope": "Engineering"}
+    turn = next(r['params'] for r in requests(fake_server) if r['method'] == 'turn/start')
+    assert turn['outputSchema'] == codex.SCOPE_SCHEMA
+    assert turn['input'][0]['text'].startswith('Summarize scope ')
+    assert 'compact JSON' in turn['input'][0]['text']
+    assert turn['input'][1:] == [{'type': 'localImage', 'path': str(fake_server)}]
 
 
 def test_response_progress_counts_only_current_turn_and_resets(fake_server, qtbot, project):
