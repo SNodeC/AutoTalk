@@ -312,9 +312,10 @@ class Playback(QObject):
     def select(self, index, play=False):
         if not self.project or not 0 <= index < len(self.project.slides):
             return
+        if self.preview_path:
+            self.stop()
         previous = self.state
         self._reset_sink()
-        self.preview_path = None
         self.index = index
         self._offset = 0
         self.state = "paused" if previous not in ("stopped", "finished") else "stopped"

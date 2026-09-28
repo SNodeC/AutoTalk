@@ -210,3 +210,21 @@ def test_repeated_background_and_stream_updates_bound_owned_handles(project, ret
         assert len(mix.read(0, 0, 120)) == 120
     mix.close()
     assert all(r.stream.closed for r in retained_readers)
+
+
+@pytest.mark.parametrize('paused', [False, True])
+def test_selecting_a_slide_ends_preview_without_starting_a_presentation(qtbot, project, retained_readers, paused):
+    from PySide6.QtCore import Qt
+    from autotalk.app import MainWindow
+    from conftest import make_audio
+    make_audio(project, seconds=3)
+    w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+    w.preview_button.click()
+    preview = retained_readers[-1]
+    if paused: w.transport.pause()
+    next_slide = w.slide_list.visualItemRect(w.slide_list.item(1)).center()
+    qtbot.mouseClick(w.slide_list.viewport(), Qt.LeftButton, pos=next_slide)
+    assert w.transport.index == 1 and w.transport.state == 'stopped'
+    assert not w.transport.active and not w.transport.preview_path
+    assert preview.stream.closed and w.transport.preview_audio is None
+    assert w.slide_audio_button.isEnabled() and w.narration.isEnabled() and w.mode.isEnabled()
