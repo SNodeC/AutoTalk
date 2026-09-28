@@ -339,3 +339,60 @@ def test_explicit_update_check_keeps_loaded_model_and_policies(engine, project, 
     make_audio(project, seconds=3); w.adopt(project); w.present()
     assert not w.check_model_button.isEnabled()
     w.stop_presentation()
+
+
+@pytest.mark.parametrize('outcome', ['cancel', 'error'])
+@pytest.mark.parametrize('mode', ['Prepared', 'Realtime'])
+def test_narration_interruption_retains_idle_preloaded_worker(engine, project, qtbot, monkeypatch, outcome, mode):
+    """A narration failure must not invalidate an unused, ready speech protocol."""
+    from autotalk.project import Project
+    project.mode = mode
+    for slide in project.slides:
+        slide.narration = ''
+    entered, release = threading.Event(), threading.Event()
+    class Client:
+        def __init__(self, task): self.task = task
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def generate(self, *args, **kwargs):
+            entered.set()
+            while not release.wait(.01): self.task.check()
+            raise ValueError('Narration service unavailable')
+    monkeypatch.setattr(services, 'Codex', Client)
+    errors = []
+    monkeypatch.setattr(MainWindow, 'error', lambda self, text: errors.append(text))
+    w = MainWindow(); qtbot.addWidget(w, before_close_func=lambda widget: finish_job(widget, qtbot))
+    w.adopt(project); w.show(); save_policy(w, 'session')
+    pid = load(w, qtbot)
+    try:
+        w.start_button.click()
+        qtbot.waitUntil(entered.is_set)
+        qtbot.waitUntil(lambda: w.speech.state == 'in_use')
+        w.cancel_button.click() if outcome == 'cancel' else release.set()
+        qtbot.waitUntil(lambda: w.job is None)
+        assert w.speech.process is not None and w.speech.process.pid == pid
+        assert w.speech.state == 'ready' and w.mode.isEnabled() and w.start_button.isEnabled()
+        assert bool(errors) == (outcome == 'error')
+        w.adopt(Project.load(w.project.manifest))
+        def speech(task):
+            with speech_session(task, services.speech_config(w.project)) as session:
+                session.generate({'items': []})
+        w.start_job('Prepare slide audio', speech)
+        qtbot.waitUntil(lambda: w.job is None)
+        assert w.speech.process.pid == pid and w.speech.state == 'ready'
+    finally:
+        release.set(); finish_job(w, qtbot)
+
+
+def test_cancel_during_synthesis_discards_unfinished_protocol(engine, project, qtbot):
+    w = MainWindow(); qtbot.addWidget(w, before_close_func=lambda widget: finish_job(widget, qtbot))
+    w.adopt(project); w.show(); save_policy(w, 'session'); load(w, qtbot)
+    process = w.speech.process
+    def generate(task):
+        with speech_session(task, services.speech_config(project)) as session:
+            session.generate({'items': [{'delay': 10}]})
+    w.start_job('Create slide audio', generate)
+    qtbot.waitUntil(lambda: w.speech.phase == 'generating')
+    w.cancel_button.click(); qtbot.waitUntil(lambda: w.job is None)
+    assert w.speech.process is None and process.poll() is not None
+    assert w.speech.state == 'unloaded' and w.start_button.isEnabled()

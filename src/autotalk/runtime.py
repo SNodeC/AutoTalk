@@ -369,10 +369,11 @@ def speech_session(task, config, preload=False):
             session.configure(config)
             yield session
         except BaseException:
-            task.report("Stopping speech worker: " + ("operation cancelled" if task.cancelled.is_set() else "speech operation failed") + ".")
-            session.close()
-            if not task.cancelled.is_set():
-                session.phase = "failed"
+            if session.state != "in_use":
+                task.report("Stopping speech worker: " + ("operation cancelled" if task.cancelled.is_set() else "speech operation failed") + ".")
+                session.close()
+                if not task.cancelled.is_set():
+                    session.phase = "failed"
             raise
         finally:
             if session.phase != "failed" and (task.speech is None or session.release_requested or session.retention == "operation" and not preload):
@@ -537,11 +538,9 @@ class SpeechSession:
     def generate(self, request, on_event=None):
         self.configure(self.config | request)
         self.phase = "generating"
-        try:
-            self._send({**self.config, "items": request["items"]})
-            self._wait("batch_complete", on_event)
-        finally:
-            self.phase = "ready"
+        self._send({**self.config, "items": request["items"]})
+        self._wait("batch_complete", on_event)
+        self.phase = "ready"
 
     def schedule_release(self):
         def expire():
