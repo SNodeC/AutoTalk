@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Provision pinned tools privately; never change the system Python or drivers."""
 
 import hashlib

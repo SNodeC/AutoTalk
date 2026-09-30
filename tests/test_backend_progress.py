@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Pinned backend diagnostics are observations, never readiness or GPU-transfer percentages."""
 import io
 import json

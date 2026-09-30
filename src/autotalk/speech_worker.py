@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Managed speech process. JSON lines in/out; model libraries never enter the GUI."""
 
 import base64

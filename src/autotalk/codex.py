@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Small synchronous app-server client, used only by background jobs."""
 
 import json

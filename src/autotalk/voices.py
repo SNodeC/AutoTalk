@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """A reusable local library; projects receive independent reference snapshots."""
 import copy
 import json

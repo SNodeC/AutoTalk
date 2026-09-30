@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
 # Convenience launcher for a checkout. Release users run the bundled executable.
 set -eu
 autotalk_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)

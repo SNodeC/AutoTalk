@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Linux portal video and PulseAudio recording on one monotonic session timeline."""
 import ctypes
 import json

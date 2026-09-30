@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Desktop audio timing and backpressure at the recording-source boundary."""
 import ctypes
 import sys

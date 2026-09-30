@@ -113,6 +113,6 @@ at an event. Automated builds do not establish GPU compatibility on every machin
 
 ## License
 
-A license for AutoTalk's own code has **not yet been selected**. Public repository
-access does not grant an open-source license. Dependencies and model weights
-retain their respective licenses; see [third-party notices](THIRD_PARTY.md).
+AutoTalk's own code is licensed under the **[MIT License](LICENSE)**.
+Dependencies, model weights and third-party material retain their respective
+licenses; see [third-party notices](THIRD_PARTY.md).

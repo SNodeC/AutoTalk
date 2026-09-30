@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Fixed-scope windows share editors while keeping independent transactions."""
 import copy
 import threading

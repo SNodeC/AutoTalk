@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Preparation operations. The caller prevents concurrent edits while a job runs."""
 
 import copy

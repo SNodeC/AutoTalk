@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """User journeys through the existing project, job and playback boundaries."""
 import json
 from pathlib import Path

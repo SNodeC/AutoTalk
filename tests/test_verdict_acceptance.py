@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Regression checks for the independent review, through the actual Qt controls."""
 import threading
 import json

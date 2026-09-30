@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Acceptance journeys for docs/design/UX_PLACEMENT_PROPOSAL.md under real Qt."""
 import copy
 import json

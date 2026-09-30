@@ -1,7 +1,8 @@
 # Third-party software
 
-AutoTalk's own license has not yet been selected. Upstream software and model
-weights retain their licenses. Redistribution must retain the applicable notices.
+AutoTalk's own code is licensed under the [MIT License](LICENSE).
+Upstream software, model weights and third-party material retain their licenses.
+Redistribution must retain the applicable notices, including for modified Qt code.
 
 | Component | License / source |
 | --- | --- |
@@ -34,7 +35,7 @@ metadata and license files remain in that environment. The exact speech package
 versions are recorded in the platform-specific `src/autotalk/speech-*.txt` lock files.
 
 The prototype is a development build. Before publishing a distributable release,
-select AutoTalk's license and complete the applicable Qt/PDF and third-party
+complete the applicable Qt/PDF and third-party
 notice/source distribution requirements.
 
 Additional 0.2 dependencies: vLLM / vLLM-Omni (Apache-2.0), MLX / MLX Audio

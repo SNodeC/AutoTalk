@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Build on the target OS. End users launch the resulting native application."""
 import hashlib
 import os
@@ -60,7 +61,7 @@ subprocess.run([sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean",
                 str(root / "packaging/autotalk.spec")], cwd=root, env=build_env, check=True)
 bundle = root / "dist" / ("AutoTalk.app" if system == "Darwin" else "autotalk")
 documents = bundle / "Contents/Resources" if system == "Darwin" else bundle
-for name in ("README.md", "THIRD_PARTY.md"):
+for name in ("README.md", "LICENSE", "THIRD_PARTY.md"):
     shutil.copy2(root / name, documents / name)
 shutil.copytree(root / "docs", documents / "docs", dirs_exist_ok=True)
 if multimedia:

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Native Qt registry/lifetime regression; no real display or audio access.
 
 Run with the native Qt PYTHONPATH/LD_LIBRARY_PATH under:

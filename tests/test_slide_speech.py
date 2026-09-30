@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Per-slide authoring and persisted audio reuse through the public workflows."""
 import copy
 import json

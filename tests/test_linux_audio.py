@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Exercise channel mapping at the Linux audio server, without physical output."""
 import json
 import shutil

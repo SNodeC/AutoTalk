@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Qt desktop application. Heavy preparation always runs outside the GUI thread."""
 
 import argparse

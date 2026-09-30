@@ -58,7 +58,9 @@ assuming a passing CI run validates every device or desktop configuration.
 ```
 
 The build produces an application directory and an archive with a SHA-256 file
-under `dist/`. Supported build targets are Linux x86_64, Windows x64 and macOS
+under `dist/`, including AutoTalk's MIT `LICENSE` and third-party notices.
+Python wheels and source distributions also include the license.
+Supported build targets are Linux x86_64, Windows x64 and macOS
 Apple Silicon. The executable is `autotalk`, `autotalk.exe`, or the executable
 inside `AutoTalk.app`. Keep the bundled files together.
 
@@ -126,5 +128,6 @@ operations rather than starting an independent service for each UI action.
 ## Distribution status
 
 The project remains a development prototype. Windows/macOS native behavior,
-release signing, wider hardware testing and AutoTalk's own license require further
-work. Review [third-party notices](../THIRD_PARTY.md) before redistribution.
+release signing and wider hardware testing require further work. AutoTalk's own
+code uses the [MIT License](../LICENSE); review
+[third-party notices](../THIRD_PARTY.md) before redistribution.

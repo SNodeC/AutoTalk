@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Portable talk state. Versions own narration; artifact validity is derived."""
 
 import copy

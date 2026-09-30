@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """User-visible scope changes, persisted ownership and resolved generation inputs."""
 import copy
 import json

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Editors for the project's delivery and workflow configuration."""
 import json
 import uuid

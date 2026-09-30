@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Runtime lifecycle and verified archive extraction at the subprocess/file boundary."""
 
 import hashlib

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """One PCM transport owns preview, presentation timing, mixing, and capture."""
 
 import time

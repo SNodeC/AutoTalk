@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Standalone Qt-only crash reproducer; requires an available audio server."""
 import faulthandler
 

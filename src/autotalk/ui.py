@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Desktop workspace and section dialogs; project and playback remain in the controller."""
 import wave
 import numpy as np

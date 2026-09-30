@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Native build boundaries: select one Qt distribution before collection."""
 import os
 import runpy

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Native Qt integration: rejected portal requests report once, stop, and permit retry."""
 import tempfile,json,sys
 from pathlib import Path

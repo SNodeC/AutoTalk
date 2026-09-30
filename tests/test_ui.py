@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 from conftest import make_audio
 import pytest
 from PySide6.QtCore import Qt

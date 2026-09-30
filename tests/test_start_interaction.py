@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Start commands and editor controls through real Qt/worker boundaries."""
 import copy
 import json

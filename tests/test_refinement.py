@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Regression tests at project, user-interaction and exported-media boundaries."""
 import copy
 import json

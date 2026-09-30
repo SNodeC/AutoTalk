@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Private-bus ScreenCast responder for the native Qt failure probe; no desktop access."""
 import os, socket, sys
 import dbus, dbus.service

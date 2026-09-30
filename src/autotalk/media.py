@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Normalized local audio and recoverable presentation recording."""
 
 import json

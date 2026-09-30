@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Fixed-scope settings editors; Project remains the settings resolution authority."""
 import copy
 import json

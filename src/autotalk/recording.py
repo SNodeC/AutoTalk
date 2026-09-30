@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Voice recording uses Qt's microphone API and writes a portable PCM WAV."""
 
 import wave

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Contract tests use an actual subprocess with scripted app-server messages."""
 
 import sys

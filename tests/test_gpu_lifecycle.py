@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Model lifecycle through the subprocess protocol and user-visible controls."""
 import sys
 import threading

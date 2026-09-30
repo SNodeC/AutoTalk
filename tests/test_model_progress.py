@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Measured loader progress at download, verification and Qt job boundaries."""
 import hashlib
 import io

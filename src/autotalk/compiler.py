@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Private JIT compiler driver; no compiler or CUDA toolkit is required on PATH."""
 import os
 import sys
