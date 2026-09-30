@@ -136,7 +136,7 @@ class SettingsDialog(SectionDialog):
         self.transcript.setEnabled(bool(context.voice_file) and editable)
         self.buffer_toggle.setVisible(self.scope < 2 and self.setting_value("mode") == "Realtime")
         self.codex_connection.setText(w.connection.text())
-        self.voice_model.setText("Qwen3-TTS 1.7B — " + voice.source + "\n" + w.engine_state.text())
+        self.voice_model.setText("Qwen3-TTS 1.7B — " + voice.source + ("\n" + w.engine_state.text() if self.scope == 1 else ""))
 
     def done(self, result):
         w = self.window
@@ -417,7 +417,7 @@ def build_settings(w):
     codex.layout().addWidget(label("Model and reasoning for the selected scope. Slide images, text and conference context are sent to Codex; voice references stay local."))
     w.codex_connection = label("")
     codex.layout().addWidget(w.codex_connection)
-    codex.layout().addWidget(button("Account settings…", lambda: w.window.settings[0].show_section("Application")))
+    codex.layout().addWidget(button("Account settings…", lambda: w.window.settings[0].show_section("Application", focus=w.window.codex_signin)))
     w.codex_model = combo([("Account default", "")], w.model_changed)
     w.codex_effort = combo([("Codex default", "")], w.model_settings_changed)
     fields = form(codex)
@@ -428,12 +428,12 @@ def build_settings(w):
     w.tolerance = number(0, 600, 15, lambda: w.edit_setting("tolerance_seconds", w.tolerance.value()), " sec")
     form(timing).addRow("Allowed timing difference", w.tolerance)
     timing.layout().addWidget(w.options)
-    w.settings_mode = combo(["Prepared", "Quick", "Realtime"], lambda: w.edit_setting("mode", w.settings_mode.currentText()))
-    form(timing).addRow("Preparation mode", w.settings_mode)
+    w.settings_mode = w.options.read_only() if w.scope == 1 else combo(["Prepared", "Quick", "Realtime"], lambda: w.edit_setting("mode", w.settings_mode.currentText()))
+    form(timing).addRow("Default mode" if w.scope == 0 else "Mode", w.settings_mode)
     language = w.add("Language", "Voice & language")
-    w.settings_language = combo(LANGUAGES, lambda: w.edit_setting("language", w.settings_language.currentText()))
+    w.settings_language = w.options.read_only() if w.scope == 1 else combo(LANGUAGES, lambda: w.edit_setting("language", w.settings_language.currentText()))
     w.settings_language.setToolTip("Selecting a talk language restores its saved version or starts an empty version. Create talk text or Start generates missing narration from the slides and talk context, without translating another version. A slide language change affects only that slide.")
-    form(language).addRow("Narration language", w.settings_language)
+    form(language).addRow(("Default narration language", "Language", "Language of this slide")[w.scope], w.settings_language)
     language.layout().addWidget(label("Talk language selection preserves separate versions automatically. Slide language overrides and explicit passages keep their own language."))
     buffer = column(margin=0)
     for name, destination in (("language_policy", language), ("buffer_seconds", buffer)):
@@ -509,14 +509,14 @@ def build_settings(w):
 
     w.pause = number(0, 10, .6, lambda: w.edit_setting("pause_seconds", w.pause.value()), " sec")
     w.pause.setSingleStep(.1)
-    playback = w.add("Playback", "Presentation & recording")
+    playback = w.add("Playback", "Presentation & recording", (0, 1))
     form(playback).addRow("Pause after slide", w.pause)
     w.settings_after = combo([("Advance automatically", "advance"), ("Pause for live demo", "demo"), ("Wait for presenter", "pause")], lambda: w.edit_setting("after", w.settings_after.currentData()))
     form(playback).addRow("After slide", w.settings_after)
     if w.scope == 1:
         playback.layout().addWidget(button("Display && sound settings…", lambda: w.window.settings[0].show_section("Application", focus=w.window.screen)))
     recording = w.add("Recording", "Presentation & recording", (0, 1))
-    form(recording).addRow("Recording", w.options.record)
+    form(recording).addRow("Record presentation as a video" if w.scope == 1 else "Recording", w.options.record)
     recording.layout().addWidget(label("Screen capture continues until End presentation and save video. Slides-and-speech recordings finish after the last slide. Screen sharing is authorized separately from the presentation display."))
     recording.layout().addWidget(w.options.recording_widget)
     for title, names in (("Advanced recording", ("recording_policy",)), ("Output quality", ("export_rate", "export_bitrate"))):
@@ -528,6 +528,10 @@ def build_settings(w):
         disclosure(recording, title, panel)
     recording.layout().addStretch()
     background = w.add("Background audio", "Presentation & recording", (0, 1))
+    if w.scope == 1:
+        w.window.background_button = button("Add background track…", w.window.add_background)
+        w.window.remove_background_button = button("Remove background", w.window.remove_background)
+        background.layout().addLayout(row(w.window.background_button, w.window.remove_background_button))
     w.background_gain = number(0, 100, 15, w.background_changed, " %")
     w.background_gain.setSingleStep(5)
     w.background_loop = QCheckBox("Loop")

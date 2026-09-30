@@ -12,8 +12,7 @@ from conftest import make_audio
 
 
 @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
-@pytest.mark.parametrize('control', ['main', 'settings'])
-def test_select_language_restores_version_and_start_reuses_audio(qtbot, project, monkeypatch, mode, control):
+def test_select_language_restores_version_and_start_reuses_audio(qtbot, project, monkeypatch, mode):
     project.mode = mode
     project.quick_timing = 'once'
     project.language = 'Chinese'
@@ -26,13 +25,7 @@ def test_select_language_restores_version_and_start_reuses_audio(qtbot, project,
     w.transport.select(1)
 
     def choose(language):
-        if control == 'main':
-            w.language.setCurrentIndex(w.language.findText(language))
-        else:
-            dialog = w.settings[1]
-            dialog.show_section('Voice & language')
-            dialog.settings_language.setCurrentText(language)
-            qtbot.mouseClick(dialog.buttons.button(QDialogButtonBox.Save), Qt.LeftButton)
+        w.language.setCurrentIndex(w.language.findText(language))
         assert w.project.language == language
         assert w.transport.index == 1
         assert w.narration.toPlainText() == w.project.slides[1].narration
@@ -70,9 +63,11 @@ def test_settings_cancel_restores_versions_and_source_edits(qtbot, project):
     make_audio(project)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     w.narration.setPlainText('My unsaved English edit.')
+    project.version.language = 'English'
     before = copy.deepcopy(project)
+    w.defaults['language'] = 'German'; w.apply_defaults(project)
     dialog = w.settings[1]; dialog.show_section('Voice & language')
-    dialog.settings_language.setCurrentText('German')
+    dialog.options.inheritance['language'][1].click()
     assert len(project.versions) == 2
     assert project.versions['main'].slides[0].narration == 'My unsaved English edit.'
     dialog.reject()
@@ -130,8 +125,6 @@ def test_custom_named_versions_remain_accessible_without_duplication(qtbot, proj
     project.language = 'English'
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     assert w.language.itemText(w.language.findData(german)) == 'German — Conference edition'
-    dialog = w.settings[1]; dialog.show_section('Voice & language')
-    dialog.settings_language.setCurrentText('German')
-    dialog.accept()
+    w.language.setCurrentIndex(w.language.findData(german))
     assert project.active_version == german and len(project.versions) == 2
     assert project.version.name == 'Conference edition'

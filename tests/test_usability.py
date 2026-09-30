@@ -146,7 +146,7 @@ def test_prepared_export_without_session_still_has_open_links(qtbot, project, tm
 def test_recording_intent_and_saving_are_not_reported_as_finished(qtbot, project):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project)
     w.record.setChecked(True); w.update_timing()
-    assert w.record_status.text() == 'Will record when presentation starts'
+    assert not w.record_status.isVisible() and w.record.isChecked()
     w.pending_exports.append(project.root); w.update_timing()
     assert w.record_status.text() == 'Saving video…'
     w.pending_exports.clear()
@@ -218,12 +218,12 @@ def test_previous_video_does_not_override_new_recording_intent(qtbot, project, t
     video = tmp_path / 'previous.mp4'; video.write_bytes(b'video')
     w.export_saved(video)
     w.record.click()
-    assert 'Will record when presentation starts' in w.record_status.text()
+    assert not w.record_status.isVisible() and w.record.isChecked()
     assert 'Saved ' in w.saved_output.text() and 'Open video' in w.saved_output.text()
     w.settings[1].options.fields['recording_source'].setCurrentIndex(w.settings[1].options.fields['recording_source'].findData('screen'))
     assert 'Screen + system audio' in w.record.toolTip()
     w.language.setCurrentText('German')
-    assert 'Will record when presentation starts' in w.record_status.text()
+    assert not w.record_status.isVisible() and w.record.isChecked()
     video.unlink()
     w.update_timing()  # An externally removed video must not crash the UI timer.
     assert 'Saved ' not in w.saved_output.text()

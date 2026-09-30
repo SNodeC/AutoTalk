@@ -13,8 +13,7 @@ from test_modes import local_speech
 
 
 @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
-@pytest.mark.parametrize('control', ['main', 'settings'])
-def test_missing_language_is_empty_then_authored_from_pdf(qtbot, project, monkeypatch, local_speech, mode, control):
+def test_missing_language_is_empty_then_authored_from_pdf(qtbot, project, monkeypatch, local_speech, mode):
     project.mode = mode
     project.quick_timing = 'once'
     project.language = 'Chinese'
@@ -25,11 +24,7 @@ def test_missing_language_is_empty_then_authored_from_pdf(qtbot, project, monkey
     chinese = project.active_version
     original = copy.deepcopy(project.version)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    if control == 'main':
-        w.language.setCurrentText('German')
-    else:
-        dialog = w.settings[1]; dialog.show_section('Voice & language')
-        dialog.settings_language.setCurrentText('German'); dialog.accept()
+    w.language.setCurrentText('German')
     assert project.versions[chinese] == original
     assert not w.narration.toPlainText() and not w.presenter_narration.toPlainText()
     assert w.regenerate_button.text() == 'Create slide text'

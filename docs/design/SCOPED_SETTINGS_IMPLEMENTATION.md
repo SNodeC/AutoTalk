@@ -12,30 +12,34 @@ resolved values must drive presentation, voice summaries, preview, narration,
 speech synthesis and audio validity. Missing overrides are different from zero,
 empty text, false and an explicitly selected model default.
 
-One Settings dialog remains. Its left navigation is flat and has five pages:
+Three fixed-scope Settings dialogs share flat navigation with up to five pages:
 
 1. Voice & language: voice identity/source, language, writing style and delivery.
-2. Talk & preparation: audience/conference, duration, mode and timing policies.
+2. Talk & preparation: audience/conference and timing policies; a read-only talk mode row.
 3. Presentation & recording: playback behaviour, recording, output and added audio.
 4. AI & speech engine: Codex selection, Qwen options and GPU lifecycle.
 5. Application: account, device preferences and general application settings.
 
-Pages combine meaningful related settings rather than retaining the thirteen
-old pages behind another navigation control. A scope selector exposes Application
-defaults, This talk or This slide where applicable. Device and engine lifecycle
-controls retain application scope; changing this selector cannot turn them into
-talk or slide settings. Existing shortcuts select the concrete page, scope and
-relevant control group. Current palette and native widget style are retained.
+Pages combine related settings. Application defaults, talk and slide each have a
+fixed-scope window; there is no scope selector. Navigation exposes only applicable
+pages. Device and engine lifetime retain application scope. Existing shortcuts
+select the concrete page and focus target; native style and palette are retained.
 
 ## Settings ownership
 
-| Scope chain | Settings |
-| --- | --- |
-| Application → talk → slide | Voice identity; narration language; writing style; supported delivery attributes and directions; pause after slide; after-slide action |
-| Application → talk | Language arrangement; Codex model/reasoning; advanced synthesis sampling; presentation mode; Quick timing; Realtime script strategy/priority/buffer; timing tolerance; recording intent/source/microphone/pause policy; export encoding; background gain/loop defaults |
-| Application only | Account connection; model installation/update and GPU lifetime; device preferences; appearance/layout; reusable libraries |
-| Talk only | Title, conference and sources, audience, objective, duration, language versions, background track, recording destination and gradual delivery across the talk |
-| Slide only | Narration, notes, inclusion, explicit duration budget and additional audio clips |
+| Scope chain | Settings | Editor location |
+| --- | --- | --- |
+| Application → talk → slide | Voice, writing style, delivery attributes/directions | Corresponding scope's Voice & language dialog |
+| Application → talk → slide | Narration language | Application default / main Language combo / slide Language of this slide; talk dialog readout + reset only |
+| Application → talk → slide | After-slide action, pause | Application and talk Playback sections; slide inspector After this slide / Timing |
+| Application → talk | Mode; recording intent | Application default dialog; main toolbar combo / main checkbox; talk dialog readouts + reset only |
+| Application → talk | Language arrangement, Codex model/reasoning, synthesis sampling, Quick/Realtime policies, tolerance, recording source/microphone/policy, encoding, background gain/loop | Corresponding scope's task page |
+| Application only | Account, GPU lifetime, device preferences, libraries | Application dialog and focused menu entrances |
+| Talk only | Duration | Main Duration spin only |
+| Talk only | Title, conference/sources, audience/objective, background track, output destination, gradual delivery | Talk dialog; background track controls share Background audio |
+| Talk only | Language versions | Main Language combo |
+| Slide only | Narration, notes, inclusion, budget, additional clips | Editor, inspector Timing/inclusion, slide Additional audio dialog |
+
 
 The selected language version belongs to talk scope; it is not a fourth tier.
 Slide overrides belong to that version's slide. Explicit passage language markers
@@ -60,8 +64,8 @@ the Qwen variant follows that voice rather than an independently conflicting cho
    thirteen pages with five combined pages. Reuse the field editors with explicit
    scope-aware bindings, inherited-value captions and removal of overrides. Keep
    ordinary controls direct; technical parameters remain under Advanced. Preserve
-   pending edits while changing scope/page. One Save/Cancel transaction covers
-   application defaults, talk overrides and slide overrides. Immediate account,
+   pending edits while changing pages. Each fixed-scope dialog has its own
+   Save/Cancel transaction. Immediate account,
    engine, system-audio and explicit library operations stay clearly identified.
    Do not temporarily adopt a fake talk to edit application defaults.
 
@@ -109,7 +113,7 @@ Account credentials and machine-specific choices are never copied into a talk.
   application defaults; pinning settings and copying the talk to another directory.
 - Predefined, own and designed voices retain their displayed origin through preview,
   acceptance, library save/load and project reopen; library audition does not select.
-- One flat dialog, five pages, shortcut page/scope routing, cross-scope Save/Cancel,
+- Three flat fixed-scope dialogs, five possible pages, focused shortcuts, scoped Save/Cancel,
   application defaults without a talk and correct selected-slide/version binding.
 - Whole-talk and per-slide text/audio generation, mixed-language validation and
   Prepared/Quick/Realtime use the same resolved settings; no text approval is added.

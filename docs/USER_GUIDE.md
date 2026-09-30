@@ -67,7 +67,7 @@ The welcome page offers **Open PDF…** and **Open saved talk…**. After openin
 | Presentation setup | **Record presentation as a video** and **Presentation settings…**. |
 | Left: Slides | Select a slide; hover its thumbnail for inclusion and audio readiness. |
 | Centre: Editor | PDF preview, editable narration, separate text/audio/play controls, notes and language insertion. |
-| Right: This slide | Inclusion, after-slide action, Timing, Delivery and Additional audio. |
+| Right: This slide | Inclusion, after-slide action, Timing (budget and pause), Slide voice & delivery, and Additional audio. |
 | Bottom | Current recording, last saved result, text/audio counts, operation progress and cancellation. |
 | Status bar: Speech engine | Current model state; click for immediate and automatic engine controls. |
 
@@ -111,13 +111,16 @@ flat navigation and only the sections relevant to its scope:
 
 The window title identifies what you are editing; there is no scope selector.
 Use **Settings → Application settings…**, the main **Talk settings…** button, or
-**Slide voice & language… / Additional audio…** in the inspector.
-**Talk duration** is editable at the top of the talk window’s **Talk & preparation** page,
-as well as beside Duration in the main window. Both edit the same talk target;
-Save keeps changes and Cancel restores the previous value. The target belongs
-to the talk, so it is hidden under Application defaults.
+**Slide voice & delivery… / Additional audio…** in the inspector.
+**Duration** in the main row is the only talk-duration editor. The toolbar's
+**Mode**, main **Language** selector and main **Record presentation as a video**
+checkbox are likewise the only talk-level value editors. Talk settings shows
+read-only mode, language and recording values with their source and **Use app**
+reset buttons. Reset participates in that dialog's Save/Cancel transaction;
+Cancel also restores language versions and their selected version. Application
+defaults retain their editable default mode, language and recording controls.
 
-Main voice and presentation shortcuts select talk scope. **Slide voice & language…**
+Main voice and presentation shortcuts select talk scope. **Slide voice & delivery…**
 and **Additional audio…** in the inspector select slide scope. Account and Speech
 engine shortcuts select application scope. Manual model loading prepares the
 selected slide's effective voice, or the application default when no talk is open.
@@ -450,8 +453,7 @@ Changed vocal settings require preparing affected audio again.
 Supported spoken languages are English, German, French, Spanish, Italian,
 Portuguese, Russian, Chinese, Japanese and Korean.
 
-Choose the target language in the main **Language** selector or in
-**Talk settings → Voice & language → Narration language**. Both restore an existing
+Choose the target language in the main **Language** selector. It restores an existing
 version of that language, including its text and matching audio. If none exists,
 AutoTalk creates an empty version with the same slides and slide settings,
 preserving the original narration and audio. Switching back restores the previous version. No separate Add step or
@@ -480,7 +482,8 @@ the narration editor and select a language.
 It inserts a marker such as `[German]` into the narration. Type that passage's
 words in the intended language. The marker selects pronunciation; it does not translate.
 
-Under **Language → Language options…** (also in the Talk menu), choose:
+Both **Language → Language options…** and **Talk → Language options…** open
+the talk dialog focused on **Language arrangement**. Choose:
 
 - **Separate versions and mixed passages:** allow different languages within a slide.
 - **Separate versions; one language per slide:** allow one language on each slide.
@@ -504,15 +507,16 @@ rewrite in the new version. Review regenerated text before presenting.
 
 Select the slide before using the right-hand inspector. **Include in presentation**
 controls whether it is spoken/presented; at least one slide must remain included.
-The PDF itself is not edited or reordered.
+The PDF itself is not edited or reordered. The inherited after-slide choice names
+its app/talk source above the combo. Slide playback controls live only in the
+inspector; the slide dialog does not show Playback.
 
 The inspector groups these controls by their purpose:
 
 | Control | Use |
 | --- | --- |
-| **Timing** | Leave at **Automatic**, or set a target in seconds. Changing it requests text review; it does not instantly stretch recorded speech. |
-| **Delivery → Use talk delivery** | Keep checked to inherit the talk's delivery. Uncheck to enter supported slide directions. |
-| **Delivery override** | Instructions for this slide, such as a slower explanation of a complex chart. |
+| **Timing** | Leave the slide budget at **Automatic**, or set a target in seconds. **Pause after slide** inherits while **Use talk pause (X s)** is checked. Uncheck it to override; 0 means no pause and is distinct from inheritance. |
+| **Slide voice & delivery…** | Opens the slide dialog for voice, language, delivery directions and vocal attributes. The caption beneath the button shows voice, source and style. |
 | **After this slide: Advance automatically** | Continue to the next included slide after the audio ends. |
 | **After this slide: Pause for live demo** | Pause and leave fullscreen for a demonstration. |
 | **After this slide: Wait for presenter** | Pause until you continue. |
@@ -732,7 +736,7 @@ Technical settings stay with the task they configure. Open the indicated section
 | Control / location | Meaning |
 | --- | --- |
 | **Talk settings → Preparation & timing → Allowed timing difference** | Tolerance in seconds around the target duration when assessing/fitting a talk. |
-| **Presentation & recording → Playback → Pause after slide** | Prepared gap between slides; contributes to duration. |
+| **Application/Talk settings → Presentation & recording → Playback → Pause after slide** | Default prepared gap between slides; contributes to duration. Override for one slide in inspector → Timing. |
 | **Language → Language options… → Language arrangement** | Mixed passages, one language per slide, or single-language versions. |
 | **Quick timing policy** | Generation/fitting/start behaviour; visible in Quick. |
 | **Realtime narration / speech priority / startup-refill buffer** | Text preparation and buffering choices; visible in Realtime. |
@@ -800,7 +804,7 @@ speech generation is catching up; **Needs saving** means an unfinished recording
 can be saved from the recordings dialog. Dialog-opening buttons/menu entries have
 an ellipsis; direct commands such as Start and Create slide audio do not.
 
-If setup or generation fails, read **Operation details** or **Help → Operation details**.
+If setup or generation fails, read **Operation details** or **View → Operation details**.
 For a missing voice reference, import/record the reference again. For an audio-output
 error, check system routing and Test audio. If another AutoTalk instance owns the
 speech GPU, unload/close that instance before attempting another model load.
@@ -809,13 +813,13 @@ speech GPU, unload/close that instance before attempting another model load.
 
 | Menu | Contents |
 | --- | --- |
-| **File** | Open PDF, Open saved talk, Open recent, Save, Save a copy, Open talk folder, Recordings & export, Export prepared talk, Quit. |
+| **File** | Open PDF, Open saved talk, Reload PDF, Open recent, Save, Save a copy, Open talk folder, Recordings & export, Export prepared talk, Quit. |
 | **Edit** | Undo/Redo, Cut/Copy/Paste/Select all, Find in slide text. Find searches the current narration, not the whole deck. |
 | **View** | Editor/Presenter, navigator/inspector visibility, restore layout, enlarge slide, Operation details. |
 | **Talk** | Talk settings, Voice & speech, Create talk text/audio, Rewrite all talk text, Fit duration, Language options, Selected slide and Mode submenus. |
 | **Presentation** | Start / Prepare and start, Continue, Pause, start selected, Restart, live demo, Previous/Next, End, Presentation settings, System audio settings. |
 | **Settings** | Application settings, Account, Speech engine, immediate model Load/Unload. |
-| **Help** | Getting started, Keyboard shortcuts, Operation details, About AutoTalk. |
+| **Help** | Getting started, Keyboard shortcuts, About AutoTalk. |
 
 | Shortcut | Action |
 | --- | --- |
@@ -878,3 +882,19 @@ model unloads after the next preparation/voice preview finishes, or when you Unl
 **Where are the current test results and remaining limitations?**
 See [VERIFICATION.md](VERIFICATION.md). This guide describes implemented controls;
 it does not imply every platform or voice has received the same testing.
+
+### Recording and status readouts
+
+The main recording checkbox keeps the label **Record presentation as a video**.
+A separate indicator appears only while waiting for screen sharing, recording
+(with elapsed time), or saving video. Saved-output links remain available beside
+it. The header shows audio readiness/duration; target duration and language stay
+in their own controls. Quick's explanation shows the included slide count without
+repeating the title or voice. The status bar contains transient saved/operation
+messages and the Speech engine button, without permanent filler text.
+
+Background track Add/Remove, volume and loop share the talk's **Background audio**
+section. Application defaults show volume and loop only. **Settings → Account…**
+focuses the account controls; Codex model/reasoning support application defaults
+and talk overrides. The Codex page displays connection state without suggesting
+that its readout is a sign-in control.

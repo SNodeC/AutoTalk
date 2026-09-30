@@ -1,0 +1,33 @@
+........................................................................ [ 16%]
+........................................................................ [ 33%]
+........................................................................ [ 50%]
+........................................................................ [ 66%]
+..........................................F............................. [ 83%]
+.......................................................................  [100%]
+=================================== FAILURES ===================================
+______ test_recording_indicator_uses_recorded_time_and_clears_after_stop _______
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f9b597ab470>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-339/test_recording_indicator_uses_0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+
+    def test_recording_indicator_uses_recorded_time_and_clears_after_stop(qtbot, project):
+        import numpy as np
+        from autotalk.media import Capture, RATE
+        window = MainWindow()
+        qtbot.addWidget(window)
+        window.adopt(project)
+        capture = Capture(project)
+        try:
+            window.transport.capture = capture
+            capture.append(np.zeros((RATE, 2), dtype=np.int16), 1)
+            window.update_timing()
+>           assert window.record.text() == 'Recording video • 0:01'
+E           AssertionError: assert 'Record prese...on as a video' == 'Recording video • 0:01'
+E
+E             - Recording video • 0:01
+E             + Record presentation as a video
+
+tests/test_ui.py:60: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_ui.py::test_recording_indicator_uses_recorded_time_and_clears_after_stop
+1 failed, 430 passed, 8 deselected in 87.71s (0:01:27)

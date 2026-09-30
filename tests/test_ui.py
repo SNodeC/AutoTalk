@@ -57,13 +57,15 @@ def test_recording_indicator_uses_recorded_time_and_clears_after_stop(qtbot, pro
         window.transport.capture = capture
         capture.append(np.zeros((RATE, 2), dtype=np.int16), 1)
         window.update_timing()
-        assert window.record.text() == 'Recording video • 0:01'
+        assert window.record.text() == 'Record presentation as a video'
+        assert '0:01' in window.record_status.text()
         assert window.transport.elapsed == 0  # Recording time is not narration time.
     finally:
         capture.close()
         window.transport.capture = None
     window.update_timing()
     assert window.record.text() == 'Record presentation as a video'
+    assert not window.record_status.isVisible()
 
 
 def test_controls_and_pdf_selector_follow_palette_changes(qtbot, qapp, project):

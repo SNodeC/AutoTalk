@@ -22,10 +22,14 @@ Dialog Save/Cancel governs pending configuration, not immediate account, engine,
 external-system or library operations.
 
 The existing `SectionDialog`, project bindings, preparation services, playback
-controller and engine owner are retained. One canonical Settings dialog now groups all configuration, following the
-later consolidation instruction. Existing shortcuts select their named section. It removes moving duration and
-recording controls between surfaces, the duplicate language selector, the separate
-Presenter Start command and style-driven replacement of hidden vocal attributes.
+controller and engine owner are retained. The September 27 pass did not actually
+remove every duplicate: dc77943 still had talk-language and recording editors in
+the talk dialog as well as the main window. The September 30 refinement removes
+those value editors and the duplicate mode/duration editors. Three fixed-scope
+Settings dialogs keep talk readouts and reset actions. See the
+[before/after review](../reviews/2026-09-30-ux-redundancy.md) for verified placement.
+The separate Presenter Start command remains removed.
+
 No parallel preparation pipeline, approval state or engine controller was added.
 
 ## Placement assessment
@@ -43,10 +47,11 @@ engineering assessment, not evidence from recruited first-time users.
 | Create talk text/audio | Main preparation row in Editor | P1 / 0 | Correct: missing text only; current audio reused; preparation never starts presentation. Tested in Prepared and Realtime. |
 | Selected-slide text/audio/play, readiness | Immediately below PDF/narration | P1 / 0 | Correct: distinct commands and prerequisites; current and stale audio behaviour retained. |
 | Enlarge, insert passage, notes | Beside preview/text editor | P3 / 0–1 | Correct: supporting content stays with the text, not the settings sidebar. |
-| Slides, titles, selection and status | Left sidebar; status in thumbnail tooltip | P1–P2 / 0 | Correct: one slide navigator, no second language selector. |
+| Slides, titles, selection and status | Left sidebar; status in thumbnail tooltip | P1–P2 / 0 | Correct: one slide navigator; main Language is the sole talk-level language editor. |
 | Include, after-slide action | This slide sidebar | P3 / 0 | Correct: explicitly selected-slide scope. |
-| Timing, delivery override | Separate sidebar disclosures | P3 / 1 | Correct: small contextual groups; no combined miscellaneous panel. |
-| Imported audio clips | Settings → This slide → Slide audio clips, from sidebar | P3 / 1 | Correct: list, add/remove, volume, before/after; language insertion is separate. |
+| Slide timing and pause | Sidebar Timing disclosure | P3 / 1 | Correct: sole slide-scope editors, with explicit pause inheritance and zero-second overrides. |
+| Slide delivery | Slide voice & delivery… → Voice & language | P3 / 1–2 | Correct: directions and attributes are edited only in the slide dialog; the inspector shows voice/source/style. |
+| Imported audio clips | Slide settings → Presentation & recording → Slide audio clips, from Additional audio… | P3 / 1 | Correct: list, add/remove, volume, before/after; language insertion is separate. |
 | Title, audience, objective, conference URL/scope/sources | Talk settings → Audience & conference | P2 / 1 | Correct: ordinary entrance resets to this section. |
 | Codex model/reasoning | Talk settings → Narration AI — Codex | P2–P4 / 2 | Correct: talk scope, status and link to the single account page. |
 | Fit duration, tolerance, mode policies | Talk settings → Preparation & timing | P2–P3 / 2 | Correct: Fit also exposed at depth 1 through Talk menu; buffer at depth 3. |
@@ -56,8 +61,9 @@ engineering assessment, not evidence from recruited first-time users.
 | Delivery style/presets | Voice & speech → Delivery | P2 / 2 | Correct: sampling remains unchanged, including when loading a legacy preset. |
 | Vocal attributes, persona, directions, progression | Delivery → More vocal attributes | P3 / 3 | Correct: supported controls grouped together; age belongs to Design. |
 | Qwen identity/capabilities and sampling | Voice & speech → Speech model — Qwen → Advanced synthesis | P4 / 2–3 | Correct: model variant follows voice source; no invalid independent model combination. |
-| Display, audio routing/test, pauses | Presentation settings → Display & sound | P2 / 1 | Correct: single setup entrance; external routing and local display scope explained. |
-| Recording enable | Stationary main checkbox | P1 / 0 | Correct: it never moves into a modal dialog. |
+| Display, audio routing/test | Application defaults → Application; talk dialog links there | P2 / 1–2 | Correct: device settings belong to this computer. |
+| Default and talk pauses | Respective settings dialog → Presentation & recording → Playback | P2 / 1 | Correct: slide overrides are edited only in inspector Timing. |
+| Recording enable | Stationary main checkbox | P1 / 0 | Correct after September 30: talk dialog is read-only + reset; application defaults retain an editable checkbox. |
 | Recording source, microphone, destination | Presentation settings → Recording | P2 / 2 | Correct: current intent shown; capture scope and screen-sharing distinction explained. |
 | Pause policy and encoding | Recording → Advanced recording / Output quality | P3 / 3 | Correct: details stay with recording. |
 | Background track, gain, loop, remove | Presentation settings → Background audio | P2 / 2 | Correct: whole-talk audio is separate from slide clips. |

@@ -132,8 +132,8 @@ mechanism is introduced.
 | Left sidebar | Included/excluded and text/audio readiness indications | P2 / 0 |
 | Right sidebar: This slide | Include in presentation | P3 / 0 |
 | Right sidebar | After this slide: advance, pause for demo, wait for presenter | P3 / 0 |
-| Right sidebar → Timing | Automatic timing / explicit slide duration | P3 / 1 |
-| Right sidebar → Delivery | Use talk delivery / override directions | P3 / 1 |
+| Right sidebar → Timing | Automatic/explicit slide duration; Pause after slide with Use talk pause (X s) inheritance | P3 / 1 |
+| Right sidebar → Slide voice & delivery… | Voice, language, delivery directions and attributes in the slide dialog; voice/source/style caption below entrance | P3 / 1 |
 | Right sidebar → Additional audio… | Clip list, add/remove, volume, before/after narration | P3 / 1 |
 
 These slide settings retain their inventory priority. Their direct visibility is
@@ -159,7 +159,7 @@ on whichever page was visited last.
 | Preparation & timing → Realtime | Complete script / write ahead; consistency / earliest playback | 2 |
 | Realtime → Advanced | Startup/refill buffer | 3 |
 
-The main duration field remains the primary duration editor. The timing page
+The main duration field is the only duration editor. The timing page
 provides context and refinement rather than an unexplained second duration-setting
 workflow.
 
@@ -231,7 +231,7 @@ It opens on Display & sound.
 | --- | --- | --- |
 | Display & sound | Fullscreen display | 1 |
 | Display & sound | System audio settings…; Test audio | 1 |
-| Display & sound | Pause between slides | 1 |
+| Presentation & recording → Playback | Application/talk default pause between slides; slide overrides belong to inspector Timing | 1 |
 | Recording | Slides/narration or screen/system audio source | 2 |
 | Recording | Include microphone | 2 |
 | Recording | Destination field and Choose destination… | 2 |
@@ -258,9 +258,9 @@ the screen authorized for capture are separate choices, explained at capture sta
 | --- | --- | --- |
 | Select an existing version | Main language/version control | Control visible at depth 0 |
 | Choose initial spoken language | Same control before narration exists | Depth 0 |
-| Add language version… | Named entry in the language control; also Talk menu | Entry exposed at 1; creation dialog at 2 |
+| Restore/create language version | Select the language in the main combo | Depth 0 |
 | Language options… | Named entry in the same control; also Talk menu | Dialog at 2 |
-| Language arrangement policy | Language options dialog | Depth 2 |
+| Language arrangement policy | Both Language options entrances focus Language arrangement in talk settings | Depth 2 |
 | Insert a language passage | Selected-slide text editor command | Chooser at 1 |
 
 Language options contains the existing arrangement choices:
