@@ -62,18 +62,20 @@ def test_select_language_restores_version_and_start_reuses_audio(qtbot, project,
 def test_settings_cancel_restores_versions_and_source_edits(qtbot, project):
     make_audio(project)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+    stored_before = Project.load(project.manifest).versions
     w.narration.setPlainText('My unsaved English edit.')
     project.version.language = 'English'
     before = copy.deepcopy(project)
     w.defaults['language'] = 'German'; w.apply_defaults(project)
     dialog = w.settings[1]; dialog.show_section('Voice & language')
-    dialog.options.inheritance['language'][1].click()
-    assert len(project.versions) == 2
+    dialog.fields['language'].reset.click()
+    assert len(w.settings[1].project.versions) == 2
     assert project.versions['main'].slides[0].narration == 'My unsaved English edit.'
     dialog.reject()
     assert w.project.versions == before.versions and w.project.active_version == before.active_version
     assert w.narration.toPlainText() == 'My unsaved English edit.'
-    assert Project.load(project.manifest).versions == before.versions
+    assert Project.load(project.manifest).versions == stored_before
+    assert w.isWindowModified()
 
 
 def test_talk_inheritance_selects_default_version_preserving_other_language(project):

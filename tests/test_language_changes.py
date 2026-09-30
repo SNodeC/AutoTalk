@@ -30,7 +30,7 @@ def test_language_change_generates_fresh_text_before_start(qtbot, project, monke
     else:
         dialog = w.settings[scope]
         dialog.show_section('Voice & language')
-        dialog.settings_language.setCurrentText('German')
+        dialog.fields['language'].editor.setCurrentText('German')
         dialog.accept()
     assert w.narration_progress.value() == (1 if scope == 2 else 0)
     assert w.slide_progress.value() == (1 if scope == 2 else 0)
@@ -80,27 +80,28 @@ def test_language_cancel_and_reset_restore_readiness(qtbot, project, scope):
         before = copy.deepcopy(w.project.versions)
         selected = w.project.active_version
         dialog = w.settings[1]; dialog.show_section('Voice & language')
-        dialog.options.inheritance['language'][1].click()
-        assert w.project.prepared and w.narration_progress.value() == 2
+        dialog.fields['language'].reset.click()
+        assert dialog.project.prepared and not w.project.prepared
         dialog.reject()
         assert w.project.versions == before and w.project.active_version == selected
         assert not w.project.prepared and not w.narration.toPlainText()
         dialog.show_section('Voice & language')
-        dialog.options.inheritance['language'][1].click()
+        dialog.fields['language'].reset.click()
         dialog.accept()
         assert w.project.prepared and w.narration_progress.value() == 2
         return
     dialog = w.settings[scope]
     dialog.show_section('Voice & language')
-    dialog.settings_language.setCurrentText('German')
-    assert w.narration_progress.value() == (1 if scope == 2 else 0)
+    dialog.fields['language'].editor.setCurrentText('German')
+    assert w.narration_progress.value() == 2
+    assert dialog.setting_value('language') == 'German'
     dialog.reject()
     assert w.project.prepared and w.narration_progress.value() == 2
     assert w.narration.toPlainText() == w.project.slides[0].narration
     dialog.show_section('Voice & language')
-    dialog.settings_language.setCurrentText('German')
+    dialog.fields['language'].editor.setCurrentText('German')
     if scope:
-        dialog.options.inheritance['language'][1].click()
+        dialog.fields['language'].reset.click()
         assert w.project.prepared and w.narration_progress.value() == 2
     dialog.accept()
 
@@ -196,6 +197,9 @@ def test_manual_language_markers_remain_explicit(project):
 def test_language_arrangement_caption_follows_its_scope(qtbot, project, scope):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     dialog = w.settings[scope]; dialog.show_section('Voice & language')
-    container, _ = dialog.options.inheritance['language_policy']
+    if scope == 2:
+        assert 'language_policy' not in dialog.fields
+        return
+    container = dialog.fields['language_policy']
     form = next(form for form in container.parentWidget().findChildren(QFormLayout) if form.indexOf(container) >= 0)
     assert form.labelForField(container).isVisible() == container.isVisible() == (scope != 2)

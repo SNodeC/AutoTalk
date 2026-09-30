@@ -17,7 +17,7 @@ ALLOWED = {'project', 'edit_setting', 'codex_settings', 'error', 'log_message',
 
 
 def test_component_controller_allowlist():
-    for name in ('settings', 'options', 'inspector'):
+    for name in ('settings', 'settings_components', 'settings_fields', 'options', 'inspector', 'preferences'):
         tree = ast.parse(Path(f'src/autotalk/{name}.py').read_text())
         for function in (n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)):
             aliases = {'window'} if name != 'options' else set()
@@ -65,11 +65,13 @@ def test_cancel_restores_clip_gain_and_placement(qtbot, project):
     original = copy.deepcopy(project.slides)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     dialog = w.settings[2]
-    dialog.show_section('Presentation & recording')
-    dialog.clip_gain.setValue(.5)
-    dialog.clip_placement.setCurrentIndex(dialog.clip_placement.findData('after'))
-    assert w.project.slides[0].clips[0].gain == .5
-    assert w.project.slides[0].clips[0].placement == 'after'
+    dialog.show_section('Audio & recording')
+    dialog.assets.clip_gain.setValue(.5)
+    dialog.assets.clip_placement.setCurrentIndex(dialog.assets.clip_placement.findData('after'))
+    assert dialog.project.slides[0].clips[0].gain == .5
+    assert w.project.slides[0].clips[0].gain == 1
+    assert dialog.project.slides[0].clips[0].placement == 'after'
+    assert w.project.slides[0].clips[0].placement == 'before'
     dialog.reject()
     assert w.project.slides == original
     assert Project.load(project.manifest).slides == original
@@ -77,17 +79,23 @@ def test_cancel_restores_clip_gain_and_placement(qtbot, project):
 
 def test_tab_order_matches_base(qtbot):
     import json
-    expected = json.loads(Path('docs/reviews/evidence/2026-09-30-ui-structure-perf/base-tab-order.json').read_text())
+    expected = json.loads(Path('docs/reviews/evidence/2026-10-01-settings-refactor/settings-tab-order.json').read_text())
     w = MainWindow(); qtbot.addWidget(w)
     for scope, dialog in w.settings.items():
-        names = {v: k.replace('conference_scope', 'scope') for k, v in dialog.__dict__.items()
-                 if isinstance(v, QWidget) and QWidget.window(v) is dialog}
-        names.update({v: 'field:' + k for k, v in dialog.options.fields.items()})
-        names.update({v[1]: 'reset:' + k for k, v in dialog.options.inheritance.items()})
-        actual = []
-        child = dialog.nextInFocusChain()
-        while child is not dialog:
-            if child in names and child.focusPolicy() & Qt.FocusPolicy.TabFocus:
-                actual.append(names[child])
-            child = child.nextInFocusChain()
-        assert actual == expected[str(scope)]
+        assert tab_order(dialog) == expected[str(scope)]
+
+
+def tab_order(dialog):
+    names = {}
+    for prefix, owner in [('', dialog)] + [(name+'.', getattr(dialog,name)) for name in ('voice','models','assets','conference','presets') if hasattr(dialog,name)]:
+        names.update({value: prefix+key for key,value in owner.__dict__.items()
+                      if isinstance(value,QWidget) and value is not dialog and QWidget.window(value) is dialog})
+    names.update({field.editor:'field:'+key for key,field in dialog.fields.items()})
+    names.update({field.reset:'reset:'+key for key,field in dialog.fields.items()})
+    actual=[]
+    child=dialog.nextInFocusChain()
+    while child is not dialog:
+        if child in names and child.focusPolicy() & Qt.FocusPolicy.TabFocus:
+            actual.append(names[child])
+        child=child.nextInFocusChain()
+    return actual

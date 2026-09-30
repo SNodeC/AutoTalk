@@ -1,0 +1,50 @@
+[
+  {
+    "file": "inspector-light-scale1.5.png",
+    "logical_size": [
+      940,
+      680
+    ],
+    "style": "fusion"
+  },
+  {
+    "file": "recording-light-top-scale1.5.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "fusion"
+  },
+  {
+    "file": "recording-light-bottom-scale1.5.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "fusion"
+  },
+  {
+    "file": "inspector-dark-scale1.5.png",
+    "logical_size": [
+      940,
+      680
+    ],
+    "style": "fusion"
+  },
+  {
+    "file": "recording-dark-top-scale1.5.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "fusion"
+  },
+  {
+    "file": "recording-dark-bottom-scale1.5.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "fusion"
+  }
+]

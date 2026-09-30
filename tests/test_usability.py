@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QPushButton
 
 from conftest import make_audio
 from autotalk import app, services
-from autotalk import settings
+from autotalk import settings_components as settings
 from autotalk.app import MainWindow
 from autotalk.media import Capture, RATE
 from autotalk.runtime import Cancelled, Task
@@ -29,7 +29,7 @@ def test_open_pdf_has_one_dialog_and_non_destructive_default_location(qtbot, sam
         assert w.project.manifest.is_file()
         assert w.start_button.text() == 'Prepare and start'
         assert 'Start reuses current audio' in w.status.text()
-        assert w.settings[1].isVisible() and w.minutes.isVisible() and w.settings[1].audience.isVisible()
+        assert w.settings[1].isVisible() and w.minutes.isVisible() and w.settings[1].fields['audience'].editor.isVisible()
         w.settings[1].accept()
     assert (projects / 'slides-AutoTalk/talk.autotalk.json').is_file()
 
@@ -57,13 +57,13 @@ def test_voice_source_shows_only_its_own_workflow(qtbot, project):
     w.settings[1].show_section("Voice & language")
     designed = next(b for b in w.settings[1].findChildren(QPushButton) if b.text() == 'Use this designed voice')
     for source in ('CustomVoice', 'Base', 'VoiceDesign', 'CustomVoice'):
-        w.settings[1].voice_source.setCurrentIndex(["CustomVoice", "Base", "VoiceDesign"].index(source))
-        assert w.settings[1].speaker.isVisible() == (source == 'CustomVoice')
-        assert w.settings[1].record_button.isVisible() == (source == 'Base')
-        assert w.settings[1].transcript.isVisible() == (source == 'Base')
-        assert w.settings[1].voice_description.isVisible() == (source == 'VoiceDesign')
+        w.settings[1].voice.voice_source.setCurrentIndex(["CustomVoice", "Base", "VoiceDesign"].index(source))
+        assert w.settings[1].voice.speaker.isVisible() == (source == 'CustomVoice')
+        assert w.settings[1].voice.record_button.isVisible() == (source == 'Base')
+        assert w.settings[1].voice.transcript.isVisible() == (source == 'Base')
+        assert w.settings[1].voice.voice_description.isVisible() == (source == 'VoiceDesign')
         assert designed.isVisible() == (source == 'VoiceDesign')
-        assert w.settings[1].voice_preview_button.isVisible()
+        assert w.settings[1].voice.voice_preview_button.isVisible()
     w.settings[1].reject()
 
 
@@ -220,7 +220,9 @@ def test_previous_video_does_not_override_new_recording_intent(qtbot, project, t
     w.record.click()
     assert not w.record_status.isVisible() and w.record.isChecked()
     assert 'Saved ' in w.saved_output.text() and 'Open video' in w.saved_output.text()
-    w.settings[1].options.fields['recording_source'].setCurrentIndex(w.settings[1].options.fields['recording_source'].findData('screen'))
+    w.settings[1].show_section('Audio & recording')
+    w.settings[1].fields['recording_source'].editor.setCurrentIndex(w.settings[1].fields['recording_source'].editor.findData('screen'))
+    w.settings[1].accept()
     assert 'Screen + system audio' in w.record.toolTip()
     w.language.setCurrentText('German')
     assert not w.record_status.isVisible() and w.record.isChecked()
@@ -234,27 +236,28 @@ def test_voice_actions_follow_reference_and_current_design(qtbot, project, tmp_p
     monkeypatch.setattr(services, 'data_dir', lambda: tmp_path)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     w.settings[1].show_section("Voice & language")
-    assert 'Energetic male' in w.settings[1].speaker.currentText()
-    w.settings[1].speaker.setCurrentIndex(w.settings[1].speaker.findData('Aiden'))
-    assert project.voice.speaker == 'Aiden'
-    w.settings[1].voice_source.setCurrentIndex(1)
-    assert not w.settings[1].voice_preview_button.isEnabled() and not w.settings[1].save_voice_button.isEnabled()
-    w.settings[1].voice_source.setCurrentIndex(2)
-    assert not w.settings[1].voice_preview_button.isEnabled() and not w.settings[1].accept_voice_button.isEnabled()
-    w.settings[1].voice_description.setText('Warm, calm and clear')
-    assert w.settings[1].voice_preview_button.isEnabled() and not w.settings[1].accept_voice_button.isEnabled()
-    path = services.preview_path(project); path.parent.mkdir(parents=True)
+    assert 'Energetic male' in w.settings[1].voice.speaker.currentText()
+    w.settings[1].voice.speaker.setCurrentIndex(w.settings[1].voice.speaker.findData('Aiden'))
+    assert w.settings[1].project.voice.speaker == 'Aiden'
+    assert project.voice.speaker == 'Ryan'
+    w.settings[1].voice.voice_source.setCurrentIndex(1)
+    assert not w.settings[1].voice.voice_preview_button.isEnabled() and not w.settings[1].voice.save_voice_button.isEnabled()
+    w.settings[1].voice.voice_source.setCurrentIndex(2)
+    assert not w.settings[1].voice.voice_preview_button.isEnabled() and not w.settings[1].voice.accept_voice_button.isEnabled()
+    w.settings[1].voice.voice_description.setText('Warm, calm and clear')
+    assert w.settings[1].voice.voice_preview_button.isEnabled() and not w.settings[1].voice.accept_voice_button.isEnabled()
+    path = services.preview_path(w.settings[1].voice.voice_context()); path.parent.mkdir(parents=True)
     with wave.open(str(path), 'wb') as wav:
         wav.setparams((1, 2, 24000, 0, 'NONE', 'not compressed'))
         wav.writeframes(b'\0\0' * 4 * 24000)
     w.refresh()
-    assert w.settings[1].accept_voice_button.isEnabled()
-    w.settings[1].voice_description.setText('An entirely different voice')
-    assert not w.settings[1].accept_voice_button.isEnabled()
-    w.settings[1].voice_description.setText('Warm, calm and clear')
-    w.settings[1].accept_voice_button.click()
-    assert project.voice.source == 'Base' and project.asset(project.voice_file).is_file()
-    assert w.settings[1].voice_preview_button.isEnabled()
+    assert w.settings[1].voice.accept_voice_button.isEnabled()
+    w.settings[1].voice.voice_description.setText('An entirely different voice')
+    assert not w.settings[1].voice.accept_voice_button.isEnabled()
+    w.settings[1].voice.voice_description.setText('Warm, calm and clear')
+    w.settings[1].voice.accept_voice_button.click()
+    assert w.settings[1].project.voice.source == 'Base' and w.settings[1].project.asset(w.settings[1].project.voice_file).is_file()
+    assert w.settings[1].voice.voice_preview_button.isEnabled()
     w.settings[1].accept()
 
 
@@ -282,16 +285,16 @@ def test_inapplicable_options_and_recording_browser_priorities(qtbot, project, m
     from autotalk import options
     monkeypatch.setattr(options, 'data_dir', lambda: tmp_path)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    assert not w.settings[1].options.use_preset_button.isEnabled()
-    w.settings[1].show_section("Presentation & recording")
-    assert not w.settings[1].remove_background_button.isEnabled() and w.settings[1].background_gain.isEnabled()
-    assert w.settings[1].background_gain.value() == 15 and w.settings[1].background_gain.suffix() == ' %'
+    assert not w.settings[1].presets.use_preset_button.isEnabled()
+    w.settings[1].show_section("Audio & recording")
+    assert not w.settings[1].assets.remove_background_button.isEnabled() and w.settings[1].fields['background_gain'].editor.isEnabled()
+    assert w.settings[1].fields['background_gain'].editor.value() == 15 and w.settings[1].fields['background_gain'].editor.suffix() == ' %'
     w.settings[1].accept()
     w.export_dialog.show_section()
     assert w.output_button.property('primary') and not w.export_button.property('primary')
     assert w.export_button.y() > w.recordings.y()
     w.export_dialog.accept()
-    w.settings[1].show_section("Talk & preparation")
+    w.settings[1].show_section("Timing & playback")
     assert w.settings[1].fit_button.isVisible()
     w.settings[1].reject()
     assert project.slides[0].source_text.splitlines()[0] in w.slide_list.item(0).text()
@@ -419,17 +422,17 @@ def test_saved_voice_preview_feedback_and_settings_have_one_owner(qtbot, project
     monkeypatch.setattr(voices, 'data_dir', lambda: tmp_path)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     w.settings[1].show_section("Voice & language")
-    w.settings[1].voice_source.setCurrentIndex(3)
-    assert w.settings[1].voice_library.rowCount() == 0
-    assert not w.settings[1].voice_preview_button.isEnabled() and not w.settings[1].library_use.isEnabled()
-    voices.save_voice(project, 'Conference voice'); w.settings[1].refresh_library()
-    assert w.settings[1].voice_preview_button.isEnabled() and w.settings[1].library_use.isEnabled()
+    w.settings[1].voice.voice_source.setCurrentIndex(3)
+    assert w.settings[1].voice.voice_library.rowCount() == 0
+    assert not w.settings[1].voice.voice_preview_button.isEnabled() and not w.settings[1].voice.library_use.isEnabled()
+    voices.save_voice(project, 'Conference voice'); w.settings[1].voice.refresh_library()
+    assert w.settings[1].voice.voice_preview_button.isEnabled() and w.settings[1].voice.library_use.isEnabled()
     release = threading.Event()
     monkeypatch.setattr(settings, 'synthesize', lambda *a, **kw: (release.wait(3), None)[1])
     # Exercise the real button and worker path; no speech model needed to check ownership.
     monkeypatch.setattr(w.transport, 'preview', lambda path: None)
     try:
-        w.settings[1].voice_preview_button.click(); qtbot.wait(300)
+        w.settings[1].voice.voice_preview_button.click(); qtbot.wait(300)
         assert QApplication.activeModalWidget() is w.settings[1]
         assert w.progress.isVisible() and w.progress.parentWidget() is w.settings[1]
         assert 'Generating voice preview' in w.settings[1].status.text()
@@ -438,11 +441,11 @@ def test_saved_voice_preview_feedback_and_settings_have_one_owner(qtbot, project
         release.set(); qtbot.waitUntil(lambda: w.job is None)
     assert w.settings[1].buttons.button(QDialogButtonBox.Save).text().replace('&', '') == 'Save'
     w.settings[1].reject()
-    w.settings[0].show_section("Application")
-    assert w.settings[0].screen.isVisible() and w.settings[0].audio_test_button.isVisible()
-    w.settings[0].reject()
-    w.settings[1].show_section("Presentation & recording")
-    assert w.record.isVisible() and not w.settings[0].screen.isVisible() and not w.settings[0].audio_test_button.isVisible()
+    w.preferences.show_section("Display & sound")
+    assert w.preferences.screen.isVisible() and w.preferences.audio_test_button.isVisible()
+    w.preferences.reject()
+    w.settings[1].show_section("Audio & recording")
+    assert w.record.isVisible() and not w.preferences.screen.isVisible() and not w.preferences.audio_test_button.isVisible()
     w.settings[1].reject()
 
 

@@ -1,0 +1,368 @@
+[
+  {
+    "slides": 20,
+    "refresh": {
+      "ms": 2.995,
+      "calls": {
+        "ready": 20,
+        "speech_key": 20,
+        "text_ready": 20,
+        "asset": 20,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 0
+      }
+    },
+    "keystroke": {
+      "ms": 0.38,
+      "calls": {
+        "ready": 1,
+        "speech_key": 1,
+        "text_ready": 1,
+        "asset": 1,
+        "refresh": 0,
+        "dialog_loads": 0,
+        "configuration_changed": 0
+      }
+    },
+    "selection": {
+      "ms": 5.024,
+      "calls": {
+        "ready": 20,
+        "speech_key": 20,
+        "text_ready": 21,
+        "asset": 23,
+        "refresh": 0,
+        "dialog_loads": 0,
+        "configuration_changed": 0
+      }
+    },
+    "dialog_edit": {
+      "ms": 6.539,
+      "calls": {
+        "ready": 20,
+        "speech_key": 20,
+        "text_ready": 20,
+        "asset": 22,
+        "refresh": 1,
+        "dialog_loads": 1,
+        "configuration_changed": 1
+      }
+    },
+    "dialog_save": {
+      "ms": 8.125,
+      "calls": {
+        "ready": 40,
+        "speech_key": 40,
+        "text_ready": 41,
+        "asset": 43,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 0
+      }
+    },
+    "after": {
+      "ms": 7.665,
+      "calls": {
+        "ready": 40,
+        "speech_key": 40,
+        "text_ready": 40,
+        "asset": 42,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 1
+      }
+    },
+    "pause": {
+      "ms": 7.698,
+      "calls": {
+        "ready": 40,
+        "speech_key": 40,
+        "text_ready": 40,
+        "asset": 42,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 1
+      }
+    },
+    "budget": {
+      "ms": 5.718,
+      "calls": {
+        "ready": 20,
+        "speech_key": 20,
+        "text_ready": 20,
+        "asset": 22,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 1
+      }
+    },
+    "include": {
+      "ms": 8.881,
+      "calls": {
+        "ready": 40,
+        "speech_key": 40,
+        "text_ready": 40,
+        "asset": 42,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 1
+      }
+    },
+    "duration": {
+      "ms": 5.737,
+      "calls": {
+        "ready": 20,
+        "speech_key": 20,
+        "text_ready": 20,
+        "asset": 22,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 1
+      }
+    },
+    "record": {
+      "ms": 7.675,
+      "calls": {
+        "ready": 40,
+        "speech_key": 40,
+        "text_ready": 40,
+        "asset": 42,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 1
+      }
+    },
+    "mode": {
+      "ms": 7.456,
+      "calls": {
+        "ready": 40,
+        "speech_key": 40,
+        "text_ready": 40,
+        "asset": 42,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 1
+      }
+    },
+    "editor_next": {
+      "ms": 4.821,
+      "calls": {
+        "ready": 20,
+        "speech_key": 20,
+        "text_ready": 21,
+        "asset": 23,
+        "refresh": 0,
+        "dialog_loads": 0,
+        "configuration_changed": 0
+      }
+    },
+    "editor_previous": {
+      "ms": 5.145,
+      "calls": {
+        "ready": 20,
+        "speech_key": 20,
+        "text_ready": 21,
+        "asset": 23,
+        "refresh": 0,
+        "dialog_loads": 0,
+        "configuration_changed": 0
+      }
+    },
+    "aggregates": {
+      "ms": 3.581,
+      "calls": {
+        "ready": 20,
+        "speech_key": 20,
+        "text_ready": 20,
+        "asset": 19,
+        "refresh": 0,
+        "dialog_loads": 0,
+        "configuration_changed": 0
+      }
+    }
+  },
+  {
+    "slides": 60,
+    "refresh": {
+      "ms": 7.644,
+      "calls": {
+        "ready": 60,
+        "speech_key": 60,
+        "text_ready": 60,
+        "asset": 60,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 0
+      }
+    },
+    "keystroke": {
+      "ms": 0.397,
+      "calls": {
+        "ready": 1,
+        "speech_key": 1,
+        "text_ready": 1,
+        "asset": 1,
+        "refresh": 0,
+        "dialog_loads": 0,
+        "configuration_changed": 0
+      }
+    },
+    "selection": {
+      "ms": 9.53,
+      "calls": {
+        "ready": 60,
+        "speech_key": 60,
+        "text_ready": 61,
+        "asset": 63,
+        "refresh": 0,
+        "dialog_loads": 0,
+        "configuration_changed": 0
+      }
+    },
+    "dialog_edit": {
+      "ms": 12.998,
+      "calls": {
+        "ready": 60,
+        "speech_key": 60,
+        "text_ready": 60,
+        "asset": 62,
+        "refresh": 1,
+        "dialog_loads": 1,
+        "configuration_changed": 1
+      }
+    },
+    "dialog_save": {
+      "ms": 18.242,
+      "calls": {
+        "ready": 120,
+        "speech_key": 120,
+        "text_ready": 121,
+        "asset": 123,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 0
+      }
+    },
+    "after": {
+      "ms": 17.672,
+      "calls": {
+        "ready": 120,
+        "speech_key": 120,
+        "text_ready": 120,
+        "asset": 122,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 1
+      }
+    },
+    "pause": {
+      "ms": 17.664,
+      "calls": {
+        "ready": 120,
+        "speech_key": 120,
+        "text_ready": 120,
+        "asset": 122,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 1
+      }
+    },
+    "budget": {
+      "ms": 11.269,
+      "calls": {
+        "ready": 60,
+        "speech_key": 60,
+        "text_ready": 60,
+        "asset": 62,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 1
+      }
+    },
+    "include": {
+      "ms": 18.711,
+      "calls": {
+        "ready": 120,
+        "speech_key": 120,
+        "text_ready": 120,
+        "asset": 122,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 1
+      }
+    },
+    "duration": {
+      "ms": 11.288,
+      "calls": {
+        "ready": 60,
+        "speech_key": 60,
+        "text_ready": 60,
+        "asset": 62,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 1
+      }
+    },
+    "record": {
+      "ms": 17.665,
+      "calls": {
+        "ready": 120,
+        "speech_key": 120,
+        "text_ready": 120,
+        "asset": 122,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 1
+      }
+    },
+    "mode": {
+      "ms": 17.497,
+      "calls": {
+        "ready": 120,
+        "speech_key": 120,
+        "text_ready": 120,
+        "asset": 122,
+        "refresh": 1,
+        "dialog_loads": 0,
+        "configuration_changed": 1
+      }
+    },
+    "editor_next": {
+      "ms": 8.966,
+      "calls": {
+        "ready": 60,
+        "speech_key": 60,
+        "text_ready": 61,
+        "asset": 63,
+        "refresh": 0,
+        "dialog_loads": 0,
+        "configuration_changed": 0
+      }
+    },
+    "editor_previous": {
+      "ms": 9.361,
+      "calls": {
+        "ready": 60,
+        "speech_key": 60,
+        "text_ready": 61,
+        "asset": 63,
+        "refresh": 0,
+        "dialog_loads": 0,
+        "configuration_changed": 0
+      }
+    },
+    "aggregates": {
+      "ms": 7.795,
+      "calls": {
+        "ready": 60,
+        "speech_key": 60,
+        "text_ready": 60,
+        "asset": 59,
+        "refresh": 0,
+        "dialog_loads": 0,
+        "configuration_changed": 0
+      }
+    }
+  }
+]

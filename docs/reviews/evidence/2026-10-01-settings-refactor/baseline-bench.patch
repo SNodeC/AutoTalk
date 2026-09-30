@@ -1,0 +1,53 @@
+diff --git a/tools/bench_ui.py b/tools/bench_ui.py
+index 85a14bc..370d0d1 100644
+--- a/tools/bench_ui.py
++++ b/tools/bench_ui.py
+@@ -61,6 +61,8 @@ def benchmark(count, repeats):
+         original = copy.deepcopy(project)
+         def restore():
+             nonlocal project
++            for dialog in window.settings.values():
++                if dialog.isVisible(): dialog.reject()
+             project = copy.deepcopy(original)
+             window.adopt(project)
+             window.select_slide(count // 2)
+@@ -75,8 +77,10 @@ def benchmark(count, repeats):
+                    'keystroke': lambda: window.narration.insertPlainText('x'),
+                    'selection': lambda: window.slide_list.setCurrentRow((window.transport.index + 1) % count)}
+         actions.update({
++            'dialog_edit': lambda: window.settings[1].audience.setText('Changed audience'),
++            'dialog_save': window.settings[1].accept,
+             'after': lambda: window.inspector.slide_after.setCurrentIndex(window.inspector.slide_after.findData('pause')),
+-            'pause': lambda: window.inspector.inherit_pause.setChecked(False),
++            'pause': lambda: window.inspector.slide_pause.setValue(1.2),
+             'budget': lambda: window.inspector.slide_budget.setValue(75),
+             'include': lambda: window.inspector.slide_include.setChecked(False),
+             'duration': lambda: window.minutes.setValue(12),
+@@ -87,17 +91,21 @@ def benchmark(count, repeats):
+         })
+         if hasattr(window, 'flush_refresh'):
+             actions['aggregates'] = window.flush_refresh
++        def prepare_action(name):
++            restore()
++            if name.startswith('dialog_'):
++                window.settings[1].show_section('Talk & preparation')
++                if name == 'dialog_save':
++                    window.settings[1].audience.setText('Changed audience')
++            if name == 'aggregates':
++                window.narration.insertPlainText('x')
+         for name, action in actions.items():
+             samples = []
+             for _ in range(repeats):
+-                restore()
+-                if name == 'aggregates':
+-                    window.narration.insertPlainText('x')
++                prepare_action(name)
+                 start = time.perf_counter(); action()
+                 samples.append((time.perf_counter() - start) * 1000)
+-            restore()
+-            if name == 'aggregates':
+-                window.narration.insertPlainText('x')
++            prepare_action(name)
+             counts = Counter()
+             def trace(frame, event, arg):
+                 if event == 'call' and frame.f_code in codes:

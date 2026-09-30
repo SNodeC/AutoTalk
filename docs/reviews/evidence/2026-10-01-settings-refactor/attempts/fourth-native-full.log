@@ -1,0 +1,127 @@
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.0' (uid=1000 pid=3440068 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Activating service name='org.gtk.vfs.Daemon' requested by ':1.2' (uid=1000 pid=3440068 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Successfully activated service 'org.gtk.vfs.Daemon'
+dbus-daemon[3440088]: Activating service name='org.a11y.atspi.Registry' requested by ':1.1' (uid=1000 pid=3440068 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Activating service name='org.xfce.Xfconf' requested by ':1.2' (uid=1000 pid=3440068 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3440088]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Successfully activated service 'org.xfce.Xfconf'
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.7' (uid=1000 pid=3440134 comm="artifacts/open-tasks/venv-qt610/bin/python -m pyte" label="unconfined")
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.8' (uid=1000 pid=3440169 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.8' (uid=1000 pid=3440169 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+
+(/usr/libexec/xdg-desktop-portal:3440169): xdg-desktop-portal-WARNING **: 23:40:00.332: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.8' (uid=1000 pid=3440169 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.kde' requested by ':1.8' (uid=1000 pid=3440169 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.kde'
+xdp-kde-clipboard: Couldn't resolve QWaylandApplication - clipboard will not work
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.kwallet' requested by ':1.8' (uid=1000 pid=3440169 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+kf.wallet.ksecretd: Lacking a socket, pipe: 0 env: 0
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.kwallet'
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Activating service name='org.gtk.vfs.Metadata' requested by ':1.2' (uid=1000 pid=3440068 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3440066]: [session uid=1000 pid=3440066 pidfd=5] Successfully activated service 'org.gtk.vfs.Metadata'
+........................................................................ [ 13%]
+........................................................................ [ 26%]
+........................................................................ [ 39%]
+........................................................................ [ 52%]
+........................................................................ [ 65%]
+.....................................................................
+(/usr/libexec/xdg-desktop-portal:3440169): xdg-desktop-portal-WARNING **: 23:41:43.805: Realtime error: Could not map tid 3442460 of pid 3440134: Process ids could not be found: 3442460
+... [ 78%]
+........................................................FF.............. [ 91%]
+.............................................                            [100%]
+=================================== FAILURES ===================================
+_________ test_language_arrangement_choices_fit_native_field[size0-0] __________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f2c8798ba10>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-401/test_language_arrangement_choi0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+scope = 0, size = (760, 580)
+
+    @pytest.mark.parametrize('scope', [0, 1])
+    @pytest.mark.parametrize('size', [(760, 580), (920, 760)])
+    def test_language_arrangement_choices_fit_native_field(qtbot, project, scope, size):
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        dialog = w.settings[scope]
+        dialog.show_section('Voice & language')
+        dialog.resize(*size)
+        combo = dialog.fields['language_policy'].editor
+        scroll = dialog.pages.currentWidget()
+        for index in range(combo.count()):
+            scroll.ensureWidgetVisible(combo)
+            combo.setFocus()
+            qtbot.keyClick(combo, Qt.Key_Home)
+            for _ in range(index):
+                qtbot.keyClick(combo, Qt.Key_Down)
+            qtbot.wait(20)
+            assert combo.currentIndex() == index
+            assert dialog.setting_value('language_policy') == combo.itemData(index)
+            option = QStyleOptionComboBox(); combo.initStyleOption(option)
+            field = combo.style().subControlRect(QStyle.CC_ComboBox, option, QStyle.SC_ComboBoxEditField, combo)
+>           assert combo.fontMetrics().horizontalAdvance(combo.currentText()) <= field.width()
+E           AssertionError: assert 236 <= 210
+E            +  where 236 = <built-in method horizontalAdvance of PySide6.QtGui.QFontMetrics object at 0x7f2c87ab2280>('Separate versions and mixed passages')
+E            +    where <built-in method horizontalAdvance of PySide6.QtGui.QFontMetrics object at 0x7f2c87ab2280> = <PySide6.QtGui.QFontMetrics object at 0x7f2c87ab2280>.horizontalAdvance
+E            +      where <PySide6.QtGui.QFontMetrics object at 0x7f2c87ab2280> = <built-in method fontMetrics of PySide6.QtWidgets.QComboBox object at 0x7f2c87ab1b00>()
+E            +        where <built-in method fontMetrics of PySide6.QtWidgets.QComboBox object at 0x7f2c87ab1b00> = <PySide6.QtWidgets.QComboBox(0x64e161e0) at 0x7f2c87ab1b00>.fontMetrics
+E            +    and   'Separate versions and mixed passages' = <built-in method currentText of PySide6.QtWidgets.QComboBox object at 0x7f2c87ab1b00>()
+E            +      where <built-in method currentText of PySide6.QtWidgets.QComboBox object at 0x7f2c87ab1b00> = <PySide6.QtWidgets.QComboBox(0x64e161e0) at 0x7f2c87ab1b00>.currentText
+E            +  and   210 = <built-in method width of PySide6.QtCore.QRect object at 0x7f2c87ab18c0>()
+E            +    where <built-in method width of PySide6.QtCore.QRect object at 0x7f2c87ab18c0> = PySide6.QtCore.QRect(6, 6, 210, 20).width
+
+tests/test_ux_placement.py:106: AssertionError
+_________ test_language_arrangement_choices_fit_native_field[size0-1] __________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f2c879887d0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-401/test_language_arrangement_choi1/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+scope = 1, size = (760, 580)
+
+    @pytest.mark.parametrize('scope', [0, 1])
+    @pytest.mark.parametrize('size', [(760, 580), (920, 760)])
+    def test_language_arrangement_choices_fit_native_field(qtbot, project, scope, size):
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        dialog = w.settings[scope]
+        dialog.show_section('Voice & language')
+        dialog.resize(*size)
+        combo = dialog.fields['language_policy'].editor
+        scroll = dialog.pages.currentWidget()
+        for index in range(combo.count()):
+            scroll.ensureWidgetVisible(combo)
+            combo.setFocus()
+            qtbot.keyClick(combo, Qt.Key_Home)
+            for _ in range(index):
+                qtbot.keyClick(combo, Qt.Key_Down)
+            qtbot.wait(20)
+            assert combo.currentIndex() == index
+            assert dialog.setting_value('language_policy') == combo.itemData(index)
+            option = QStyleOptionComboBox(); combo.initStyleOption(option)
+            field = combo.style().subControlRect(QStyle.CC_ComboBox, option, QStyle.SC_ComboBoxEditField, combo)
+>           assert combo.fontMetrics().horizontalAdvance(combo.currentText()) <= field.width()
+E           AssertionError: assert 236 <= 231
+E            +  where 236 = <built-in method horizontalAdvance of PySide6.QtGui.QFontMetrics object at 0x7f2cc40aab00>('Separate versions and mixed passages')
+E            +    where <built-in method horizontalAdvance of PySide6.QtGui.QFontMetrics object at 0x7f2cc40aab00> = <PySide6.QtGui.QFontMetrics object at 0x7f2cc40aab00>.horizontalAdvance
+E            +      where <PySide6.QtGui.QFontMetrics object at 0x7f2cc40aab00> = <built-in method fontMetrics of PySide6.QtWidgets.QComboBox object at 0x7f2cb1870dc0>()
+E            +        where <built-in method fontMetrics of PySide6.QtWidgets.QComboBox object at 0x7f2cb1870dc0> = <PySide6.QtWidgets.QComboBox(0x3ca1dd60) at 0x7f2cb1870dc0>.fontMetrics
+E            +    and   'Separate versions and mixed passages' = <built-in method currentText of PySide6.QtWidgets.QComboBox object at 0x7f2cb1870dc0>()
+E            +      where <built-in method currentText of PySide6.QtWidgets.QComboBox object at 0x7f2cb1870dc0> = <PySide6.QtWidgets.QComboBox(0x3ca1dd60) at 0x7f2cb1870dc0>.currentText
+E            +  and   231 = <built-in method width of PySide6.QtCore.QRect object at 0x7f2ca177a040>()
+E            +    where <built-in method width of PySide6.QtCore.QRect object at 0x7f2ca177a040> = PySide6.QtCore.QRect(6, 6, 231, 20).width
+
+tests/test_ux_placement.py:106: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_ux_placement.py::test_language_arrangement_choices_fit_native_field[size0-0]
+FAILED tests/test_ux_placement.py::test_language_arrangement_choices_fit_native_field[size0-1]
+2 failed, 547 passed in 141.60s (0:02:21)
+
+(xfconfd:3440105): xfconfd-WARNING **: 23:42:21.952: Name org.xfce.Xfconf lost on the message dbus, exiting.
+A connection to the bus can't be made
+The X11 connection broke (error 1). Did the X11 server die?
+The X11 connection broke (error 1). Did the X11 server die?
+KCrash: Application 'xdg-desktop-portal-kde' crashing... crashRecursionCounter = 2

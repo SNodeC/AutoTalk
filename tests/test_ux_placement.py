@@ -8,7 +8,7 @@ from PySide6.QtCore import QPoint, Qt
 from PySide6.QtWidgets import QPushButton, QStyle, QStyleOptionComboBox
 
 from autotalk import app, options, voices
-from autotalk import settings
+from autotalk import settings_components as settings
 from autotalk.app import MainWindow
 from autotalk.project import Project
 from conftest import make_audio
@@ -60,26 +60,26 @@ def test_p1_controls_are_visible_without_scroll_and_do_not_overlap(qtbot, projec
 def test_dialog_destinations_and_direct_voice_sources(qtbot, project):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     qtbot.mouseClick(w.voice_button, Qt.LeftButton)  # depth 1
-    assert w.settings[1].isVisible() and w.settings[1].speaker.isVisible()
-    for index, control in ((1, w.settings[1].record_button), (2, w.settings[1].voice_description), (3, w.settings[1].voice_library)):
-        qtbot.mouseClick(w.settings[1].voice_source, Qt.LeftButton, pos=w.settings[1].voice_source.tabRect(index).center())  # depth 2
+    assert w.settings[1].isVisible() and w.settings[1].voice.speaker.isVisible()
+    for index, control in ((1, w.settings[1].voice.record_button), (2, w.settings[1].voice.voice_description), (3, w.settings[1].voice.voice_library)):
+        qtbot.mouseClick(w.settings[1].voice.voice_source, Qt.LeftButton, pos=w.settings[1].voice.voice_source.tabRect(index).center())  # depth 2
         visible_inside(control, w.settings[1])
-        visible_inside(w.settings[1].voice_preview_button, w.settings[1])
+        visible_inside(w.settings[1].voice.voice_preview_button, w.settings[1])
     w.settings[1].reject()
     qtbot.mouseClick(w.presentation_button, Qt.LeftButton)
-    w.settings[0].show_section("Application")
-    visible_inside(w.settings[0].screen, w.settings[0])
-    visible_inside(w.settings[0].audio_test_button, w.settings[0])
-    w.settings[0].reject()
-    w.settings[1].show_section("Presentation & recording")
-    visible_inside(w.settings[1].options.fields['recording_source'], w.settings[1])
+    w.preferences.show_section("Display & sound")
+    visible_inside(w.preferences.screen, w.preferences)
+    visible_inside(w.preferences.audio_test_button, w.preferences)
+    w.preferences.reject()
+    w.settings[1].show_section("Audio & recording")
+    visible_inside(w.settings[1].fields['recording_source'].editor, w.settings[1])
     assert w.record.parentWidget() is w.record_footer
     w.settings[1].reject()
     w.talk_action.trigger()
-    assert w.settings[1].audience.isVisible() and w.settings[1].objective.isVisible() and w.settings[1].conference_scope.isVisible()
-    w.settings[1].show_section("AI & speech engine")
-    assert w.settings[1].codex_model.isVisible() and w.settings[1].codex_effort.isVisible()
-    assert not w.settings[0].codex_signin.isVisible() and not w.settings[1].options.override.isVisible()
+    assert w.settings[1].fields['audience'].editor.isVisible() and w.settings[1].fields['objective'].editor.isVisible() and w.settings[1].fields['scope'].editor.isVisible()
+    w.settings[1].show_section("AI model")
+    assert w.settings[1].models.codex_model.isVisible() and w.settings[1].models.codex_effort.isVisible()
+    assert not w.preferences.codex_signin.isVisible() and w.settings[1].voice.override.isVisible()
     w.settings[1].reject()
 
 
@@ -90,7 +90,7 @@ def test_language_arrangement_choices_fit_native_field(qtbot, project, scope, si
     dialog = w.settings[scope]
     dialog.show_section('Voice & language')
     dialog.resize(*size)
-    combo = dialog.options.fields['language_policy']
+    combo = dialog.fields['language_policy'].editor
     scroll = dialog.pages.currentWidget()
     for index in range(combo.count()):
         scroll.ensureWidgetVisible(combo)
@@ -149,13 +149,14 @@ def test_saved_voice_audition_does_not_select_or_invalidate_talk(qtbot, project,
     monkeypatch.setattr(settings, 'synthesize', lambda p, task, preview: heard.append(p.voice.speaker) or p.audio(p.slides[0]))
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     monkeypatch.setattr(w.transport, 'preview', lambda path: None)
-    w.voice_button.click(); w.settings[1].voice_source.setCurrentIndex(3)
-    w.settings[1].voice_preview_button.click(); qtbot.waitUntil(lambda: w.job is None)
+    w.voice_button.click(); w.settings[1].voice.voice_source.setCurrentIndex(3)
+    w.settings[1].voice.voice_preview_button.click(); qtbot.waitUntil(lambda: w.job is None)
     assert heard == ['Aiden']
     assert w.project.voice == original and w.project.prepared
     assert Project.load(project.manifest).voice == original
-    w.settings[1].library_use.click()
-    assert w.project.voice.speaker == 'Aiden' and not w.project.prepared
+    w.settings[1].voice.library_use.click()
+    assert w.settings[1].project.voice.speaker == 'Aiden' and not w.settings[1].project.prepared
+    assert w.project.voice.speaker != 'Aiden' and w.project.prepared
     w.settings[1].reject()
     assert w.project.voice == original and w.project.prepared
     assert Project.load(project.manifest).voice == original
@@ -172,8 +173,8 @@ def test_language_selection_automatically_creates_and_preserves_original(qtbot, 
     assert project.version.language == project.language == 'English'
     w.language.setCurrentIndex(w.language.findData('options'))
     assert w.settings[1].isVisible()
-    assert w.settings[1].options.fields['language_policy'].isVisible()
-    w.settings[1].options.fields['language_policy'].setCurrentIndex(2)
+    assert w.settings[1].fields['language_policy'].editor.isVisible()
+    w.settings[1].fields['language_policy'].editor.setCurrentIndex(2)
     w.settings[1].reject()
     assert w.project.language_policy == 'mixed'
 
@@ -187,39 +188,38 @@ def test_delivery_preset_and_style_never_overwrite_sampling(qtbot, project, monk
     project.set_setting("delivery.sampling", {'temperature': .3})
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project)
     w.settings[1].show_section("Voice & language")
-    w.settings[1].options.use_preset_button.click()
-    assert project.delivery.style == 'Storytelling' and project.delivery.sampling == {'temperature': .3}
-    w.settings[1].options.fields['delivery.style'].setCurrentText('Professional')
-    assert project.delivery.attributes == {'texture': 'Warm'}
+    w.settings[1].presets.use_preset_button.click()
+    assert w.settings[1].project.delivery.style == 'Storytelling' and w.settings[1].project.delivery.sampling == {'temperature': .3}
+    assert project.delivery.style == 'Professional'
+    w.settings[1].fields['delivery.style'].editor.setCurrentText('Professional')
+    assert w.settings[1].project.delivery.attributes == {'texture': 'Warm'}
     w.settings[1].reject()
     assert w.project.delivery.sampling == {'temperature': .3}
 
 
-def test_cancel_restores_clips_display_and_project_settings(qtbot, project):
-    w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    w.settings[0].screen.addItem('Second test display', 1)
-    w.settings[0].show_section('Application'); w.settings[0].screen.setCurrentIndex(1)
-    w.settings[0].reject()
-    w.presentation_button.click(); w.settings[1].pause.setValue(2)
+def test_cancel_restores_clips_display_and_project_settings(qtbot,project):
+    w=MainWindow();qtbot.addWidget(w);w.adopt(project);w.show()
+    w.preferences.screen.addItem('Second test display',1)
+    w.preferences.show_section();w.preferences.screen.setCurrentIndex(1);w.preferences.reject()
+    w.presentation_button.click();w.settings[1].fields['pause_seconds'].editor.setValue(2)
     w.settings[1].reject()
-    assert w.settings[0].screen.currentIndex() == 0 and w.project.pause_seconds == .6
-    w.settings[2].show_section("Presentation & recording")
-    w.project.slides[0].notes = 'Pending edit'
-    w.save()  # Even handlers that persist eagerly are rolled back by Cancel.
-    w.settings[2].reject()
-    assert w.project.slides[0].notes != 'Pending edit'
-    assert Project.load(project.manifest).slides[0].notes != 'Pending edit'
+    assert w.preferences.screen.currentIndex()==1 and w.project.pause_seconds==.6
+    w.project.slides[0].notes='Pending edit';w.setWindowModified(True)
+    before=project.manifest.read_bytes()
+    w.settings[2].show_section('Audio & recording');w.settings[2].reject()
+    assert w.project.slides[0].notes=='Pending edit' and w.isWindowModified()
+    assert project.manifest.read_bytes()==before
 
 
 def test_engine_account_and_f5_use_their_single_authoritative_commands(qtbot, project, monkeypatch):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     w.engine_status.click()
-    assert w.settings[0].engine_state.isVisible() and w.settings[0].load_gpu_button.isVisible()
-    w.settings[0].reject()
-    w.settings[0].show_section("Application")
-    assert w.settings[0].codex_signin.isVisible() and w.settings[0].codex_signout.isVisible()
-    assert not w.settings[0].codex_model.isVisible()
-    w.settings[0].reject()
+    assert w.preferences.engine_state.isVisible() and w.preferences.load_gpu_button.isVisible()
+    w.preferences.reject()
+    w.preferences.show_section("Account")
+    assert w.preferences.codex_signin.isVisible() and w.preferences.codex_signout.isVisible()
+    assert not w.settings[0].models.codex_model.isVisible()
+    w.preferences.reject()
     starts = []
     monkeypatch.setattr(w, 'prepare_and_present', lambda: starts.append(True))
     with qtbot.waitActive(w):
@@ -238,11 +238,11 @@ def test_quick_can_configure_its_inherited_voice_and_delivery(qtbot, project, tm
     project.mode = 'Quick'
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     w.voice_button.click()
-    assert w.settings[1].voice_source.isEnabled()
+    assert w.settings[1].voice.voice_source.isEnabled()
     w.settings[1].show_section("Voice & language")
-    assert w.settings[1].options.use_preset_button.isEnabled()
-    assert w.settings[1].options.fields['delivery.style'].isEnabled()
-    assert w.settings[1].voice_preview_button.isEnabled()
+    assert w.settings[1].presets.use_preset_button.isEnabled()
+    assert w.settings[1].fields['delivery.style'].editor.isEnabled()
+    assert w.settings[1].voice.voice_preview_button.isEnabled()
     w.settings[1].reject()
 
 
@@ -250,11 +250,11 @@ def test_voice_workflows_and_audition_remain_visible_in_minimum_dialog(qtbot, pr
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     w.settings[1].resize(760, 580)
     w.voice_button.click()
-    for index, control in ((0, w.settings[1].speaker), (1, w.settings[1].record_button), (2, w.settings[1].voice_description), (3, w.settings[1].library_use)):
-        w.settings[1].voice_source.setCurrentIndex(index)
+    for index, control in ((0, w.settings[1].voice.speaker), (1, w.settings[1].voice.record_button), (2, w.settings[1].voice.voice_description), (3, w.settings[1].voice.library_use)):
+        w.settings[1].voice.voice_source.setCurrentIndex(index)
         qtbot.wait(10)
         visible_inside(control, w.settings[1])
-        visible_inside(w.settings[1].voice_preview_button, w.settings[1])
+        visible_inside(w.settings[1].voice.voice_preview_button, w.settings[1])
         assert w.settings[1].size().toTuple() == (760, 580)
     w.settings[1].reject()
 
