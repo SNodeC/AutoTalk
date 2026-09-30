@@ -309,6 +309,18 @@ class Project:
         return "Slide override" if slide and name in slide.overrides else "Talk setting" if name in self.overrides or name == "language" and self.version.language else "Application default"
 
     @mutates_project
+    def set_included(self, slide, included):
+        slide.included = included
+
+    @mutates_project
+    def set_defaults(self, defaults):
+        self.defaults = copy.deepcopy(defaults)
+
+    @mutates_project
+    def activate_version(self, key):
+        self.active_version = key
+
+    @mutates_project
     def set_narration(self, slide, text):
         slide.narration = text
         slide.narration_language = self.setting("language", slide)
@@ -429,8 +441,8 @@ class Project:
                  ", ".join(f"{k}: {v}" for k, v in self.vocal_attributes(slide).items()),
                  self.setting("delivery.instructions", slide)]
         parts.insert(0, "Resolve conflicts in this order: slide directions override custom global directions; custom global directions override attributes and style; attributes and style override baseline delivery guidance")
-        if self.delivery.progression:
-            parts.append(f"Slide {slide.page} of {len(self.slides)}. Progression: {self.delivery.progression}")
+        if self.setting("delivery.progression"):
+            parts.append(f"Slide {slide.page} of {len(self.slides)}. Progression: {self.setting('delivery.progression')}")
         if voice.source == "VoiceDesign":
             parts.insert(0, voice.description)
         return ". ".join(p.strip() for p in parts if p.strip())
@@ -448,7 +460,7 @@ class Project:
         elif selected.source == "Base":
             voice["references"] = {p["language"]: [self.reference(p["language"], slide).sha256,
                                     self.reference(p["language"], slide).transcript] for p in passages}
-        key = digest([ENGINE, passages, voice, self.directions(slide) if instructions is None else instructions, self.delivery.sampling,
+        key = digest([ENGINE, passages, voice, self.directions(slide) if instructions is None else instructions, self.setting("delivery.sampling"),
                       self.pause_after(slide)])
         return digest([key, "earliest"]) if self.speech_priority == "earliest" else key
 

@@ -147,7 +147,8 @@ class SettingsDialog(SectionDialog):
         self.voice_audition.setVisible(self.navigation.currentItem() is not None and self.navigation.currentItem().text() == "Voice & language")
         if self.isVisible() and self.scope and editable and w.project and self.before is None:
             self.before = copy.deepcopy(w.project)
-        self.sync_voice(editable)
+        if self.isVisible():
+            self.sync_voice(editable)
         self.buffer_toggle.setVisible(self.scope < 2 and self.setting_value("mode") == "Realtime")
         self.codex_connection.setText(self.window.codex_settings.get("account", "Not signed in to ChatGPT."))
         if self.scope == 0:
@@ -462,7 +463,8 @@ class SettingsDialog(SectionDialog):
         self.clip_gain.setEnabled(0 <= index < len(clips))
         self.clip_placement.setEnabled(0 <= index < len(clips))
         if 0 <= index < len(clips):
-            self.clip_gain.setValue(clips[index].gain)
+            if self.clip_gain.value() != clips[index].gain:
+                self.clip_gain.setValue(clips[index].gain)
             self.clip_placement.setCurrentIndex(self.clip_placement.findData(clips[index].placement))
         self.loading = previous
 

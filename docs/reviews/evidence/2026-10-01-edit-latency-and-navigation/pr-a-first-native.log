@@ -1,0 +1,560 @@
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.0' (uid=1000 pid=3412115 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Activating service name='org.gtk.vfs.Daemon' requested by ':1.2' (uid=1000 pid=3412115 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Successfully activated service 'org.gtk.vfs.Daemon'
+dbus-daemon[3412135]: Activating service name='org.a11y.atspi.Registry' requested by ':1.1' (uid=1000 pid=3412115 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Activating service name='org.xfce.Xfconf' requested by ':1.2' (uid=1000 pid=3412115 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Successfully activated service 'org.xfce.Xfconf'
+dbus-daemon[3412135]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.7' (uid=1000 pid=3412186 comm="artifacts/open-tasks/venv-qt610/bin/python -m pyte" label="unconfined")
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.8' (uid=1000 pid=3412216 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.8' (uid=1000 pid=3412216 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+
+(/usr/libexec/xdg-desktop-portal:3412216): xdg-desktop-portal-WARNING **: 22:49:29.547: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.8' (uid=1000 pid=3412216 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.kde' requested by ':1.8' (uid=1000 pid=3412216 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.kde'
+xdp-kde-clipboard: Couldn't resolve QWaylandApplication - clipboard will not work
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.kwallet' requested by ':1.8' (uid=1000 pid=3412216 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+kf.wallet.ksecretd: Lacking a socket, pipe: 0 env: 0
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.kwallet'
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Activating service name='org.gtk.vfs.Metadata' requested by ':1.2' (uid=1000 pid=3412115 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3412113]: [session uid=1000 pid=3412113 pidfd=5] Successfully activated service 'org.gtk.vfs.Metadata'
+......................................FFF...FFFF.FF..................... [ 13%]
+........................................................................ [ 27%]
+........................................................................ [ 41%]
+........................................................................ [ 55%]
+..................................................F..................... [ 69%]
+.........................................................FFF............ [ 83%]
+..F.............F.F..................................................... [ 97%]
+............                                                             [100%]
+=================================== FAILURES ===================================
+____ test_discovery_updates_ui_without_changing_saved_selections[Prepared] _____
+
+fake_server = PosixPath('/tmp/pytest-of-voc/pytest-388/test_discovery_updates_ui_with0/codex')
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f08ec75b6e0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_discovery_updates_ui_with0/talk'), title='slides', target_m...tion='', references={}, origin='reference'), 'mode': 'Prepared', 'codex_model': 'test-vision', 'codex_effort': 'high'})
+mode = 'Prepared'
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    def test_discovery_updates_ui_without_changing_saved_selections(fake_server, qtbot, project, mode):
+        from autotalk.app import MainWindow
+        from autotalk.project import Project
+        project.mode, project.codex_model, project.codex_effort = mode, 'test-vision', 'high'
+        project.save()
+        window = MainWindow(); qtbot.addWidget(window); window.adopt(project)
+        window.connect_chatgpt(interactive=False)
+        qtbot.waitUntil(lambda: window.job is None)
+        assert 'Connected to ChatGPT' in window.settings[0].connection.text()
+>       assert window.settings[1].codex_model.itemText(0) == 'Account default (Vision)'
+E       AssertionError: assert 'Account default' == 'Account default (Vision)'
+E
+E         - Account default (Vision)
+E         ?                ---------
+E         + Account default
+
+tests/test_codex.py:180: AssertionError
+______ test_discovery_updates_ui_without_changing_saved_selections[Quick] ______
+
+fake_server = PosixPath('/tmp/pytest-of-voc/pytest-388/test_discovery_updates_ui_with1/codex')
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f08ec249400>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_discovery_updates_ui_with1/talk'), title='slides', target_m...ription='', references={}, origin='reference'), 'mode': 'Quick', 'codex_model': 'test-vision', 'codex_effort': 'high'})
+mode = 'Quick'
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    def test_discovery_updates_ui_without_changing_saved_selections(fake_server, qtbot, project, mode):
+        from autotalk.app import MainWindow
+        from autotalk.project import Project
+        project.mode, project.codex_model, project.codex_effort = mode, 'test-vision', 'high'
+        project.save()
+        window = MainWindow(); qtbot.addWidget(window); window.adopt(project)
+        window.connect_chatgpt(interactive=False)
+        qtbot.waitUntil(lambda: window.job is None)
+        assert 'Connected to ChatGPT' in window.settings[0].connection.text()
+>       assert window.settings[1].codex_model.itemText(0) == 'Account default (Vision)'
+E       AssertionError: assert 'Account default' == 'Account default (Vision)'
+E
+E         - Account default (Vision)
+E         ?                ---------
+E         + Account default
+
+tests/test_codex.py:180: AssertionError
+____ test_discovery_updates_ui_without_changing_saved_selections[Realtime] _____
+
+fake_server = PosixPath('/tmp/pytest-of-voc/pytest-388/test_discovery_updates_ui_with2/codex')
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f090c3e4590>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_discovery_updates_ui_with2/talk'), title='slides', target_m...tion='', references={}, origin='reference'), 'mode': 'Realtime', 'codex_model': 'test-vision', 'codex_effort': 'high'})
+mode = 'Realtime'
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    def test_discovery_updates_ui_without_changing_saved_selections(fake_server, qtbot, project, mode):
+        from autotalk.app import MainWindow
+        from autotalk.project import Project
+        project.mode, project.codex_model, project.codex_effort = mode, 'test-vision', 'high'
+        project.save()
+        window = MainWindow(); qtbot.addWidget(window); window.adopt(project)
+        window.connect_chatgpt(interactive=False)
+        qtbot.waitUntil(lambda: window.job is None)
+        assert 'Connected to ChatGPT' in window.settings[0].connection.text()
+>       assert window.settings[1].codex_model.itemText(0) == 'Account default (Vision)'
+E       AssertionError: assert 'Account default' == 'Account default (Vision)'
+E
+E         - Account default (Vision)
+E         ?                ---------
+E         + Account default
+
+tests/test_codex.py:180: AssertionError
+_ test_application_startup_discovers_without_pdf_and_preserves_launch_project[False] _
+
+fake_server = PosixPath('/tmp/pytest-of-voc/pytest-388/test_application_startup_disco0/codex')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f090c392540>
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f090c393890>
+qapp = <PySide6.QtWidgets.QApplication(0x828cf80) at 0x7f090e7638c0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_application_startup_disco0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+open_saved = False
+
+    @pytest.mark.parametrize('open_saved', [False, True])
+    def test_application_startup_discovers_without_pdf_and_preserves_launch_project(fake_server, monkeypatch, qtbot, qapp, project, open_saved):
+        from types import SimpleNamespace
+        from autotalk import app
+        windows = []
+        original = app.MainWindow
+        def window():
+            w = original(); qtbot.addWidget(w); windows.append(w); return w
+        def event_loop():
+            qtbot.waitUntil(lambda: bool(windows[0].codex_settings) and windows[0].job is None)
+            assert bool(windows[0].project) == open_saved
+            assert windows[0].settings[1 if open_saved else 0].codex_model.count() == 2
+            assert windows[0].settings[1 if open_saved else 0].codex_effort.findData('high') >= 0
+            windows[0].close()
+            return 0
+        project.save()
+        monkeypatch.setattr(app, 'MainWindow', window)
+        monkeypatch.setattr(app, 'QApplication', lambda *_: SimpleNamespace(
+            setApplicationName=lambda *_: None, setOrganizationName=lambda *_: None, exec=event_loop))
+        app.QApplication.activeModalWidget = qapp.activeModalWidget
+        monkeypatch.setattr(sys, 'argv', ['autotalk'] + ([str(project.manifest)] if open_saved else []))
+>       assert app.main() == 0
+               ^^^^^^^^^^
+
+tests/test_codex.py:236:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/autotalk/app.py:1399: in main
+    return app.exec()
+           ^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def event_loop():
+        qtbot.waitUntil(lambda: bool(windows[0].codex_settings) and windows[0].job is None)
+        assert bool(windows[0].project) == open_saved
+>       assert windows[0].settings[1 if open_saved else 0].codex_model.count() == 2
+E       assert 1 == 2
+E        +  where 1 = <built-in method count of PySide6.QtWidgets.QComboBox object at 0x7f08ec27ab80>()
+E        +    where <built-in method count of PySide6.QtWidgets.QComboBox object at 0x7f08ec27ab80> = <PySide6.QtWidgets.QComboBox(0x12dd1c00) at 0x7f08ec27ab80>.count
+E        +      where <PySide6.QtWidgets.QComboBox(0x12dd1c00) at 0x7f08ec27ab80> = <autotalk.settings.SettingsDialog(0x129f14a0) at 0x7f08ec28c580>.codex_model
+
+tests/test_codex.py:226: AssertionError
+_ test_application_startup_discovers_without_pdf_and_preserves_launch_project[True] _
+
+fake_server = PosixPath('/tmp/pytest-of-voc/pytest-388/test_application_startup_disco1/codex')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f08ec7fd5b0>
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f08ec7febd0>
+qapp = <PySide6.QtWidgets.QApplication(0x828cf80) at 0x7f090e7638c0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_application_startup_disco1/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+open_saved = True
+
+    @pytest.mark.parametrize('open_saved', [False, True])
+    def test_application_startup_discovers_without_pdf_and_preserves_launch_project(fake_server, monkeypatch, qtbot, qapp, project, open_saved):
+        from types import SimpleNamespace
+        from autotalk import app
+        windows = []
+        original = app.MainWindow
+        def window():
+            w = original(); qtbot.addWidget(w); windows.append(w); return w
+        def event_loop():
+            qtbot.waitUntil(lambda: bool(windows[0].codex_settings) and windows[0].job is None)
+            assert bool(windows[0].project) == open_saved
+            assert windows[0].settings[1 if open_saved else 0].codex_model.count() == 2
+            assert windows[0].settings[1 if open_saved else 0].codex_effort.findData('high') >= 0
+            windows[0].close()
+            return 0
+        project.save()
+        monkeypatch.setattr(app, 'MainWindow', window)
+        monkeypatch.setattr(app, 'QApplication', lambda *_: SimpleNamespace(
+            setApplicationName=lambda *_: None, setOrganizationName=lambda *_: None, exec=event_loop))
+        app.QApplication.activeModalWidget = qapp.activeModalWidget
+        monkeypatch.setattr(sys, 'argv', ['autotalk'] + ([str(project.manifest)] if open_saved else []))
+>       assert app.main() == 0
+               ^^^^^^^^^^
+
+tests/test_codex.py:236:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/autotalk/app.py:1399: in main
+    return app.exec()
+           ^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def event_loop():
+        qtbot.waitUntil(lambda: bool(windows[0].codex_settings) and windows[0].job is None)
+        assert bool(windows[0].project) == open_saved
+>       assert windows[0].settings[1 if open_saved else 0].codex_model.count() == 2
+E       assert 1 == 2
+E        +  where 1 = <built-in method count of PySide6.QtWidgets.QComboBox object at 0x7f08ec0ee4c0>()
+E        +    where <built-in method count of PySide6.QtWidgets.QComboBox object at 0x7f08ec0ee4c0> = <PySide6.QtWidgets.QComboBox(0xae764a0) at 0x7f08ec0ee4c0>.count
+E        +      where <PySide6.QtWidgets.QComboBox(0xae764a0) at 0x7f08ec0ee4c0> = <autotalk.settings.SettingsDialog(0x8b92130) at 0x7f08ec14f480>.codex_model
+
+tests/test_codex.py:226: AssertionError
+__________ test_discovery_protocol_failure_can_be_retried_explicitly ___________
+
+fake_server = PosixPath('/tmp/pytest-of-voc/pytest-388/test_discovery_protocol_failur0/codex')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f090c342300>
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f090c3415e0>
+
+    def test_discovery_protocol_failure_can_be_retried_explicitly(fake_server, monkeypatch, qtbot):
+        from autotalk.app import MainWindow, QMessageBox
+        healthy = fake_server.read_text()
+        fake_server.write_text(healthy.replace(" elif method=='model/list':", """ elif method=='model/list':
+      send({'id':rid,'error':{'message':'Models unavailable offline'}})
+      continue
+     elif method=='unused':"""))
+        monkeypatch.setattr(QMessageBox, 'warning', lambda *a: pytest.fail('No startup modal'))
+        window = MainWindow(); qtbot.addWidget(window)
+        window.connect_chatgpt(interactive=False)
+        qtbot.waitUntil(lambda: window.job is None)
+        assert 'offline' in window.settings[0].connection.text() and window.welcome.isEnabled()
+        fake_server.write_text(healthy)
+        window.connect_chatgpt()
+        qtbot.waitUntil(lambda: window.job is None)
+>       assert window.settings[1].codex_model.count() == 2 and 'Connected' in window.settings[0].connection.text()
+E       assert (1 == 2)
+E        +  where 1 = <built-in method count of PySide6.QtWidgets.QComboBox object at 0x7f08ec750500>()
+E        +    where <built-in method count of PySide6.QtWidgets.QComboBox object at 0x7f08ec750500> = <PySide6.QtWidgets.QComboBox(0x1468ff80) at 0x7f08ec750500>.count
+E        +      where <PySide6.QtWidgets.QComboBox(0x1468ff80) at 0x7f08ec750500> = <autotalk.settings.SettingsDialog(0x11404930) at 0x7f08e0741900>.codex_model
+
+tests/test_codex.py:254: AssertionError
+_______ test_ui_displays_configured_effort_instead_of_catalog_suggestion _______
+
+fake_server = PosixPath('/tmp/pytest-of-voc/pytest-388/test_ui_displays_configured_ef0/codex')
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f090c340a40>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_ui_displays_configured_ef0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+
+    def test_ui_displays_configured_effort_instead_of_catalog_suggestion(fake_server, qtbot, project):
+        from autotalk.app import MainWindow
+        fake_server.write_text(fake_server.read_text().replace(" elif method=='thread/start':", """ elif method=='config/read':
+      result={'config':{'model':'test-vision','model_reasoning_effort':'high'}}
+     elif method=='thread/start':""").replace("'displayName':'Vision'", "'displayName':'Vision','defaultReasoningEffort':'low'"))
+        window = MainWindow(); qtbot.addWidget(window); window.adopt(project)
+        window.connect_chatgpt(interactive=False)
+        qtbot.waitUntil(lambda: window.job is None)
+>       assert window.settings[1].codex_effort.currentText() == 'Codex default (high)'
+E       AssertionError: assert 'Codex default' == 'Codex default (high)'
+E
+E         - Codex default (high)
+E         ?              -------
+E         + Codex default
+
+tests/test_codex.py:265: AssertionError
+______ test_auth_buttons_follow_account_and_logout_preserves_talk[False] _______
+
+fake_server = PosixPath('/tmp/pytest-of-voc/pytest-388/test_auth_buttons_follow_accou0/codex')
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f090c3927e0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_auth_buttons_follow_accou0/talk'), title='slides', target_m...aker='Ryan', description='', references={}, origin='reference'), 'codex_model': 'test-vision', 'codex_effort': 'high'})
+signed_in = False
+
+    @pytest.mark.parametrize('signed_in', [False, True])
+    def test_auth_buttons_follow_account_and_logout_preserves_talk(fake_server, qtbot, project, signed_in):
+        from PySide6.QtCore import Qt
+        from autotalk.app import MainWindow
+        from autotalk.project import Project
+        project.codex_model, project.codex_effort = 'test-vision', 'high'
+        project.save()
+        healthy = fake_server.read_text()
+        if not signed_in:
+            fake_server.write_text(healthy.replace("{'account':{'type':'chatgpt','planType':'plus'}}", "{'account':None}"))
+        window = MainWindow(); qtbot.addWidget(window); window.adopt(project)
+        window.connect_chatgpt(interactive=False)
+        assert not window.settings[0].codex_signin.isEnabled() and not window.settings[0].codex_signout.isEnabled()
+        qtbot.waitUntil(lambda: window.job is None)
+        assert window.settings[0].codex_signin.isEnabled() == (not signed_in)
+        assert window.settings[0].codex_signout.isEnabled() == signed_in
+        if not signed_in:
+            fake_server.write_text(healthy)
+            qtbot.mouseClick(window.settings[0].codex_signin, Qt.MouseButton.LeftButton)
+            qtbot.waitUntil(lambda: window.job is None)
+            assert not window.settings[0].codex_signin.isEnabled() and window.settings[0].codex_signout.isEnabled()
+        before = len(requests(fake_server))
+        qtbot.mouseClick(window.settings[0].codex_signout, Qt.MouseButton.LeftButton)
+        assert not window.settings[0].codex_signin.isEnabled() and not window.settings[0].codex_signout.isEnabled()
+        qtbot.waitUntil(lambda: window.job is None)
+        assert window.settings[0].codex_signin.isEnabled() and not window.settings[0].codex_signout.isEnabled()
+        assert not window.codex_settings['signed_in'] and window.codex_settings['models'] == []
+>       assert window.settings[1].codex_model.currentData() == 'test-vision'
+E       AssertionError: assert '' == 'test-vision'
+E
+E         - test-vision
+
+tests/test_codex.py:308: AssertionError
+_______ test_auth_buttons_follow_account_and_logout_preserves_talk[True] _______
+
+fake_server = PosixPath('/tmp/pytest-of-voc/pytest-388/test_auth_buttons_follow_accou1/codex')
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f090c3e74a0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_auth_buttons_follow_accou1/talk'), title='slides', target_m...aker='Ryan', description='', references={}, origin='reference'), 'codex_model': 'test-vision', 'codex_effort': 'high'})
+signed_in = True
+
+    @pytest.mark.parametrize('signed_in', [False, True])
+    def test_auth_buttons_follow_account_and_logout_preserves_talk(fake_server, qtbot, project, signed_in):
+        from PySide6.QtCore import Qt
+        from autotalk.app import MainWindow
+        from autotalk.project import Project
+        project.codex_model, project.codex_effort = 'test-vision', 'high'
+        project.save()
+        healthy = fake_server.read_text()
+        if not signed_in:
+            fake_server.write_text(healthy.replace("{'account':{'type':'chatgpt','planType':'plus'}}", "{'account':None}"))
+        window = MainWindow(); qtbot.addWidget(window); window.adopt(project)
+        window.connect_chatgpt(interactive=False)
+        assert not window.settings[0].codex_signin.isEnabled() and not window.settings[0].codex_signout.isEnabled()
+        qtbot.waitUntil(lambda: window.job is None)
+        assert window.settings[0].codex_signin.isEnabled() == (not signed_in)
+        assert window.settings[0].codex_signout.isEnabled() == signed_in
+        if not signed_in:
+            fake_server.write_text(healthy)
+            qtbot.mouseClick(window.settings[0].codex_signin, Qt.MouseButton.LeftButton)
+            qtbot.waitUntil(lambda: window.job is None)
+            assert not window.settings[0].codex_signin.isEnabled() and window.settings[0].codex_signout.isEnabled()
+        before = len(requests(fake_server))
+        qtbot.mouseClick(window.settings[0].codex_signout, Qt.MouseButton.LeftButton)
+        assert not window.settings[0].codex_signin.isEnabled() and not window.settings[0].codex_signout.isEnabled()
+        qtbot.waitUntil(lambda: window.job is None)
+        assert window.settings[0].codex_signin.isEnabled() and not window.settings[0].codex_signout.isEnabled()
+        assert not window.codex_settings['signed_in'] and window.codex_settings['models'] == []
+>       assert window.settings[1].codex_model.currentData() == 'test-vision'
+E       AssertionError: assert '' == 'test-vision'
+E
+E         - test-vision
+
+tests/test_codex.py:308: AssertionError
+_______________ test_clip_controls_stay_bound_to_the_open_slide ________________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f08e03ed520>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_clip_controls_stay_bound_0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+
+    def test_clip_controls_stay_bound_to_the_open_slide(qtbot, project):
+        from autotalk.project import Clip
+        make_audio(project)
+        for slide in project.slides:
+            slide.clips = [Clip(slide.audio_file, slide.audio_sha256, slide.duration)]
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        dialog = w.settings[2]
+        dialog.show_section('Presentation & recording')
+        w.transport.select(1)
+        w.settings[2].clip_gain.setFocus(); w.settings[2].clip_gain.selectAll(); qtbot.keyClicks(w.settings[2].clip_gain, '0.5')
+        qtbot.keyClick(w.settings[2].clip_gain, Qt.Key.Key_Tab)
+>       assert w.project.slides[0].clips[0].gain == .5
+E       AssertionError: assert 0.0 == 0.5
+E        +  where 0.0 = Clip(file='audio/main/English/0001-965b576d8c6f19aee67e5885b03c3e1623b59199dccdeb2ea9a0e447abd99fd6.wav', sha256='651d0bac16d2010f6d3ff53b1b4493814736616c0e89528e7a723bee13a8152d', seconds=0.3, placement='before', gain=0.0, loop=False).gain
+
+tests/test_settings_dialog.py:212: AssertionError
+_________ test_mode_start_label_is_stable_after_manual_edits[Prepared] _________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f08c8dd2870>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_mode_start_label_is_stabl0/talk'), title='slides', target_m...='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Prepared'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f08c8dd2f60>
+mode = 'Prepared'
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    def test_mode_start_label_is_stable_after_manual_edits(qtbot, project, monkeypatch, mode):
+        project.mode = mode
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        caption = 'Prepare and start' if mode == 'Prepared' else 'Start'
+        calls = []
+        monkeypatch.setattr(w, 'prepare_and_present', lambda: calls.append(True))
+        for text in ('My edited narration.', '', 'Restored words.'):
+            w.narration.setPlainText(text)
+            assert w.start_button.text() == w.start_action.text() == caption
+            assert w.start_button.isVisible() and w.start_button.isEnabled()
+            w.start_button.click()
+        assert calls == [True] * 3
+        w.minutes.setValue(5)
+>       assert 'Talk length changed' in w.status.text()
+E       AssertionError: assert 'Talk length changed' in 'Start reuses current audio and prepares any missing text or speech.'
+E        +  where 'Start reuses current audio and prepares any missing text or speech.' = <built-in method text of PySide6.QtWidgets.QLabel object at 0x7f08e031e700>()
+E        +    where <built-in method text of PySide6.QtWidgets.QLabel object at 0x7f08e031e700> = <PySide6.QtWidgets.QLabel(0x5b72c630) at 0x7f08e031e700>.text
+E        +      where <PySide6.QtWidgets.QLabel(0x5b72c630) at 0x7f08e031e700> = <autotalk.app.MainWindow(0x54963400) at 0x7f08bbd58540>.status
+
+tests/test_usability.py:51: AssertionError
+__________ test_mode_start_label_is_stable_after_manual_edits[Quick] ___________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f08bbd22ab0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_mode_start_label_is_stabl1/talk'), title='slides', target_m...ame='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Quick'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f08ec78fe90>
+mode = 'Quick'
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    def test_mode_start_label_is_stable_after_manual_edits(qtbot, project, monkeypatch, mode):
+        project.mode = mode
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        caption = 'Prepare and start' if mode == 'Prepared' else 'Start'
+        calls = []
+        monkeypatch.setattr(w, 'prepare_and_present', lambda: calls.append(True))
+        for text in ('My edited narration.', '', 'Restored words.'):
+            w.narration.setPlainText(text)
+            assert w.start_button.text() == w.start_action.text() == caption
+            assert w.start_button.isVisible() and w.start_button.isEnabled()
+            w.start_button.click()
+        assert calls == [True] * 3
+        w.minutes.setValue(5)
+>       assert 'Talk length changed' in w.status.text()
+E       AssertionError: assert 'Talk length changed' in 'Start reuses current audio and prepares any missing text or speech.'
+E        +  where 'Start reuses current audio and prepares any missing text or speech.' = <built-in method text of PySide6.QtWidgets.QLabel object at 0x7f08c38bd640>()
+E        +    where <built-in method text of PySide6.QtWidgets.QLabel object at 0x7f08c38bd640> = <PySide6.QtWidgets.QLabel(0x155ad710) at 0x7f08c38bd640>.text
+E        +      where <PySide6.QtWidgets.QLabel(0x155ad710) at 0x7f08c38bd640> = <autotalk.app.MainWindow(0x583ec710) at 0x7f08c3828c40>.status
+
+tests/test_usability.py:51: AssertionError
+_________ test_mode_start_label_is_stable_after_manual_edits[Realtime] _________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f08d9d10350>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_mode_start_label_is_stabl2/talk'), title='slides', target_m...='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Realtime'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f08d9d10470>
+mode = 'Realtime'
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    def test_mode_start_label_is_stable_after_manual_edits(qtbot, project, monkeypatch, mode):
+        project.mode = mode
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        caption = 'Prepare and start' if mode == 'Prepared' else 'Start'
+        calls = []
+        monkeypatch.setattr(w, 'prepare_and_present', lambda: calls.append(True))
+        for text in ('My edited narration.', '', 'Restored words.'):
+            w.narration.setPlainText(text)
+            assert w.start_button.text() == w.start_action.text() == caption
+            assert w.start_button.isVisible() and w.start_button.isEnabled()
+            w.start_button.click()
+        assert calls == [True] * 3
+        w.minutes.setValue(5)
+>       assert 'Talk length changed' in w.status.text()
+E       AssertionError: assert 'Talk length changed' in 'Start reuses current audio and prepares any missing text or speech.'
+E        +  where 'Start reuses current audio and prepares any missing text or speech.' = <built-in method text of PySide6.QtWidgets.QLabel object at 0x7f08d9d75640>()
+E        +    where <built-in method text of PySide6.QtWidgets.QLabel object at 0x7f08d9d75640> = <PySide6.QtWidgets.QLabel(0x35de4960) at 0x7f08d9d75640>.text
+E        +      where <PySide6.QtWidgets.QLabel(0x35de4960) at 0x7f08d9d75640> = <autotalk.app.MainWindow(0x55059630) at 0x7f08c37f4ec0>.status
+
+tests/test_usability.py:51: AssertionError
+_______________ test_operation_feedback_is_in_the_active_dialog ________________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f08ec182120>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_operation_feedback_is_in_0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+
+    def test_operation_feedback_is_in_the_active_dialog(qtbot, project):
+        import threading
+        release = threading.Event()
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        w.settings[1].show_section("Voice & language")
+        try:
+            w.start_job('Generating voice preview…', lambda task: release.wait(3))
+            qtbot.wait(300)
+            assert w.progress.isVisible() and w.progress.parentWidget() is w.settings[1]
+            assert 'Waiting ' in w.settings[1].status.text()
+            assert w.settings[1].cancel_job.isVisible() and w.settings[1].cancel_job.isEnabled()
+        finally:
+            release.set()
+            qtbot.waitUntil(lambda: w.job is None)
+        assert not w.progress.isVisible()
+        w.settings[1].accept()
+        assert w.progress.parentWidget() is w.footer
+>       assert "Start reuses current audio" in w.status.text()
+E       AssertionError: assert 'Start reuses current audio' in 'Generating voice preview…'
+E        +  where 'Generating voice preview…' = <built-in method text of PySide6.QtWidgets.QLabel object at 0x7f08ec785640>()
+E        +    where <built-in method text of PySide6.QtWidgets.QLabel object at 0x7f08ec785640> = <PySide6.QtWidgets.QLabel(0xa245690) at 0x7f08ec785640>.text
+E        +      where <PySide6.QtWidgets.QLabel(0xa245690) at 0x7f08ec785640> = <autotalk.app.MainWindow(0xef6d4f0) at 0x7f08e06621c0>.status
+
+tests/test_usability.py:278: AssertionError
+_ test_p1_controls_are_visible_without_scroll_and_do_not_overlap[size0-Prepared] _
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f08e06a6480>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_p1_controls_are_visible_w0/talk'), title='slides', target_m...='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Prepared'})
+mode = 'Prepared', size = (940, 680)
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    @pytest.mark.parametrize('size', [(940, 680), (1100, 850)])
+    def test_p1_controls_are_visible_without_scroll_and_do_not_overlap(qtbot, project, mode, size):
+        project.mode = mode
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.resize(*size); w.show()
+        qtbot.wait(20)
+        assert (w.width(), w.height()) == size
+        for control in (w.minutes, w.language, w.voice_button, w.start_button, w.record):
+            visible_inside(control, w)
+        if mode != 'Quick':
+            for control in (w.talk_text_button, w.talk_audio_button, w.narration, w.regenerate_button,
+                            w.slide_audio_button, w.preview_button, w.slide_list):
+                visible_inside(control, w)
+>           assert w.image.height() >= 100 and w.narration.height() >= 110
+E           assert (129 >= 100 and 104 >= 110)
+E            +  where 129 = <built-in method height of SlideImage object at 0x7f08bbe5b300>()
+E            +    where <built-in method height of SlideImage object at 0x7f08bbe5b300> = <autotalk.app.SlideImage(0xc148110) at 0x7f08bbe5b300>.height
+E            +      where <autotalk.app.SlideImage(0xc148110) at 0x7f08bbe5b300> = <autotalk.app.MainWindow(0x53fb9f30) at 0x7f08d817f540>.image
+E            +  and   104 = <built-in method height of PySide6.QtWidgets.QPlainTextEdit object at 0x7f08bbe5b880>()
+E            +    where <built-in method height of PySide6.QtWidgets.QPlainTextEdit object at 0x7f08bbe5b880> = <PySide6.QtWidgets.QPlainTextEdit(0x14b58650) at 0x7f08bbe5b880>.height
+E            +      where <PySide6.QtWidgets.QPlainTextEdit(0x14b58650) at 0x7f08bbe5b880> = <autotalk.app.MainWindow(0x53fb9f30) at 0x7f08d817f540>.narration
+
+tests/test_ux_placement.py:43: AssertionError
+_ test_p1_controls_are_visible_without_scroll_and_do_not_overlap[size0-Realtime] _
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f08ec759ee0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-388/test_p1_controls_are_visible_w2/talk'), title='slides', target_m...='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Realtime'})
+mode = 'Realtime', size = (940, 680)
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    @pytest.mark.parametrize('size', [(940, 680), (1100, 850)])
+    def test_p1_controls_are_visible_without_scroll_and_do_not_overlap(qtbot, project, mode, size):
+        project.mode = mode
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.resize(*size); w.show()
+        qtbot.wait(20)
+        assert (w.width(), w.height()) == size
+        for control in (w.minutes, w.language, w.voice_button, w.start_button, w.record):
+            visible_inside(control, w)
+        if mode != 'Quick':
+            for control in (w.talk_text_button, w.talk_audio_button, w.narration, w.regenerate_button,
+                            w.slide_audio_button, w.preview_button, w.slide_list):
+                visible_inside(control, w)
+>           assert w.image.height() >= 100 and w.narration.height() >= 110
+E           assert (129 >= 100 and 104 >= 110)
+E            +  where 129 = <built-in method height of SlideImage object at 0x7f08d9d9b4c0>()
+E            +    where <built-in method height of SlideImage object at 0x7f08d9d9b4c0> = <autotalk.app.SlideImage(0x45b049b0) at 0x7f08d9d9b4c0>.height
+E            +      where <autotalk.app.SlideImage(0x45b049b0) at 0x7f08d9d9b4c0> = <autotalk.app.MainWindow(0x5a52af60) at 0x7f08e05f5400>.image
+E            +  and   104 = <built-in method height of PySide6.QtWidgets.QPlainTextEdit object at 0x7f08c37fe780>()
+E            +    where <built-in method height of PySide6.QtWidgets.QPlainTextEdit object at 0x7f08c37fe780> = <PySide6.QtWidgets.QPlainTextEdit(0x99f15c0) at 0x7f08c37fe780>.height
+E            +      where <PySide6.QtWidgets.QPlainTextEdit(0x99f15c0) at 0x7f08c37fe780> = <autotalk.app.MainWindow(0x5a52af60) at 0x7f08e05f5400>.narration
+
+tests/test_ux_placement.py:43: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_codex.py::test_discovery_updates_ui_without_changing_saved_selections[Prepared]
+FAILED tests/test_codex.py::test_discovery_updates_ui_without_changing_saved_selections[Quick]
+FAILED tests/test_codex.py::test_discovery_updates_ui_without_changing_saved_selections[Realtime]
+FAILED tests/test_codex.py::test_application_startup_discovers_without_pdf_and_preserves_launch_project[False]
+FAILED tests/test_codex.py::test_application_startup_discovers_without_pdf_and_preserves_launch_project[True]
+FAILED tests/test_codex.py::test_discovery_protocol_failure_can_be_retried_explicitly
+FAILED tests/test_codex.py::test_ui_displays_configured_effort_instead_of_catalog_suggestion
+FAILED tests/test_codex.py::test_auth_buttons_follow_account_and_logout_preserves_talk[False]
+FAILED tests/test_codex.py::test_auth_buttons_follow_account_and_logout_preserves_talk[True]
+FAILED tests/test_settings_dialog.py::test_clip_controls_stay_bound_to_the_open_slide
+FAILED tests/test_usability.py::test_mode_start_label_is_stable_after_manual_edits[Prepared]
+FAILED tests/test_usability.py::test_mode_start_label_is_stable_after_manual_edits[Quick]
+FAILED tests/test_usability.py::test_mode_start_label_is_stable_after_manual_edits[Realtime]
+FAILED tests/test_usability.py::test_operation_feedback_is_in_the_active_dialog
+FAILED tests/test_ux_placement.py::test_p1_controls_are_visible_without_scroll_and_do_not_overlap[size0-Prepared]
+FAILED tests/test_ux_placement.py::test_p1_controls_are_visible_without_scroll_and_do_not_overlap[size0-Realtime]
+16 failed, 500 passed in 133.91s (0:02:13)
+A connection to the bus can't be made
+
+(xfconfd:3412153): xfconfd-WARNING **: 22:51:43.463: Name org.xfce.Xfconf lost on the message dbus, exiting.
+The X11 connection broke (error 1). Did the X11 server die?
+The X11 connection broke (error 1). Did the X11 server die?
+KCrash: Application 'xdg-desktop-portal-kde' crashing... crashRecursionCounter = 2

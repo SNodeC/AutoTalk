@@ -117,6 +117,16 @@ def disclosure(parent, title, content):
     return toggle
 
 
+class ElidedLabel(QLabel):
+    def setText(self, text):
+        self.setToolTip(text)
+        super().setText(self.fontMetrics().elidedText(text, Qt.TextElideMode.ElideRight, self.width()))
+
+    def resizeEvent(self, event):
+        self.setText(self.toolTip())
+        super().resizeEvent(event)
+
+
 class Waveform(QWidget):
     def __init__(self):
         super().__init__()
@@ -369,14 +379,22 @@ def build(w):
     text_panel.layout().setSpacing(center.layout().spacing())
     text_panel.layout().setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
     center.layout().addWidget(editor_split, 1)
-    w.slide_info = label("Talk text · select a slide")
-    w.slide_info.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-    text_panel.layout().addWidget(w.slide_info)
+    w.slide_info = ElidedLabel()
+    w.slide_info.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+    w.editor_previous = button("Previous", lambda: w.navigate_slide(-1))
+    w.editor_next = button("Next", lambda: w.navigate_slide(1))
+    for control, title, key in ((w.editor_previous, "Previous", "PgUp"), (w.editor_next, "Next", "PgDn")):
+        control.setToolTip(f"{title} slide (Ctrl+{key})")
+    info_row = row(w.slide_info, w.editor_previous, w.editor_next)
+    info_row.setStretch(0, 1)
+    text_panel.layout().addLayout(info_row)
     w.narration = QPlainTextEdit()
+    w.narration.setMinimumHeight(110)
     w.narration.setPlaceholderText("Write the talk text, or type what you want to say on this slide.")
     w.narration.textChanged.connect(w.narration_changed)
     text_panel.layout().addWidget(w.narration, 1)
     editor_split.addWidget(text_panel)
+    editor_split.setMinimumHeight(w.image.minimumHeight() + text_panel.minimumSizeHint().height() + editor_split.handleWidth())
     editor_split.setSizes([300, 330])
     w.regenerate_button = button("Create slide text", w.regenerate_slide)
     w.slide_audio_button = button("Create slide audio", w.prepare_slide)
@@ -404,7 +422,7 @@ def build(w):
         w.editor.addWidget(pane)
     w.editor.setSizes([154, 644, 226])
     w.editor.setStretchFactor(1, 1)
-    w.authoring_widgets = [w.regenerate_button, w.slide_audio_button, inspector, w.preparation, center]
+    w.authoring_widgets = [inspector, w.preparation, w.image] + [c for c in center.findChildren(QPushButton) if c not in (w.editor_previous, w.editor_next)]
     w.workspace.addWidget(w.editor)
 
     w.presenter = column("paper", 15)
@@ -431,9 +449,9 @@ def build(w):
     w.presenter_narration.setReadOnly(True)
     presenter_split.addWidget(w.presenter_narration)
     presenter_split.setSizes([450, 150])
-    w.previous_button = button("Previous", lambda: w.transport.step(-1))
+    w.previous_button = button("Previous", lambda: w.navigate_slide(-1))
     w.play_button = button("Pause", w.transport.toggle, True)
-    w.next_button = button("Next", lambda: w.transport.step(1))
+    w.next_button = button("Next", lambda: w.navigate_slide(1))
     w.continue_button = button("Continue", w.continue_presentation, True)
     w.end_button = button("End presentation", w.stop_presentation)
     w.demo_button = button("Pause for a live demo", w.live_demo)
@@ -569,8 +587,8 @@ def build(w):
         action = command("Presentation", title, callback, shortcut, control=w.more_presentation)
         w.more_presentation.menu().addAction(action)
     command("Presentation", "Pause for a live demo", w.live_demo, control=w.demo_button)
-    w.previous_action = command("Presentation", "Previous slide", lambda: w.transport.step(-1), control=w.previous_button)
-    w.next_action = command("Presentation", "Next slide", lambda: w.transport.step(1), control=w.next_button)
+    w.previous_action = command("View", "Previous slide", lambda: w.navigate_slide(-1), "Ctrl+PgUp")
+    w.next_action = command("View", "Next slide", lambda: w.navigate_slide(1), "Ctrl+PgDown")
     w.end_action = command("Presentation", "End presentation", w.stop_presentation, control=w.end_button)
     command("Presentation", "Presentation settings…", lambda: w.settings[1].show_section("Presentation & recording"), control=w.presentation_button)
     command("Presentation", "System audio settings…", w.system_audio_settings)
@@ -583,7 +601,7 @@ def build(w):
     w.engine_status.setMaximumWidth(330)
     w.statusBar().addPermanentWidget(w.engine_status)
     command("Help", "Getting started…", lambda: QMessageBox.information(w, "Getting started", "Open a PDF, choose duration and language, then prepare text/audio or start. Voice & speech selects the voice; Talk settings supplies audience and conference context. The main checkbox enables recording; Presentation settings configures it. Application settings selects display and sound. File → Recordings & export finds saved results. Appearance follows the system."))
-    command("Help", "Keyboard shortcuts…", lambda: QMessageBox.information(w, "Keyboard shortcuts", "Ctrl+N: Open PDF · Ctrl+O: Open saved talk · Ctrl+S: Save\nCtrl+T: Talk settings (audience and preparation) · Ctrl+,: Application settings\nF5: Start / Prepare and start · Shift+F5: Start selected · F6: Continue\nFullscreen: Space pauses/resumes, arrows change slides, Esc returns."))
+    command("Help", "Keyboard shortcuts…", lambda: QMessageBox.information(w, "Keyboard shortcuts", "Ctrl+N: Open PDF · Ctrl+O: Open saved talk · Ctrl+S: Save\nCtrl+T: Talk settings (audience and preparation) · Ctrl+,: Application settings\nF5: Start / Prepare and start · Shift+F5: Start selected · F6: Continue\nCtrl+PgUp / Ctrl+PgDn: Previous / next slide in the current view\nFullscreen: Space pauses/resumes, arrows change slides, Esc returns."))
     command("Help", "About AutoTalk…", lambda: QMessageBox.about(w, "About AutoTalk", "AutoTalk 0.3\nPDF-to-talk preparation and presentation.\nCodex narration · Qwen3-TTS local speech\nPrepared, Quick and Realtime. System style and palette."))
 
     # Size outer controls only; the platform style owns embedded editor geometry.
