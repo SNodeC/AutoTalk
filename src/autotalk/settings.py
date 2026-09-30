@@ -168,7 +168,9 @@ class SettingsDialog(SectionDialog):
         self.before = None
         QDialog.done(self, result)
         w.load_settings()
-        w.show_slide(w.transport.index) if w.project else w.refresh()
+        if w.project:
+            w.show_slide(w.transport.index)
+        w.refresh()
 
     def voice_context(self):
         # A synthesis request snapshot; never adopted as the UI's document.

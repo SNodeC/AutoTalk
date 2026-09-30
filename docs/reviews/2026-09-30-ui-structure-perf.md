@@ -104,3 +104,46 @@ error handling or introducing a broader cache architecture.
 
 C2 checkpoint: wheel **477 passed in 96.01 s**, native/Breeze **477 passed in
 120.17 s**. Driver: the same full-tests.py command with argument `c2`.
+
+## C3 — refresh surfaces and narration coalescing
+
+Frame, header, dialogs, slide list/row, editor, inspector, presenter, footer and
+actions have explicit update methods. A full refresh shares one project pass.
+Slide selection updates the dependent surfaces; document-wide configuration
+changes explicitly request a full refresh. Narration edits update the editor and
+current row immediately, then restart a single 150 ms aggregate timer. Focus-out,
+other refreshes, Save, job start, presentation start, slide changes and Close flush
+pending aggregates. No background thread or revision cache was introduced.
+
+The widget-snapshot journey runs in Prepared, Quick and Realtime, including slide
+selection, typing, include/after/pause, language selection, fake job completion,
+preview start/stop and all settings dialogs followed by Cancel. It compares all
+requested widget properties and item texts/tooltips before/after a full refresh.
+Focused checks: 86 passed, including the existing language, settings and UX tests.
+
+| Checkpoint | Slides | Full refresh ms | Keystroke ms | Selection ms | Aggregate flush ms |
+|---|---:|---:|---:|---:|---:|
+| C3 | 20 | 4.349 | 0.357 | 7.974 | 3.686 |
+| C3 | 60 | 10.517 | 0.396 | 13.690 | 9.982 |
+
+The committed JSON contains the exact measurements. At 60 slides full refresh is
+**7.57× faster**, synchronous keystroke **74.97× faster** than the same-machine
+baseline. Keystroke queries: ready=1, speech_key=1, text_ready=1, asset=1.
+Coalesced aggregate queries: 60, 60, 60, 59 respectively.
+
+Radon command:
+`PYTHONPATH=artifacts/ui-structure-perf/analysis-tools .venv/bin/python -m radon cc src/autotalk/app.py -s`.
+Refresh-family maximum CC is **20** (frame/presenter), full refresh **1**;
+header/timing **19**, dialogs **17**, recordings **16**, editor **14**, slide row
+**11**, actions **8**, footer **6**, inspector **4**, slide list **3**, flush **2**,
+aggregate/request **1**. No refresh-family method exceeds 25.
+
+C3 full suites: wheel **487 passed in 101.76 s**, native/Breeze **487 passed in
+129.76 s**. Driver argument: `c3`. No full-suite failure at this checkpoint.
+
+C3 production: +188/−58, net **+130**; tests **+113**. Cumulative production
+from base is **+207**. The per-commit +80 estimate is exceeded by 50 lines:
+explicit surface entry points, their no-project guards, derived enablement
+properties and flush boundaries are retained instead of packing statements or
+adding a generic dispatch abstraction. C4 will move these responsibilities to
+the actual component owners.
