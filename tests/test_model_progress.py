@@ -110,7 +110,7 @@ def test_model_progress_is_distinct_from_concurrent_narration_and_follows_dialog
     commands.put({'type':'model_progress','stage':'Loading model into GPU and starting speech engine'})
     qtbot.waitUntil(lambda: 'Progress not reported' in w.progress.text())
     assert w.progress.minimum() == 0 and w.progress.maximum() == 1 and w.progress.value() == 0
-    w.settings[0].show_section("AI & speech engine")
+    w.settings[0].show_section("AI model")
     assert w.progress.parentWidget() is w.settings[0] and w.progress.isVisible()
     w.log_message('Codex is creating narration…'); w.update_timing()
     assert 'Loading model into GPU' in w.progress.text()

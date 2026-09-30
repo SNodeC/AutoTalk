@@ -224,16 +224,16 @@ def test_desktop_workspaces_and_remembered_policy(qtbot,project):
     assert w.workspace.currentWidget() is w.quick_page
     w.mode.setCurrentText('Realtime')
     assert w.workspace.currentWidget() is w.editor
-    w.settings[0].show_section("AI & speech engine")
-    next(b for b in w.settings[0].gpu_retention.buttons() if b.property('value') == 'idle').click()
-    assert w.speech.retention == 'session'
-    w.settings[0].accept()
+    w.preferences.show_section("Speech engine")
+    next(b for b in w.preferences.gpu_retention.buttons() if b.property('value') == 'idle').click()
+    assert w.speech.retention == 'idle'
+    w.preferences.accept()
     assert w.speech.retention=='idle'
     w2=MainWindow();qtbot.addWidget(w2)
-    assert w2.settings[0].gpu_retention.checkedButton().property('value')=='idle'
-    w.settings[0].show_section("AI & speech engine")
-    next(b for b in w.settings[0].gpu_retention.buttons() if b.property('value') == 'session').click()
-    w.settings[0].accept()
+    assert w2.preferences.gpu_retention.checkedButton().property('value')=='idle'
+    w.preferences.show_section("Speech engine")
+    next(b for b in w.preferences.gpu_retention.buttons() if b.property('value') == 'session').click()
+    w.preferences.accept()
 
 
 def test_selected_segmentation_invalidates_audio(project):
@@ -385,7 +385,9 @@ def test_accepted_designed_voice_uses_exact_preview(qtbot, project, monkeypatch,
         f.setparams((1, 2, 24000, 0, 'NONE', 'not compressed'))
         f.writeframes(b'\1\0' * 24000 * 4)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project)
-    assert w.settings[1].accept_designed_voice()
+    w.settings[1].show_section('Voice & language')
+    assert w.settings[1].voice.accept_designed_voice()
+    w.settings[1].accept()
     assert project.voice.source == 'Base'
     assert file_hash(project.asset(project.reference().file)) == file_hash(preview)
     assert w.job is None
@@ -534,24 +536,26 @@ def test_voice_library_preview_selection_and_cancel(qtbot, project, monkeypatch,
     project.voice.speaker = original
     w = MainWindow();qtbot.addWidget(w);w.adopt(project);w.show()
     w.settings[1].show_section("Voice & language")
-    w.settings[1].voice_source.setCurrentIndex(3)
-    assert w.settings[1].voice_library.rowCount() == 1
-    assert w.settings[1].voice_library.item(0, 0).text() == 'My conference voice'
-    w.settings[1].library_use.click()
-    assert w.project.voice.speaker == 'Aiden'
+    w.settings[1].voice.voice_source.setCurrentIndex(3)
+    assert w.settings[1].voice.voice_library.rowCount() == 1
+    assert w.settings[1].voice.voice_library.item(0, 0).text() == 'My conference voice'
+    w.settings[1].voice.library_use.click()
+    assert w.settings[1].project.voice.speaker == 'Aiden'
+    assert w.project.voice.speaker == original
     assert w.settings[1].navigation.currentItem().text() == "Voice & language"
-    assert w.settings[1].voice_library.item(w.settings[1].voice_library.currentRow(), 0).text() == 'My conference voice'
+    assert w.settings[1].voice.voice_library.item(w.settings[1].voice.voice_library.currentRow(), 0).text() == 'My conference voice'
     w.settings[1].reject()
     assert w.project.voice.speaker == original
 
 
 def test_recording_sources_update_capabilities_and_restore_on_cancel(qtbot, project):
     w = MainWindow();qtbot.addWidget(w);w.adopt(project);w.show()
-    w.settings[1].show_section("Presentation & recording")
-    w.settings[1].options.fields['recording_source'].setCurrentIndex(1)
-    assert project.recording_source == 'screen'
-    assert w.settings[1].options.fields['capture_microphone'].isEnabled()
-    assert not w.settings[1].options.fields['recording_policy'].isEnabled()
+    w.settings[1].show_section("Audio & recording")
+    w.settings[1].fields['recording_source'].editor.setCurrentIndex(1)
+    assert w.settings[1].project.recording_source == 'screen'
+    assert project.recording_source == 'slides'
+    assert w.settings[1].fields['capture_microphone'].editor.isEnabled()
+    assert not w.settings[1].fields['recording_policy'].editor.isEnabled()
     w.settings[1].reject()
     assert w.project.recording_source == 'slides'
 

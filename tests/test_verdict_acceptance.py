@@ -21,35 +21,37 @@ from test_gpu_lifecycle import engine
 
 @pytest.mark.parametrize('source', ['CustomVoice', 'Base'])
 def test_conference_completion_restores_activity_without_erasing_capabilities(qtbot, project, monkeypatch, source):
-    from autotalk import settings
+    from autotalk import settings_components as settings
     release = threading.Event()
     project.voice = Voice(source=source)
     project.conference_url = 'https://conference.example'
-    monkeypatch.setattr(settings, 'extract_scope', lambda *args: (
+    monkeypatch.setattr(settings, 'extract_scope', lambda *args, **kwargs: (
         release.wait(5), {'scope': 'Verified conference topics', 'sources': [project.conference_url]})[1])
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     qtbot.mouseClick(next(b for b in w.overview.findChildren(QPushButton) if b.text() == 'Talk settings…'), Qt.MouseButton.LeftButton)
     dialog = w.settings[1]
     try:
-        qtbot.mouseClick(w.settings[1].conference_button, Qt.MouseButton.LeftButton)
-        assert w.job is not None and not w.settings[1].tolerance.isEnabled()
+        qtbot.mouseClick(w.settings[1].conference.read_button, Qt.MouseButton.LeftButton)
+        assert w.job is not None and not w.settings[1].fields['tolerance_seconds'].editor.isEnabled()
         release.set()
         qtbot.waitUntil(lambda: w.job is None)
         assert dialog.isVisible()
-        assert w.settings[1].conference_scope.toPlainText() == 'Verified conference topics'
-        assert w.settings[1].tolerance.isEnabled() and w.mode.isEnabled()
-        w.settings[1].tolerance.setFocus(); w.settings[1].tolerance.selectAll()
-        qtbot.keyClicks(w.settings[1].tolerance, '23')
-        qtbot.keyClick(w.settings[1].tolerance, Qt.Key.Key_Tab)
-        assert w.project.tolerance_seconds == 23
+        assert w.settings[1].fields['scope'].editor.toPlainText() == 'Verified conference topics'
+        assert w.settings[1].fields['tolerance_seconds'].editor.isEnabled() and w.mode.isEnabled()
+        dialog.show_section('Timing & playback')
+        w.settings[1].fields['tolerance_seconds'].editor.setFocus(); w.settings[1].fields['tolerance_seconds'].editor.selectAll()
+        qtbot.keyClicks(w.settings[1].fields['tolerance_seconds'].editor, '23')
+        qtbot.keyClick(w.settings[1].fields['tolerance_seconds'].editor, Qt.Key.Key_Tab)
+        assert dialog.project.tolerance_seconds == 23
+        assert w.project.tolerance_seconds != 23
         if directory := os.environ.get('AUTOTALK_EVIDENCE_DIR'):
             target = Path(directory); target.mkdir(parents=True, exist_ok=True)
             dialog.grab().save(str(target / f'F1-recovered-{source}.png'))
         item = dialog.navigation.findItems('Voice & language', Qt.MatchFlag.MatchExactly)[0]
         qtbot.mouseClick(dialog.navigation.viewport(), Qt.MouseButton.LeftButton,
                          pos=dialog.navigation.visualItemRect(item).center())
-        assert w.settings[1].options.fields['writing_style'].isEnabled()
-        assert w.settings[1].options.fields['delivery.style'].isEnabled() == (source != 'Base')
+        assert w.settings[1].fields['writing_style'].editor.isEnabled()
+        assert w.settings[1].fields['delivery.style'].editor.isEnabled() == (source != 'Base')
         dialog.accept()
     finally:
         release.set()
@@ -76,16 +78,17 @@ def test_disclosure_arrows_follow_actual_pointer_interaction(qtbot, project):
         assert w.notes_toggle.arrowType() == (Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
     qtbot.mouseClick(w.voice_button, Qt.MouseButton.LeftButton)
     dialog = w.settings[1]
+    dialog.show_section('Writing & delivery')
     toggle = next(b for b in dialog.findChildren(QToolButton) if b.text() == 'More vocal attributes')
     dialog.pages.currentWidget().ensureWidgetVisible(toggle)
     qtbot.mouseClick(toggle, Qt.MouseButton.LeftButton)
     assert toggle.arrowType() == Qt.ArrowType.DownArrow
-    assert w.settings[1].options.fields['delivery.attributes.pitch'].isVisible()
+    assert w.settings[1].fields['delivery.attributes.pitch'].editor.isVisible()
     if directory := os.environ.get('AUTOTALK_EVIDENCE_DIR'):
         target = Path(directory); target.mkdir(parents=True, exist_ok=True)
         dialog.grab().save(str(target / 'disclosure-expanded.png'))
     qtbot.mouseClick(toggle, Qt.MouseButton.LeftButton)
-    assert not w.settings[1].options.fields['delivery.attributes.pitch'].isVisible()
+    assert not w.settings[1].fields['delivery.attributes.pitch'].editor.isVisible()
     assert toggle.arrowType() == Qt.ArrowType.RightArrow
     dialog.reject()
 
@@ -322,7 +325,7 @@ def test_pointer_navigation_all_fixed_scopes_and_native_disclosures(qtbot, proje
         snapshot(menu, 'menu-' + action.text())
         assert all(a.menu() is None or not a.text().endswith('…') for a in menu.actions())
         qtbot.keyClick(menu, Qt.Key.Key_Escape)
-    routes = [(0, ('Settings', 'Application settings…')),
+    routes = [(0, ('Settings', 'Talk defaults…')),
               (1, ('Talk', 'Talk settings…')),
               (2, ('Talk', 'Selected slide', 'Additional audio…'))]
     for scope, path in routes:
@@ -347,7 +350,7 @@ def test_pointer_navigation_all_fixed_scopes_and_native_disclosures(qtbot, proje
             qtbot.mouseClick(dialog.navigation.viewport(), Qt.LeftButton,
                              pos=dialog.navigation.visualItemRect(item).center())
             assert dialog.pages.currentIndex() == index
-            assert dialog.voice_audition.isVisible() == (index == 0)
+            assert dialog.voice.voice_audition.isVisible() == (item.text() == 'Voice & language')
             snapshot(dialog, f'scope-{scope}-page-{index}')
             visible_inside(dialog.buttons, dialog)
             for toggle in dialog.pages.currentWidget().findChildren(QToolButton):

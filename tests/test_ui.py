@@ -34,7 +34,9 @@ def test_recording_selection_visible_in_workspaces_and_persisted(qtbot, project)
     window.transport.state = 'paused'
     window.refresh()
     assert not checkbox.isEnabled()
-    assert not window.settings[1].options.recording_widget.isEnabled()
+    window.settings[1].show_section('Audio & recording')
+    assert not window.settings[1].fields['recording_source'].editor.isEnabled()
+    window.settings[1].reject()
     window.transport.stop()
     window.refresh()
     assert checkbox.isEnabled()
@@ -241,33 +243,28 @@ def test_settings_open_and_save_preserve_selected_slide(qtbot, project):
     window.talk_action.trigger()
     assert window.settings[1].isVisible()
     assert window.project is original and window.transport.index == 1
-    window.minutes.setValue(14)
+    window.settings[1].fields['audience'].editor.setText('New audience')
     qtbot.mouseClick(window.settings[1].buttons.button(QDialogButtonBox.StandardButton.Save), Qt.MouseButton.LeftButton)
     assert not window.settings[1].isVisible()
     assert window.project is original and window.transport.index == 1
     from autotalk.project import Project
-    assert Project.load(project.manifest).target_minutes == 14
+    assert Project.load(project.manifest).audience == 'New audience'
 
 
 def test_cancel_settings_restores_project_and_manifest_after_eager_save(qtbot, project, monkeypatch):
     from autotalk.project import Project
-    window = MainWindow()
-    qtbot.addWidget(window)
-    window.adopt(project)
-    window.show()
+    window=MainWindow();qtbot.addWidget(window);window.adopt(project);window.show()
     window.transport.select(1)
-    window.settings[1].show_section("Talk & preparation")
-    window.minutes.setValue(19)
-    window.settings[1].conference_scope.setPlainText('A different conference')
-    window.language.setCurrentText('German')
-    window.save()  # Existing language/reference/worker handlers can save eagerly.
+    window.minutes.setValue(19);window.language.setCurrentText('German');window.save()
+    manifest=project.manifest.read_bytes();mtime=project.manifest.stat().st_mtime_ns
+    window.settings[1].show_section('Talk')
+    window.settings[1].fields['scope'].editor.setPlainText('A different conference')
     window.settings[1].reject()
-    restored = Project.load(project.manifest)
-    assert restored.target_minutes == 10 and restored.language == 'English'
-    assert restored.scope != 'A different conference'
-    assert len(restored.versions) == 1
-    assert window.project.language == 'English' and window.transport.index == 1
-    assert window.settings[1].options.project is window.project
+    restored=Project.load(project.manifest)
+    assert restored.target_minutes==19 and restored.language=='German'
+    assert restored.scope!='A different conference' and len(restored.versions)==2
+    assert project.manifest.read_bytes()==manifest and project.manifest.stat().st_mtime_ns==mtime
+    assert window.project.language=='German' and window.transport.index==1
     assert window.transport.project is window.project
 
 
@@ -276,16 +273,16 @@ def test_preferences_cancel_restores_retention_and_sampling(qtbot, project):
     qtbot.addWidget(window)
     window.adopt(project)
     window.show()
-    original = window.settings[0].gpu_retention.checkedButton().property("value")
-    window.settings[0].show_section("AI & speech engine")
-    next(b for b in window.settings[0].gpu_retention.buttons() if b.property('value') == 'operation').click()
-    assert window.speech.retention == original  # Draft policies do not act before Save.
+    original = window.preferences.gpu_retention.checkedButton().property("value")
+    window.settings[0].show_section("AI model")
+    next(b for b in window.preferences.gpu_retention.buttons() if b.property('value') == 'operation').click()
+    assert window.speech.retention == 'operation'  # Preferences apply immediately.
     window.settings[0].reject()
-    assert window.settings[0].gpu_retention.checkedButton().property("value") == original
-    assert window.speech.retention == original
-    window.settings[1].show_section("AI & speech engine")
-    window.settings[1].options.override.setChecked(True)
-    window.settings[1].options.sampling['temperature'].setValue(.4)
+    assert window.preferences.gpu_retention.checkedButton().property("value") == "operation"
+    assert window.speech.retention == "operation"
+    window.settings[1].show_section("AI model")
+    window.settings[1].voice.override.setChecked(True)
+    window.settings[1].voice.sampling['temperature'].setValue(.4)
     window.settings[1].reject()
     assert window.project.delivery.sampling == {}
 
@@ -302,13 +299,13 @@ def test_quick_keeps_basics_in_main_window_and_cancel_restores_settings(qtbot, p
     window.minutes.setValue(7)
     assert project.target_minutes == 7
     parent = window.minutes.parentWidget()
-    window.settings[1].show_section("Talk & preparation")
+    window.settings[1].show_section("Talk")
     assert window.minutes.parentWidget() is parent
     window.minutes.setValue(9)
     window.settings[1].reject()
     qtbot.wait(30)
     assert window.minutes.parentWidget() is parent
-    assert window.minutes.value() == window.project.target_minutes == 7
+    assert window.minutes.value() == window.project.target_minutes == 9
     assert window.language.isVisible()
     from PySide6.QtCore import QPoint
     bottom = window.language.mapTo(window, QPoint(0, window.language.height()))
@@ -322,20 +319,20 @@ def test_commands_and_dialogs_cannot_bypass_job_or_playback_lock(qtbot, project)
     make_audio(project)
     window.adopt(project)
     window.show()
-    window.settings[1].show_section("AI & speech engine")
+    window.settings[1].show_section("AI model")
     release = Event()
     window.start_job('Checking command availability', lambda task: release.wait(5))
     try:
         assert not window.talk_action.isEnabled()
         assert window.narration.isReadOnly()
-        assert not window.settings[1].codex_model.isEnabled() and not window.settings[1].options.override.isEnabled()
+        assert not window.settings[1].models.codex_model.isEnabled() and not window.settings[1].voice.override.isEnabled()
         assert not window.more_presentation.isEnabled()
         assert not window.welcome.isEnabled()
         assert all(not a.isEnabled() for a in window.actions)
         for action, control in window.control_actions:
             assert action.isEnabled() == control.isEnabled()
         window.settings[1].reject()
-        assert window.settings[1].isVisible()
+        assert not window.settings[1].isVisible()
     finally:
         release.set()
         qtbot.waitUntil(lambda: window.job is None)
@@ -357,10 +354,10 @@ def test_minimum_editor_layout_keeps_inspector_controls_separate(qtbot, project)
     window.show()
     qtbot.wait(30)
     from PySide6.QtCore import QPoint
-    window.settings[2].show_section("Presentation & recording")
+    window.settings[2].show_section("Audio & recording")
     qtbot.wait(30)
-    gain_bottom = window.settings[2].clip_gain.mapToGlobal(QPoint(0, window.settings[2].clip_gain.height()))
-    placement_top = window.settings[2].clip_placement.mapToGlobal(QPoint(0, 0))
+    gain_bottom = window.settings[2].assets.clip_gain.mapToGlobal(QPoint(0, window.settings[2].assets.clip_gain.height()))
+    placement_top = window.settings[2].assets.clip_placement.mapToGlobal(QPoint(0, 0))
     assert placement_top.y() >= gain_bottom.y()
     assert window.image.height() >= 100
     assert window.narration.height() >= 100
@@ -372,10 +369,11 @@ def test_recording_checkbox_stays_in_main_window_and_dialog_cancel_restores_sett
     checkbox.click()
     assert window.project.record_presentation
     parent = checkbox.parentWidget()
-    window.settings[1].show_section("Presentation & recording")
+    window.settings[1].show_section("Audio & recording")
     assert checkbox.parentWidget() is parent and checkbox.isVisible()
-    window.settings[1].options.fields['recording_source'].setCurrentIndex(1)
-    assert window.project.recording_source == 'screen'
+    window.settings[1].fields['recording_source'].editor.setCurrentIndex(1)
+    assert window.settings[1].project.recording_source == 'screen'
+    assert window.project.recording_source == 'slides'
     window.settings[1].reject()
     assert window.project.record_presentation and window.project.recording_source == 'slides'
     assert checkbox.parentWidget() is parent and checkbox.isVisible()

@@ -6,7 +6,10 @@ and refresh/request_refresh. Dialog navigation is an explicit signal.
 """
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QCheckBox
-from .ui import label, button, combo, column, number, form, disclosure
+from .ui import label, button, column, number, disclosure
+from .settings_schema import SCHEMA
+from .settings_fields import SettingField
+from .settings import inheritance
 
 
 class InspectorPanel(QWidget):
@@ -21,29 +24,27 @@ class InspectorPanel(QWidget):
         box = QVBoxLayout(self)
         box.setContentsMargins(10, 10, 10, 10)
         box.setSpacing(10)
-        self.layout().addWidget(label("This slide", "title"))
+        self.layout().addWidget(label("Slide flow", "title"))
         self.slide_include = QCheckBox("Include in presentation")
         self.slide_include.toggled.connect(self.include_changed)
         self.layout().addWidget(self.slide_include)
-        self.slide_after = combo([("Use talk setting", None), ("Advance automatically", "advance"), ("Pause for live demo", "demo"), ("Wait for presenter", "pause")], self.after_changed)
-        self.slide_after_source = label("After this slide")
-        self.layout().addWidget(self.slide_after_source)
-        self.layout().addWidget(self.slide_after)
+        self.after_field = SettingField(SCHEMA['after'], 2, self.edit, compact=True)
+        self.slide_after = self.after_field.editor
+        self.layout().addWidget(label('After this slide'))
+        self.layout().addWidget(self.after_field)
         timing = column(margin=0)
         self.slide_budget = number(0, 14400, 0, self.budget_changed, " sec")
         self.slide_budget.setSpecialValueText("Automatic")
         timing.layout().addWidget(self.slide_budget)
-        self.inherit_pause = QCheckBox("Use talk pause")
-        self.inherit_pause.toggled.connect(self.pause_changed)
-        timing.layout().addWidget(self.inherit_pause)
-        self.slide_pause = number(0, 10, .6, self.pause_changed, " sec")
-        self.slide_pause.setSingleStep(.1)
-        form(timing).addRow("Pause after slide", self.slide_pause)
+        self.pause_field = SettingField(SCHEMA['pause_seconds'], 2, self.edit, compact=True)
+        self.slide_pause = self.pause_field.editor
+        timing.layout().addWidget(label('Pause after slide'))
+        timing.layout().addWidget(self.pause_field)
         disclosure(self, "Timing", timing)
-        self.layout().addWidget(button("Slide voice && delivery…", lambda: self.open_settings.emit("Voice & language")))
+        self.layout().addWidget(button("Slide sound…", lambda: self.open_settings.emit("Voice & language")))
         self.delivery_summary = label("")
         self.layout().addWidget(self.delivery_summary)
-        self.layout().addWidget(button("Additional audio…", lambda: self.open_settings.emit("Presentation & recording")))
+        self.layout().addWidget(button("Additional audio…", lambda: self.open_settings.emit("Audio & recording")))
         self.layout().addWidget(label("Changes here affect only the selected slide."))
         self.layout().addStretch()
 
@@ -53,15 +54,8 @@ class InspectorPanel(QWidget):
             try:
                 self.slide_budget.setValue(slide.budget_seconds)
                 self.slide_include.setChecked(slide.included)
-                source = "app" if project.setting_source("after") == "Application default" else "talk"
-                wording = self.slide_after.itemText(self.slide_after.findData(project.setting("after")))
-                self.slide_after_source.setText(f"After this slide\nFrom {source}: {wording}")
-                self.slide_after.setItemText(0, f"Use {source} setting")
-                self.slide_after.setCurrentIndex(self.slide_after.findData(slide.overrides.get("after")))
-                self.inherit_pause.setText(f"Use talk pause ({project.setting('pause_seconds'):g} s)")
-                self.inherit_pause.setChecked("pause_seconds" not in slide.overrides)
-                self.slide_pause.setValue(project.setting("pause_seconds", slide))
-                self.slide_pause.setEnabled(self.isEnabled() and not self.inherit_pause.isChecked())
+                for key, field in [('after', self.after_field), ('pause_seconds', self.pause_field)]:
+                    field.load(project.setting(key, slide), *inheritance(project, key, 2, slide))
                 self.delivery_summary.setText(project.setting("voice", slide).label + "\n" + project.setting_source("voice", slide) + "\n" + ("Reference delivery" if project.setting("voice", slide).source == "Base" else project.setting("delivery.style", slide)))
             finally:
                 self.loading = False
@@ -81,11 +75,6 @@ class InspectorPanel(QWidget):
             slide = self.window.project.slides[self.window.transport.index]
             self.window.configuration_changed(lambda: setattr(slide, "budget_seconds", self.slide_budget.value()), edited=slide.page)
 
-    def after_changed(self):
+    def edit(self, name, value, inherit=False):
         if not self.loading:
-            value = self.slide_after.currentData()
-            self.window.edit_setting("after", value, value is None, scope=2, slide=self.window.transport.index)
-
-    def pause_changed(self):
-        if not self.loading:
-            self.window.edit_setting("pause_seconds", self.slide_pause.value(), self.inherit_pause.isChecked(), scope=2, slide=self.window.transport.index)
+            self.window.edit_setting(name, value, inherit, scope=2, slide=self.window.transport.index)

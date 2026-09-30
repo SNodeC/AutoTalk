@@ -7,7 +7,7 @@ from dataclasses import asdict
 import pytest
 from PySide6.QtCore import QSettings
 
-from autotalk import settings
+from autotalk import settings_components as settings
 from autotalk.app import MainWindow
 from autotalk.project import Project, Voice
 from autotalk.services import apply_narration, narration_result, synthesize, speech_config
@@ -40,14 +40,15 @@ def test_precedence_empty_overrides_and_audio_identity(project):
 @pytest.mark.parametrize('save', [False, True])
 def test_scopes_save_cancel_and_config_separation(qtbot, project, save):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    w.language.setCurrentText('French')
+    w.language.setCurrentText('French'); w.save()
     for scope, language in ((0, 'German'), (2, 'Spanish')):
         dialog = w.settings[scope]
         dialog.show_section('Voice & language')
-        dialog.settings_language.setCurrentText(language)
+        dialog.fields['language'].editor.setCurrentText(language)
         if scope == 2:
-            dialog.speaker.setCurrentIndex(dialog.speaker.findData('Aiden'))
-            assert w.project.setting('language', w.project.slides[0]) == 'Spanish'
+            dialog.voice.speaker.setCurrentIndex(dialog.voice.speaker.findData('Aiden'))
+            assert dialog.project.setting('language', dialog.project.slides[0]) == 'Spanish'
+            assert w.project.setting('language', w.project.slides[0]) == 'French'
             assert w.project.setting('language', w.project.slides[1]) == 'French'
         (dialog.accept if save else dialog.reject)()
     stored = json.loads(QSettings().value('setting_defaults', '{}'))
@@ -62,14 +63,14 @@ def test_scopes_save_cancel_and_config_separation(qtbot, project, save):
 def test_defaults_without_talk_then_pin_portable_settings(qtbot, project):
     w = MainWindow(); qtbot.addWidget(w); w.show()
     w.settings[0].show_section('Voice & language')
-    w.settings[0].settings_language.setCurrentText('German')
-    w.settings[0].speaker.setCurrentIndex(w.settings[0].speaker.findData('Aiden'))
+    w.settings[0].fields['language'].editor.setCurrentText('German')
+    w.settings[0].voice.speaker.setCurrentIndex(w.settings[0].voice.speaker.findData('Aiden'))
     w.settings[0].accept()
     project.overrides.clear()
     w.adopt(project)
     assert project.language == 'German' and project.voice.speaker == 'Aiden'
-    w.settings[1].show_section('Talk & preparation')
-    w.settings[1].pin_settings(); w.settings[1].accept()
+    w.settings[1].show_section('Talk')
+    w.settings[1].pin(); w.settings[1].accept()
     reopened = Project.load(project.manifest)
     assert reopened.language == 'German' and reopened.voice.speaker == 'Aiden'
     reopened.defaults = {'language': 'French', 'voice': Voice('Ryan')}
@@ -126,12 +127,12 @@ def test_designed_origin_survives_accept_library_and_reopen(qtbot, project, monk
     monkeypatch.setattr(settings, 'preview_path', lambda p: audio)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     w.settings[1].show_section('Voice & language')
-    assert w.settings[1].accept_designed_voice()
-    assert w.project.voice.source == 'Base' and w.project.voice.label.startswith('Designed:')
-    assert w.settings[1].voice_source.currentIndex() == 2
-    assert w.settings[1].voice_description.text() == 'Calm and clear'
-    assert not w.settings[1].options.fields['delivery.style'].isEnabled()
-    assert w.settings[1].options.fields['writing_style'].isEnabled()
+    assert w.settings[1].voice.accept_designed_voice()
+    assert w.settings[1].project.voice.source == 'Base' and w.settings[1].project.voice.label.startswith('Designed:')
+    assert w.settings[1].voice.voice_source.currentIndex() == 2
+    assert w.settings[1].voice.voice_description.text() == 'Calm and clear'
+    assert not w.settings[1].fields['delivery.style'].editor.isEnabled()
+    assert w.settings[1].fields['writing_style'].editor.isEnabled()
     w.settings[1].accept()
     reopened = Project.load(project.manifest)
     saved = voices.save_voice(reopened, 'Conference narrator')
@@ -217,7 +218,7 @@ def test_delivery_preset_validation_is_atomic(qtbot, project, monkeypatch, tmp_p
     before = copy.deepcopy(project.overrides)
     errors = []
     monkeypatch.setattr(options.QMessageBox, 'warning', lambda *args: errors.append(args[-1]))
-    w.settings[1].options.use_preset()
+    w.settings[1].presets.use_preset()
     assert errors and project.overrides == before
     w.settings[1].reject()
 
@@ -227,9 +228,10 @@ def test_editing_reference_transcript_preserves_cursor(qtbot, project):
     project.set_voice(project.audio(project.slides[0]), 'Original words')
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     w.settings[1].show_section('Voice & language')
-    w.settings[1].transcript.moveCursor(w.settings[1].transcript.textCursor().MoveOperation.End)
-    qtbot.keyClicks(w.settings[1].transcript, ' appended')
-    assert w.settings[1].transcript.toPlainText() == 'Original words appended'
-    assert w.settings[1].transcript.textCursor().position() == len('Original words appended')
-    assert project.voice_transcript == 'Original words appended'
+    w.settings[1].voice.transcript.moveCursor(w.settings[1].voice.transcript.textCursor().MoveOperation.End)
+    qtbot.keyClicks(w.settings[1].voice.transcript, ' appended')
+    assert w.settings[1].voice.transcript.toPlainText() == 'Original words appended'
+    assert w.settings[1].voice.transcript.textCursor().position() == len('Original words appended')
+    assert w.settings[1].project.voice_transcript == 'Original words appended'
+    assert project.voice_transcript == 'Original words'
     w.settings[1].reject()

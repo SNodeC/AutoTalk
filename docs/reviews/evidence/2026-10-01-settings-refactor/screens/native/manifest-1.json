@@ -1,0 +1,474 @@
+[
+  {
+    "file": "main-Prepared-940-scale1.png",
+    "logical_size": [
+      940,
+      680
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "main-Prepared-1100-scale1.png",
+    "logical_size": [
+      1100,
+      850
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "main-Quick-940-scale1.png",
+    "logical_size": [
+      940,
+      680
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "main-Quick-1100-scale1.png",
+    "logical_size": [
+      1100,
+      850
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "main-Realtime-940-scale1.png",
+    "logical_size": [
+      940,
+      680
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "main-Realtime-1100-scale1.png",
+    "logical_size": [
+      1100,
+      850
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-0-0-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-0-0-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-0-1-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-0-1-760-part1-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-0-1-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-0-1-920-part1-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-0-2-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-0-2-760-part1-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-0-2-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-0-3-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-0-3-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-0-4-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-0-4-760-part1-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-0-4-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-0-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-0-760-part1-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-0-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-1-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-1-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-2-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-2-760-part1-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-2-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-2-920-part1-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-3-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-3-760-part1-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-3-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-4-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-4-760-part1-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-4-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-5-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-5-760-part1-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-1-5-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-2-0-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-2-0-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-2-1-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-2-1-760-part1-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-2-1-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-2-1-920-part1-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-2-2-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-2-2-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-preferences-0-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-preferences-0-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-preferences-1-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-preferences-1-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-preferences-2-760-part0-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-preferences-2-760-part1-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "dialog-preferences-2-920-part0-scale1.png",
+    "logical_size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "inspector-light-scale1.png",
+    "logical_size": [
+      940,
+      680
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "recording-light-top-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "recording-light-bottom-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "inspector-dark-scale1.png",
+    "logical_size": [
+      940,
+      680
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "recording-dark-top-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "recording-dark-bottom-scale1.png",
+    "logical_size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  }
+]

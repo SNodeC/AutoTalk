@@ -63,7 +63,7 @@ def test_incremental_journey_matches_full_refresh(qtbot, project, monkeypatch, m
     w.inspector.slide_include.setChecked(False); equivalent(w)
     w.inspector.slide_include.setChecked(True); equivalent(w)
     w.inspector.slide_after.setCurrentIndex(w.inspector.slide_after.findData('pause')); equivalent(w)
-    w.inspector.inherit_pause.setChecked(False); w.inspector.slide_pause.setValue(0); equivalent(w)
+    w.inspector.slide_pause.setValue(0); equivalent(w)
     w.language.setCurrentIndex(w.language.findData('German')); equivalent(w)
     w.job = SimpleNamespace(title='Fake preparation', outcome='completed', deleteLater=lambda: None)
     w.job_started = __import__('time').monotonic()

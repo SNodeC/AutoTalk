@@ -1,0 +1,833 @@
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.0' (uid=1000 pid=3434417 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Activating service name='org.gtk.vfs.Daemon' requested by ':1.2' (uid=1000 pid=3434417 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Successfully activated service 'org.gtk.vfs.Daemon'
+dbus-daemon[3434432]: Activating service name='org.a11y.atspi.Registry' requested by ':1.1' (uid=1000 pid=3434417 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Activating service name='org.xfce.Xfconf' requested by ':1.2' (uid=1000 pid=3434417 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3434432]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Successfully activated service 'org.xfce.Xfconf'
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.7' (uid=1000 pid=3434478 comm=".venv/bin/python -m pytest -q" label="unconfined")
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.8' (uid=1000 pid=3434514 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.8' (uid=1000 pid=3434514 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+
+(/usr/libexec/xdg-desktop-portal:3434514): xdg-desktop-portal-WARNING **: 23:35:04.199: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.8' (uid=1000 pid=3434514 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.kde' requested by ':1.8' (uid=1000 pid=3434514 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.kde'
+xdp-kde-clipboard: Couldn't resolve QWaylandApplication - clipboard will not work
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.kwallet' requested by ':1.8' (uid=1000 pid=3434514 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+kf.wallet.ksecretd: Lacking a socket, pipe: 0 env: 0
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.kwallet'
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Activating service name='org.gtk.vfs.Metadata' requested by ':1.2' (uid=1000 pid=3434417 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3434415]: [session uid=1000 pid=3434415 pidfd=5] Successfully activated service 'org.gtk.vfs.Metadata'
+...F........................................FF.......................... [ 13%]
+......................................FFFFFFFFF......................... [ 26%]
+........................................................................ [ 39%]
+............................................F.................F......... [ 52%]
+........................................................................ [ 65%]
+.................................................FFF...........F.....
+(/usr/libexec/xdg-desktop-portal:3434514): xdg-desktop-portal-WARNING **: 23:36:24.424: Realtime error: Could not map tid 3436497 of pid 3434478: Process ids could not be found: 3436497
+... [ 78%]
+.................................F...................................... [ 91%]
+............................FF...............                            [100%]
+=================================== FAILURES ===================================
+___________ test_settings_cancel_restores_versions_and_source_edits ____________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8ea2967620>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_settings_cancel_restores_0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+
+    def test_settings_cancel_restores_versions_and_source_edits(qtbot, project):
+        make_audio(project)
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        w.narration.setPlainText('My unsaved English edit.')
+        project.version.language = 'English'
+        before = copy.deepcopy(project)
+        w.defaults['language'] = 'German'; w.apply_defaults(project)
+        dialog = w.settings[1]; dialog.show_section('Voice & language')
+        dialog.fields['language'].reset.click()
+        assert len(w.settings[1].project.versions) == 2
+        assert project.versions['main'].slides[0].narration == 'My unsaved English edit.'
+        dialog.reject()
+        assert w.project.versions == before.versions and w.project.active_version == before.active_version
+        assert w.narration.toPlainText() == 'My unsaved English edit.'
+>       assert Project.load(project.manifest).versions == before.versions
+E       AssertionError: assert {'main': Talk..., clips=[])])} == {'main': Talk..., clips=[])])}
+E
+E         Differing items:
+E         {'main': TalkVersion(name='', language='', slides=[Slide(page=1, source_text='Reliable presentations\r\nOne controller...256='651d0bac16d2010f6d3ff53b1b4493814736616c0e89528e7a723bee13a8152d', audio_provenance={}, duration=0.3, clips=[])])} != {'main': TalkVersion(name='', language='English', slides=[Slide(page=1, source_text='Reliable presentations\r\nOne con...256='651d0bac16d2010f6d3ff53b1b4493814736616c0e89528e7a723bee13a8152d', audio_provenance={}, duration=0.3, clips=[])])}
+E         Use -v to get more diff
+
+tests/test_automatic_languages.py:76: AssertionError
+_ test_application_startup_discovers_without_pdf_and_preserves_launch_project[False] _
+
+fake_server = PosixPath('/tmp/pytest-of-voc/pytest-399/test_application_startup_disco0/codex')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8e981556d0>
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e98157ce0>
+qapp = <PySide6.QtWidgets.QApplication(0x13541b30) at 0x7f8eac0e0c80>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_application_startup_disco0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+open_saved = False
+
+    @pytest.mark.parametrize('open_saved', [False, True])
+    def test_application_startup_discovers_without_pdf_and_preserves_launch_project(fake_server, monkeypatch, qtbot, qapp, project, open_saved):
+        from types import SimpleNamespace
+        from autotalk import app
+        windows = []
+        original = app.MainWindow
+        def window():
+            w = original(); qtbot.addWidget(w); windows.append(w); return w
+        def event_loop():
+            qtbot.waitUntil(lambda: bool(windows[0].codex_settings) and windows[0].job is None)
+            assert bool(windows[0].project) == open_saved
+            windows[0].settings[1 if open_saved else 0].show_section('AI model')
+            assert windows[0].settings[1 if open_saved else 0].models.codex_model.count() == 2
+            assert windows[0].settings[1 if open_saved else 0].codex_effort.findData('high') >= 0
+            windows[0].close()
+            return 0
+        project.save()
+        monkeypatch.setattr(app, 'MainWindow', window)
+        monkeypatch.setattr(app, 'QApplication', lambda *_: SimpleNamespace(
+            setApplicationName=lambda *_: None, setOrganizationName=lambda *_: None, exec=event_loop))
+        app.QApplication.activeModalWidget = qapp.activeModalWidget
+        monkeypatch.setattr(sys, 'argv', ['autotalk'] + ([str(project.manifest)] if open_saved else []))
+>       assert app.main() == 0
+               ^^^^^^^^^^
+
+tests/test_codex.py:240:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/autotalk/app.py:1394: in main
+    return app.exec()
+           ^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def event_loop():
+        qtbot.waitUntil(lambda: bool(windows[0].codex_settings) and windows[0].job is None)
+        assert bool(windows[0].project) == open_saved
+        windows[0].settings[1 if open_saved else 0].show_section('AI model')
+        assert windows[0].settings[1 if open_saved else 0].models.codex_model.count() == 2
+>       assert windows[0].settings[1 if open_saved else 0].codex_effort.findData('high') >= 0
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'TalkDefaultsDialog' object has no attribute 'codex_effort'
+
+tests/test_codex.py:231: AttributeError
+_ test_application_startup_discovers_without_pdf_and_preserves_launch_project[True] _
+
+fake_server = PosixPath('/tmp/pytest-of-voc/pytest-399/test_application_startup_disco1/codex')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8e98156990>
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e98154980>
+qapp = <PySide6.QtWidgets.QApplication(0x13541b30) at 0x7f8eac0e0c80>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_application_startup_disco1/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+open_saved = True
+
+    @pytest.mark.parametrize('open_saved', [False, True])
+    def test_application_startup_discovers_without_pdf_and_preserves_launch_project(fake_server, monkeypatch, qtbot, qapp, project, open_saved):
+        from types import SimpleNamespace
+        from autotalk import app
+        windows = []
+        original = app.MainWindow
+        def window():
+            w = original(); qtbot.addWidget(w); windows.append(w); return w
+        def event_loop():
+            qtbot.waitUntil(lambda: bool(windows[0].codex_settings) and windows[0].job is None)
+            assert bool(windows[0].project) == open_saved
+            windows[0].settings[1 if open_saved else 0].show_section('AI model')
+            assert windows[0].settings[1 if open_saved else 0].models.codex_model.count() == 2
+            assert windows[0].settings[1 if open_saved else 0].codex_effort.findData('high') >= 0
+            windows[0].close()
+            return 0
+        project.save()
+        monkeypatch.setattr(app, 'MainWindow', window)
+        monkeypatch.setattr(app, 'QApplication', lambda *_: SimpleNamespace(
+            setApplicationName=lambda *_: None, setOrganizationName=lambda *_: None, exec=event_loop))
+        app.QApplication.activeModalWidget = qapp.activeModalWidget
+        monkeypatch.setattr(sys, 'argv', ['autotalk'] + ([str(project.manifest)] if open_saved else []))
+>       assert app.main() == 0
+               ^^^^^^^^^^
+
+tests/test_codex.py:240:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/autotalk/app.py:1394: in main
+    return app.exec()
+           ^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def event_loop():
+        qtbot.waitUntil(lambda: bool(windows[0].codex_settings) and windows[0].job is None)
+        assert bool(windows[0].project) == open_saved
+        windows[0].settings[1 if open_saved else 0].show_section('AI model')
+        assert windows[0].settings[1 if open_saved else 0].models.codex_model.count() == 2
+>       assert windows[0].settings[1 if open_saved else 0].codex_effort.findData('high') >= 0
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'TalkSettingsDialog' object has no attribute 'codex_effort'
+
+tests/test_codex.py:231: AttributeError
+______ test_language_change_generates_fresh_text_before_start[0-Prepared] ______
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e52c498b0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_language_change_generates0/talk'), title='slides', target_m...='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Prepared'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8e52c48d10>
+local_speech = None, mode = 'Prepared', scope = 0
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    @pytest.mark.parametrize('scope', [0, 1, 2])
+    def test_language_change_generates_fresh_text_before_start(qtbot, project, monkeypatch, local_speech, mode, scope):
+        project.mode = mode
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        w.edit_setting('language', 'Chinese', scope=0 if scope == 0 else 1)
+        for index in range(2):
+            w.transport.select(index)
+            w.narration.setPlainText('这是中文演讲。')
+        w.transport.select(0)
+        make_audio(project)
+        untouched = copy.deepcopy(project.slides[1])
+        if scope == 1:
+            w.language.setCurrentText('German')
+        else:
+            dialog = w.settings[scope]
+            dialog.show_section('Voice & language')
+            dialog.fields['language'].editor.setCurrentText('German')
+            dialog.accept()
+>       assert w.narration_progress.value() == 2
+E       assert 0 == 2
+E        +  where 0 = <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e52602fc0>()
+E        +    where <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e52602fc0> = <PySide6.QtWidgets.QProgressBar(0x67c242f0) at 0x7f8e52602fc0>.value
+E        +      where <PySide6.QtWidgets.QProgressBar(0x67c242f0) at 0x7f8e52602fc0> = <autotalk.app.MainWindow(0x70c68910) at 0x7f8e52cfe700>.narration_progress
+
+tests/test_language_changes.py:35: AssertionError
+_______ test_language_change_generates_fresh_text_before_start[0-Quick] ________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e703cfad0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_language_change_generates1/talk'), title='slides', target_m...ame='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Quick'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8e703cebd0>
+local_speech = None, mode = 'Quick', scope = 0
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    @pytest.mark.parametrize('scope', [0, 1, 2])
+    def test_language_change_generates_fresh_text_before_start(qtbot, project, monkeypatch, local_speech, mode, scope):
+        project.mode = mode
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        w.edit_setting('language', 'Chinese', scope=0 if scope == 0 else 1)
+        for index in range(2):
+            w.transport.select(index)
+            w.narration.setPlainText('这是中文演讲。')
+        w.transport.select(0)
+        make_audio(project)
+        untouched = copy.deepcopy(project.slides[1])
+        if scope == 1:
+            w.language.setCurrentText('German')
+        else:
+            dialog = w.settings[scope]
+            dialog.show_section('Voice & language')
+            dialog.fields['language'].editor.setCurrentText('German')
+            dialog.accept()
+>       assert w.narration_progress.value() == 2
+E       assert 0 == 2
+E        +  where 0 = <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e52b43500>()
+E        +    where <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e52b43500> = <PySide6.QtWidgets.QProgressBar(0x70456d50) at 0x7f8e52b43500>.value
+E        +      where <PySide6.QtWidgets.QProgressBar(0x70456d50) at 0x7f8e52b43500> = <autotalk.app.MainWindow(0x1b2abf20) at 0x7f8e52ce2c00>.narration_progress
+
+tests/test_language_changes.py:35: AssertionError
+______ test_language_change_generates_fresh_text_before_start[0-Realtime] ______
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e7088b020>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_language_change_generates2/talk'), title='slides', target_m...='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Realtime'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8e7088b8c0>
+local_speech = None, mode = 'Realtime', scope = 0
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    @pytest.mark.parametrize('scope', [0, 1, 2])
+    def test_language_change_generates_fresh_text_before_start(qtbot, project, monkeypatch, local_speech, mode, scope):
+        project.mode = mode
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        w.edit_setting('language', 'Chinese', scope=0 if scope == 0 else 1)
+        for index in range(2):
+            w.transport.select(index)
+            w.narration.setPlainText('这是中文演讲。')
+        w.transport.select(0)
+        make_audio(project)
+        untouched = copy.deepcopy(project.slides[1])
+        if scope == 1:
+            w.language.setCurrentText('German')
+        else:
+            dialog = w.settings[scope]
+            dialog.show_section('Voice & language')
+            dialog.fields['language'].editor.setCurrentText('German')
+            dialog.accept()
+>       assert w.narration_progress.value() == 2
+E       assert 0 == 2
+E        +  where 0 = <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e7a5d1080>()
+E        +    where <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e7a5d1080> = <PySide6.QtWidgets.QProgressBar(0x1b560dd0) at 0x7f8e7a5d1080>.value
+E        +      where <PySide6.QtWidgets.QProgressBar(0x1b560dd0) at 0x7f8e7a5d1080> = <autotalk.app.MainWindow(0x1ce58250) at 0x7f8e525eba40>.narration_progress
+
+tests/test_language_changes.py:35: AssertionError
+______ test_language_change_generates_fresh_text_before_start[1-Prepared] ______
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e7088b140>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_language_change_generates3/talk'), title='slides', target_m...='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Prepared'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8e7088aab0>
+local_speech = None, mode = 'Prepared', scope = 1
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    @pytest.mark.parametrize('scope', [0, 1, 2])
+    def test_language_change_generates_fresh_text_before_start(qtbot, project, monkeypatch, local_speech, mode, scope):
+        project.mode = mode
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        w.edit_setting('language', 'Chinese', scope=0 if scope == 0 else 1)
+        for index in range(2):
+            w.transport.select(index)
+            w.narration.setPlainText('这是中文演讲。')
+        w.transport.select(0)
+        make_audio(project)
+        untouched = copy.deepcopy(project.slides[1])
+        if scope == 1:
+            w.language.setCurrentText('German')
+        else:
+            dialog = w.settings[scope]
+            dialog.show_section('Voice & language')
+            dialog.fields['language'].editor.setCurrentText('German')
+            dialog.accept()
+>       assert w.narration_progress.value() == 2
+E       assert 0 == 2
+E        +  where 0 = <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e7aee9500>()
+E        +    where <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e7aee9500> = <PySide6.QtWidgets.QProgressBar(0x5060e3a0) at 0x7f8e7aee9500>.value
+E        +      where <PySide6.QtWidgets.QProgressBar(0x5060e3a0) at 0x7f8e7aee9500> = <autotalk.app.MainWindow(0x6e6ab260) at 0x7f8e701de380>.narration_progress
+
+tests/test_language_changes.py:35: AssertionError
+_______ test_language_change_generates_fresh_text_before_start[1-Quick] ________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e76954320>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_language_change_generates4/talk'), title='slides', target_m...ame='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Quick'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8e76955bb0>
+local_speech = None, mode = 'Quick', scope = 1
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    @pytest.mark.parametrize('scope', [0, 1, 2])
+    def test_language_change_generates_fresh_text_before_start(qtbot, project, monkeypatch, local_speech, mode, scope):
+        project.mode = mode
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        w.edit_setting('language', 'Chinese', scope=0 if scope == 0 else 1)
+        for index in range(2):
+            w.transport.select(index)
+            w.narration.setPlainText('这是中文演讲。')
+        w.transport.select(0)
+        make_audio(project)
+        untouched = copy.deepcopy(project.slides[1])
+        if scope == 1:
+            w.language.setCurrentText('German')
+        else:
+            dialog = w.settings[scope]
+            dialog.show_section('Voice & language')
+            dialog.fields['language'].editor.setCurrentText('German')
+            dialog.accept()
+>       assert w.narration_progress.value() == 2
+E       assert 0 == 2
+E        +  where 0 = <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e800c5840>()
+E        +    where <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e800c5840> = <PySide6.QtWidgets.QProgressBar(0x28759a40) at 0x7f8e800c5840>.value
+E        +      where <PySide6.QtWidgets.QProgressBar(0x28759a40) at 0x7f8e800c5840> = <autotalk.app.MainWindow(0x50949fe0) at 0x7f8e7af80ec0>.narration_progress
+
+tests/test_language_changes.py:35: AssertionError
+______ test_language_change_generates_fresh_text_before_start[1-Realtime] ______
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e7a50a3f0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_language_change_generates5/talk'), title='slides', target_m...='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Realtime'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8e7a50a450>
+local_speech = None, mode = 'Realtime', scope = 1
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    @pytest.mark.parametrize('scope', [0, 1, 2])
+    def test_language_change_generates_fresh_text_before_start(qtbot, project, monkeypatch, local_speech, mode, scope):
+        project.mode = mode
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        w.edit_setting('language', 'Chinese', scope=0 if scope == 0 else 1)
+        for index in range(2):
+            w.transport.select(index)
+            w.narration.setPlainText('这是中文演讲。')
+        w.transport.select(0)
+        make_audio(project)
+        untouched = copy.deepcopy(project.slides[1])
+        if scope == 1:
+            w.language.setCurrentText('German')
+        else:
+            dialog = w.settings[scope]
+            dialog.show_section('Voice & language')
+            dialog.fields['language'].editor.setCurrentText('German')
+            dialog.accept()
+>       assert w.narration_progress.value() == 2
+E       assert 0 == 2
+E        +  where 0 = <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e70217f80>()
+E        +    where <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e70217f80> = <PySide6.QtWidgets.QProgressBar(0x28722120) at 0x7f8e70217f80>.value
+E        +      where <PySide6.QtWidgets.QProgressBar(0x28722120) at 0x7f8e70217f80> = <autotalk.app.MainWindow(0x17af1ef0) at 0x7f8e701ff380>.narration_progress
+
+tests/test_language_changes.py:35: AssertionError
+______ test_language_change_generates_fresh_text_before_start[2-Prepared] ______
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e7a547fb0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_language_change_generates6/talk'), title='slides', target_m...='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Prepared'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8e7a545460>
+local_speech = None, mode = 'Prepared', scope = 2
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    @pytest.mark.parametrize('scope', [0, 1, 2])
+    def test_language_change_generates_fresh_text_before_start(qtbot, project, monkeypatch, local_speech, mode, scope):
+        project.mode = mode
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        w.edit_setting('language', 'Chinese', scope=0 if scope == 0 else 1)
+        for index in range(2):
+            w.transport.select(index)
+            w.narration.setPlainText('这是中文演讲。')
+        w.transport.select(0)
+        make_audio(project)
+        untouched = copy.deepcopy(project.slides[1])
+        if scope == 1:
+            w.language.setCurrentText('German')
+        else:
+            dialog = w.settings[scope]
+            dialog.show_section('Voice & language')
+            dialog.fields['language'].editor.setCurrentText('German')
+            dialog.accept()
+>       assert w.narration_progress.value() == 2
+E       assert 1 == 2
+E        +  where 1 = <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e7079b980>()
+E        +    where <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e7079b980> = <PySide6.QtWidgets.QProgressBar(0x571488a0) at 0x7f8e7079b980>.value
+E        +      where <PySide6.QtWidgets.QProgressBar(0x571488a0) at 0x7f8e7079b980> = <autotalk.app.MainWindow(0x17fdf4f0) at 0x7f8e702ab7c0>.narration_progress
+
+tests/test_language_changes.py:35: AssertionError
+_______ test_language_change_generates_fresh_text_before_start[2-Quick] ________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e7af406b0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_language_change_generates7/talk'), title='slides', target_m...ame='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Quick'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8e7af43500>
+local_speech = None, mode = 'Quick', scope = 2
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    @pytest.mark.parametrize('scope', [0, 1, 2])
+    def test_language_change_generates_fresh_text_before_start(qtbot, project, monkeypatch, local_speech, mode, scope):
+        project.mode = mode
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        w.edit_setting('language', 'Chinese', scope=0 if scope == 0 else 1)
+        for index in range(2):
+            w.transport.select(index)
+            w.narration.setPlainText('这是中文演讲。')
+        w.transport.select(0)
+        make_audio(project)
+        untouched = copy.deepcopy(project.slides[1])
+        if scope == 1:
+            w.language.setCurrentText('German')
+        else:
+            dialog = w.settings[scope]
+            dialog.show_section('Voice & language')
+            dialog.fields['language'].editor.setCurrentText('German')
+            dialog.accept()
+>       assert w.narration_progress.value() == 2
+E       assert 1 == 2
+E        +  where 1 = <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e70830140>()
+E        +    where <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e70830140> = <PySide6.QtWidgets.QProgressBar(0x50d881b0) at 0x7f8e70830140>.value
+E        +      where <PySide6.QtWidgets.QProgressBar(0x50d881b0) at 0x7f8e70830140> = <autotalk.app.MainWindow(0x49893110) at 0x7f8e5318ab80>.narration_progress
+
+tests/test_language_changes.py:35: AssertionError
+______ test_language_change_generates_fresh_text_before_start[2-Realtime] ______
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e983a15e0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_language_change_generates8/talk'), title='slides', target_m...='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Realtime'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8e983a20c0>
+local_speech = None, mode = 'Realtime', scope = 2
+
+    @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
+    @pytest.mark.parametrize('scope', [0, 1, 2])
+    def test_language_change_generates_fresh_text_before_start(qtbot, project, monkeypatch, local_speech, mode, scope):
+        project.mode = mode
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        w.edit_setting('language', 'Chinese', scope=0 if scope == 0 else 1)
+        for index in range(2):
+            w.transport.select(index)
+            w.narration.setPlainText('这是中文演讲。')
+        w.transport.select(0)
+        make_audio(project)
+        untouched = copy.deepcopy(project.slides[1])
+        if scope == 1:
+            w.language.setCurrentText('German')
+        else:
+            dialog = w.settings[scope]
+            dialog.show_section('Voice & language')
+            dialog.fields['language'].editor.setCurrentText('German')
+            dialog.accept()
+>       assert w.narration_progress.value() == 2
+E       assert 1 == 2
+E        +  where 1 = <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e8c294500>()
+E        +    where <built-in method value of PySide6.QtWidgets.QProgressBar object at 0x7f8e8c294500> = <PySide6.QtWidgets.QProgressBar(0x19705200) at 0x7f8e8c294500>.value
+E        +      where <PySide6.QtWidgets.QProgressBar(0x19705200) at 0x7f8e8c294500> = <autotalk.app.MainWindow(0x5a264120) at 0x7f8ea39426c0>.narration_progress
+
+tests/test_language_changes.py:35: AssertionError
+________________ test_desktop_workspaces_and_remembered_policy _________________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e7038b980>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_desktop_workspaces_and_re0/talk'), title='slides', target_m...='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Realtime'})
+
+    def test_desktop_workspaces_and_remembered_policy(qtbot,project):
+        w=MainWindow();qtbot.addWidget(w);w.adopt(project)
+        assert [a.text() for a in w.menuBar().actions()]==['File', 'Edit', 'View', 'Talk', 'Presentation', 'Settings', 'Help']
+        assert w.workspace.currentWidget() is w.editor
+        w.mode.setCurrentText('Quick')
+        assert w.workspace.currentWidget() is w.quick_page
+        w.mode.setCurrentText('Realtime')
+        assert w.workspace.currentWidget() is w.editor
+        w.settings[0].show_section("AI model")
+        next(b for b in w.preferences.gpu_retention.buttons() if b.property('value') == 'idle').click()
+>       assert w.speech.retention == 'session'
+E       AssertionError: assert 'idle' == 'session'
+E
+E         - session
+E         + idle
+
+tests/test_refinement.py:229: AssertionError
+_______ test_recording_sources_update_capabilities_and_restore_on_cancel _______
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8ea256c320>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_recording_sources_update_0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+
+    def test_recording_sources_update_capabilities_and_restore_on_cancel(qtbot, project):
+        w = MainWindow();qtbot.addWidget(w);w.adopt(project);w.show()
+        w.settings[1].show_section("Audio & recording")
+        w.settings[1].fields['recording_source'].editor.setCurrentIndex(1)
+        assert w.settings[1].project.recording_source == 'screen'
+        assert project.recording_source == 'slides'
+>       assert w.settings[1].fields['capture_microphone'].editor.isEnabled()
+E       assert False
+E        +  where False = <built-in method isEnabled of PySide6.QtWidgets.QCheckBox object at 0x7f8e981da2c0>()
+E        +    where <built-in method isEnabled of PySide6.QtWidgets.QCheckBox object at 0x7f8e981da2c0> = <PySide6.QtWidgets.QCheckBox(0x69282c00) at 0x7f8e981da2c0>.isEnabled
+E        +      where <PySide6.QtWidgets.QCheckBox(0x69282c00) at 0x7f8e981da2c0> = <autotalk.settings_fields.SettingField(0x696eb6f0) at 0x7f8e981da3c0>.editor
+
+tests/test_refinement.py:557: AssertionError
+___ test_account_default_and_explicit_model_use_identical_name[GPT-6-Astra] ____
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e7118d040>, display = 'GPT-6-Astra'
+
+    @pytest.mark.parametrize('display', ['GPT-6-Astra', '', None])
+    def test_account_default_and_explicit_model_use_identical_name(qtbot, display):
+        w = MainWindow(); qtbot.addWidget(w)
+        w.codex_settings = {'model': 'gpt-6-astra', 'models': [{'model': 'gpt-6-astra', 'displayName': display}]}
+        w.settings[1].show_section('AI model')
+>       w.settings[1].models.refresh_models()
+
+tests/test_start_interaction.py:137:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/autotalk/settings_components.py:313: in refresh_models
+    wanted = self.dialog.setting_value("codex_model")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <autotalk.settings.TalkSettingsDialog(0x1dbeb1a0) at 0x7f8e981b3d00>
+key = 'codex_model'
+
+    def setting_value(self, key):
+        if key not in SETTING_DEFAULTS:
+            return getattr(self.project, key)
+        if self.scope == 0:
+            return self.project.defaults.get(key, copy.deepcopy(SETTING_DEFAULTS[key][0]))
+>       return self.project.setting(key, self.slide)
+               ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'NoneType' object has no attribute 'setting'
+
+src/autotalk/settings.py:81: AttributeError
+_________ test_account_default_and_explicit_model_use_identical_name[] _________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e98219ca0>, display = ''
+
+    @pytest.mark.parametrize('display', ['GPT-6-Astra', '', None])
+    def test_account_default_and_explicit_model_use_identical_name(qtbot, display):
+        w = MainWindow(); qtbot.addWidget(w)
+        w.codex_settings = {'model': 'gpt-6-astra', 'models': [{'model': 'gpt-6-astra', 'displayName': display}]}
+        w.settings[1].show_section('AI model')
+>       w.settings[1].models.refresh_models()
+
+tests/test_start_interaction.py:137:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/autotalk/settings_components.py:313: in refresh_models
+    wanted = self.dialog.setting_value("codex_model")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <autotalk.settings.TalkSettingsDialog(0x1914acc0) at 0x7f8e71235cc0>
+key = 'codex_model'
+
+    def setting_value(self, key):
+        if key not in SETTING_DEFAULTS:
+            return getattr(self.project, key)
+        if self.scope == 0:
+            return self.project.defaults.get(key, copy.deepcopy(SETTING_DEFAULTS[key][0]))
+>       return self.project.setting(key, self.slide)
+               ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'NoneType' object has no attribute 'setting'
+
+src/autotalk/settings.py:81: AttributeError
+_______ test_account_default_and_explicit_model_use_identical_name[None] _______
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e769c10a0>, display = None
+
+    @pytest.mark.parametrize('display', ['GPT-6-Astra', '', None])
+    def test_account_default_and_explicit_model_use_identical_name(qtbot, display):
+        w = MainWindow(); qtbot.addWidget(w)
+        w.codex_settings = {'model': 'gpt-6-astra', 'models': [{'model': 'gpt-6-astra', 'displayName': display}]}
+        w.settings[1].show_section('AI model')
+>       w.settings[1].models.refresh_models()
+
+tests/test_start_interaction.py:137:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/autotalk/settings_components.py:313: in refresh_models
+    wanted = self.dialog.setting_value("codex_model")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <autotalk.settings.TalkSettingsDialog(0x19448eb0) at 0x7f8e80060480>
+key = 'codex_model'
+
+    def setting_value(self, key):
+        if key not in SETTING_DEFAULTS:
+            return getattr(self.project, key)
+        if self.scope == 0:
+            return self.project.defaults.get(key, copy.deepcopy(SETTING_DEFAULTS[key][0]))
+>       return self.project.setting(key, self.slide)
+               ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'NoneType' object has no attribute 'setting'
+
+src/autotalk/settings.py:81: AttributeError
+_________ test_recording_selection_visible_in_workspaces_and_persisted _________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e52ab1a90>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_recording_selection_visib0/talk'), title='slides', target_m...ource='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'record_presentation': False})
+
+    def test_recording_selection_visible_in_workspaces_and_persisted(qtbot, project):
+        from PySide6.QtCore import QPoint
+        from autotalk.project import Project
+        window = MainWindow()
+        qtbot.addWidget(window)
+        window.adopt(project)
+        window.resize(940, 680)
+        window.show()
+        checkbox = window.record
+        for page in (window.editor, window.presenter, window.quick_page):
+            window.workspace.setCurrentWidget(page)
+            qtbot.wait(10)
+            assert checkbox.isVisible() and checkbox.isEnabled()
+            top = checkbox.mapTo(window, QPoint(0, 0))
+            assert window.rect().contains(top)
+            assert top.y() + checkbox.height() <= window.height()
+        # The label and keyboard both operate the single project-backed checkbox.
+        qtbot.mouseClick(checkbox, Qt.MouseButton.LeftButton, pos=QPoint(55, checkbox.height()//2))
+        assert project.record_presentation
+        window.save()
+        assert Project.load(project.manifest).record_presentation
+        checkbox.setFocus()
+        qtbot.keyClick(checkbox, Qt.Key.Key_Space)
+        assert not project.record_presentation
+        window.transport.state = 'paused'
+        window.refresh()
+        assert not checkbox.isEnabled()
+>       assert not window.settings[1].fields['recording_source'].editor.isEnabled()
+E       assert not True
+E        +  where True = <built-in method isEnabled of PySide6.QtWidgets.QComboBox object at 0x7f8e701ffe00>()
+E        +    where <built-in method isEnabled of PySide6.QtWidgets.QComboBox object at 0x7f8e701ffe00> = <PySide6.QtWidgets.QComboBox(0x15c8e1a0) at 0x7f8e701ffe00>.isEnabled
+E        +      where <PySide6.QtWidgets.QComboBox(0x15c8e1a0) at 0x7f8e701ffe00> = <autotalk.settings_fields.SettingField(0x201acfd0) at 0x7f8e701fecc0>.editor
+
+tests/test_ui.py:37: AssertionError
+__________ test_previous_video_does_not_override_new_recording_intent __________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e8c156240>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_previous_video_does_not_o0/talk'), title='slides', target_m...source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'record_presentation': True})
+tmp_path = PosixPath('/tmp/pytest-of-voc/pytest-399/test_previous_video_does_not_o0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8e52bd12e0>
+
+    def test_previous_video_does_not_override_new_recording_intent(qtbot, project, tmp_path, monkeypatch):
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project)
+        video = tmp_path / 'previous.mp4'; video.write_bytes(b'video')
+        w.export_saved(video)
+        w.record.click()
+        assert not w.record_status.isVisible() and w.record.isChecked()
+        assert 'Saved ' in w.saved_output.text() and 'Open video' in w.saved_output.text()
+        w.settings[1].fields['recording_source'].editor.setCurrentIndex(w.settings[1].fields['recording_source'].editor.findData('screen'))
+        w.settings[1].accept()
+>       assert 'Screen + system audio' in w.record.toolTip()
+E       AssertionError: assert 'Screen + system audio' in 'Recording source: Slide video + narration. Configure it in Presentation settings → Recording.'
+E        +  where 'Recording source: Slide video + narration. Configure it in Presentation settings → Recording.' = <built-in method toolTip of PySide6.QtWidgets.QCheckBox object at 0x7f8ea2946180>()
+E        +    where <built-in method toolTip of PySide6.QtWidgets.QCheckBox object at 0x7f8ea2946180> = <PySide6.QtWidgets.QCheckBox(0x22297ad0) at 0x7f8ea2946180>.toolTip
+E        +      where <PySide6.QtWidgets.QCheckBox(0x22297ad0) at 0x7f8ea2946180> = <autotalk.app.MainWindow(0x1705eb30) at 0x7f8e5335b7c0>.record
+
+tests/test_usability.py:225: AssertionError
+____ test_pointer_navigation_all_fixed_scopes_and_native_disclosures[size0] ____
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e7116b9e0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_pointer_navigation_all_fi0/talk'), title='slides', target_m...='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Realtime'})
+size = (940, 680)
+
+    @pytest.mark.parametrize('size', [(940, 680), (1100, 850)])
+    def test_pointer_navigation_all_fixed_scopes_and_native_disclosures(qtbot, project, size):
+        from PySide6.QtWidgets import QApplication, QDialogButtonBox
+        from test_ux_placement import visible_inside
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.resize(*size); w.show()
+        directory = Path(os.environ['AUTOTALK_EVIDENCE_DIR']) if os.environ.get('AUTOTALK_EVIDENCE_DIR') else None
+        def snapshot(widget, name):
+            qtbot.wait(30)
+            if directory:
+                directory.mkdir(parents=True, exist_ok=True)
+                widget.grab().save(str(directory / f'{size[0]}-{name}.png'))
+        for mode in ('Prepared', 'Quick', 'Realtime'):
+            w.mode.setFocus()
+            qtbot.keyClick(w.mode, Qt.Key.Key_Home)
+            for _ in range(w.mode.findText(mode)):
+                qtbot.keyClick(w.mode, Qt.Key.Key_Down)
+            assert w.project.mode == mode
+            assert w.start_button.text() == ('Prepare and start' if mode == 'Prepared' else 'Start')
+            for control in (w.start_button, w.minutes, w.language, w.voice_button, w.record):
+                visible_inside(control, w)
+            snapshot(w, mode)
+        # Open actual native menus with the pointer, including a real submenu arrow.
+        # Keep Qt action wrappers alive during inspection: PySide ties menu wrappers
+        # to their action wrapper even though the native menubar owns the menu.
+        held_actions = w.menuBar().actions()
+        for action in held_actions:
+            qtbot.mouseClick(w.menuBar(), Qt.LeftButton, pos=w.menuBar().actionGeometry(action).center())
+            menu = action.menu()
+            qtbot.waitUntil(menu.isVisible)
+            snapshot(menu, 'menu-' + action.text())
+            assert all(a.menu() is None or not a.text().endswith('…') for a in menu.actions())
+            qtbot.keyClick(menu, Qt.Key.Key_Escape)
+        routes = [(0, ('Settings', 'Talk defaults…')),
+                  (1, ('Talk', 'Talk settings…')),
+                  (2, ('Talk', 'Selected slide', 'Additional audio…'))]
+        for scope, path in routes:
+            container = w.menuBar()
+            for caption in path:
+                actions = container.actions()
+                held_actions.extend(actions)
+                action = next(a for a in actions if a.text() == caption)
+                qtbot.mouseClick(container, Qt.LeftButton, pos=container.actionGeometry(action).center())
+                if action.menu():
+                    container = action.menu()
+                    qtbot.waitUntil(container.isVisible)
+            dialog = w.settings[scope]
+            qtbot.waitUntil(dialog.isVisible)
+            assert QApplication.activeModalWidget() is dialog
+            dialog.resize(760 if size[0] == 940 else 920, 580 if size[0] == 940 else 760)
+            assert not hasattr(dialog, 'scope_selector')
+            for index in range(dialog.navigation.count()):
+                item = dialog.navigation.item(index)
+                if item.isHidden():
+                    continue
+                qtbot.mouseClick(dialog.navigation.viewport(), Qt.LeftButton,
+                                 pos=dialog.navigation.visualItemRect(item).center())
+                assert dialog.pages.currentIndex() == index
+>               assert dialog.voice.voice_audition.isVisible() == (index == 0)
+E               assert False == (0 == 0)
+E                +  where False = <built-in method isVisible of PySide6.QtWidgets.QWidget object at 0x7f8ea253ee40>()
+E                +    where <built-in method isVisible of PySide6.QtWidgets.QWidget object at 0x7f8ea253ee40> = <PySide6.QtWidgets.QWidget(0x49899c40) at 0x7f8ea253ee40>.isVisible
+E                +      where <PySide6.QtWidgets.QWidget(0x49899c40) at 0x7f8ea253ee40> = <autotalk.settings_components.VoiceEditor(0x1772cce0) at 0x7f8e5345a880>.voice_audition
+E                +        where <autotalk.settings_components.VoiceEditor(0x1772cce0) at 0x7f8e5345a880> = <autotalk.settings.TalkSettingsDialog(0x1b98ea00) at 0x7f8e801ad240>.voice
+
+tests/test_verdict_acceptance.py:353: AssertionError
+____ test_pointer_navigation_all_fixed_scopes_and_native_disclosures[size1] ____
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f8e984c8470>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-399/test_pointer_navigation_all_fi1/talk'), title='slides', target_m...='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'mode': 'Realtime'})
+size = (1100, 850)
+
+    @pytest.mark.parametrize('size', [(940, 680), (1100, 850)])
+    def test_pointer_navigation_all_fixed_scopes_and_native_disclosures(qtbot, project, size):
+        from PySide6.QtWidgets import QApplication, QDialogButtonBox
+        from test_ux_placement import visible_inside
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.resize(*size); w.show()
+        directory = Path(os.environ['AUTOTALK_EVIDENCE_DIR']) if os.environ.get('AUTOTALK_EVIDENCE_DIR') else None
+        def snapshot(widget, name):
+            qtbot.wait(30)
+            if directory:
+                directory.mkdir(parents=True, exist_ok=True)
+                widget.grab().save(str(directory / f'{size[0]}-{name}.png'))
+        for mode in ('Prepared', 'Quick', 'Realtime'):
+            w.mode.setFocus()
+            qtbot.keyClick(w.mode, Qt.Key.Key_Home)
+            for _ in range(w.mode.findText(mode)):
+                qtbot.keyClick(w.mode, Qt.Key.Key_Down)
+            assert w.project.mode == mode
+            assert w.start_button.text() == ('Prepare and start' if mode == 'Prepared' else 'Start')
+            for control in (w.start_button, w.minutes, w.language, w.voice_button, w.record):
+                visible_inside(control, w)
+            snapshot(w, mode)
+        # Open actual native menus with the pointer, including a real submenu arrow.
+        # Keep Qt action wrappers alive during inspection: PySide ties menu wrappers
+        # to their action wrapper even though the native menubar owns the menu.
+        held_actions = w.menuBar().actions()
+        for action in held_actions:
+            qtbot.mouseClick(w.menuBar(), Qt.LeftButton, pos=w.menuBar().actionGeometry(action).center())
+            menu = action.menu()
+            qtbot.waitUntil(menu.isVisible)
+            snapshot(menu, 'menu-' + action.text())
+            assert all(a.menu() is None or not a.text().endswith('…') for a in menu.actions())
+            qtbot.keyClick(menu, Qt.Key.Key_Escape)
+        routes = [(0, ('Settings', 'Talk defaults…')),
+                  (1, ('Talk', 'Talk settings…')),
+                  (2, ('Talk', 'Selected slide', 'Additional audio…'))]
+        for scope, path in routes:
+            container = w.menuBar()
+            for caption in path:
+                actions = container.actions()
+                held_actions.extend(actions)
+                action = next(a for a in actions if a.text() == caption)
+                qtbot.mouseClick(container, Qt.LeftButton, pos=container.actionGeometry(action).center())
+                if action.menu():
+                    container = action.menu()
+                    qtbot.waitUntil(container.isVisible)
+            dialog = w.settings[scope]
+            qtbot.waitUntil(dialog.isVisible)
+            assert QApplication.activeModalWidget() is dialog
+            dialog.resize(760 if size[0] == 940 else 920, 580 if size[0] == 940 else 760)
+            assert not hasattr(dialog, 'scope_selector')
+            for index in range(dialog.navigation.count()):
+                item = dialog.navigation.item(index)
+                if item.isHidden():
+                    continue
+                qtbot.mouseClick(dialog.navigation.viewport(), Qt.LeftButton,
+                                 pos=dialog.navigation.visualItemRect(item).center())
+                assert dialog.pages.currentIndex() == index
+>               assert dialog.voice.voice_audition.isVisible() == (index == 0)
+E               assert False == (0 == 0)
+E                +  where False = <built-in method isVisible of PySide6.QtWidgets.QWidget object at 0x7f8e70250340>()
+E                +    where <built-in method isVisible of PySide6.QtWidgets.QWidget object at 0x7f8e70250340> = <PySide6.QtWidgets.QWidget(0x14811d30) at 0x7f8e70250340>.isVisible
+E                +      where <PySide6.QtWidgets.QWidget(0x14811d30) at 0x7f8e70250340> = <autotalk.settings_components.VoiceEditor(0x6d816800) at 0x7f8e71162880>.voice_audition
+E                +        where <autotalk.settings_components.VoiceEditor(0x6d816800) at 0x7f8e71162880> = <autotalk.settings.TalkSettingsDialog(0x6b6aef20) at 0x7f8e711b3e00>.voice
+
+tests/test_verdict_acceptance.py:353: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_automatic_languages.py::test_settings_cancel_restores_versions_and_source_edits
+FAILED tests/test_codex.py::test_application_startup_discovers_without_pdf_and_preserves_launch_project[False]
+FAILED tests/test_codex.py::test_application_startup_discovers_without_pdf_and_preserves_launch_project[True]
+FAILED tests/test_language_changes.py::test_language_change_generates_fresh_text_before_start[0-Prepared]
+FAILED tests/test_language_changes.py::test_language_change_generates_fresh_text_before_start[0-Quick]
+FAILED tests/test_language_changes.py::test_language_change_generates_fresh_text_before_start[0-Realtime]
+FAILED tests/test_language_changes.py::test_language_change_generates_fresh_text_before_start[1-Prepared]
+FAILED tests/test_language_changes.py::test_language_change_generates_fresh_text_before_start[1-Quick]
+FAILED tests/test_language_changes.py::test_language_change_generates_fresh_text_before_start[1-Realtime]
+FAILED tests/test_language_changes.py::test_language_change_generates_fresh_text_before_start[2-Prepared]
+FAILED tests/test_language_changes.py::test_language_change_generates_fresh_text_before_start[2-Quick]
+FAILED tests/test_language_changes.py::test_language_change_generates_fresh_text_before_start[2-Realtime]
+FAILED tests/test_refinement.py::test_desktop_workspaces_and_remembered_policy
+FAILED tests/test_refinement.py::test_recording_sources_update_capabilities_and_restore_on_cancel
+FAILED tests/test_start_interaction.py::test_account_default_and_explicit_model_use_identical_name[GPT-6-Astra]
+FAILED tests/test_start_interaction.py::test_account_default_and_explicit_model_use_identical_name[]
+FAILED tests/test_start_interaction.py::test_account_default_and_explicit_model_use_identical_name[None]
+FAILED tests/test_ui.py::test_recording_selection_visible_in_workspaces_and_persisted
+FAILED tests/test_usability.py::test_previous_video_does_not_override_new_recording_intent
+FAILED tests/test_verdict_acceptance.py::test_pointer_navigation_all_fixed_scopes_and_native_disclosures[size0]
+FAILED tests/test_verdict_acceptance.py::test_pointer_navigation_all_fixed_scopes_and_native_disclosures[size1]
+21 failed, 528 passed in 109.20s (0:01:49)
+
+(xfconfd:3434450): xfconfd-WARNING **: 23:36:53.288: Name org.xfce.Xfconf lost on the message dbus, exiting.
+A connection to the bus can't be made
+The X11 connection broke (error 1). Did the X11 server die?
+The X11 connection broke (error 1). Did the X11 server die?
+KCrash: Application 'xdg-desktop-portal-kde' crashing... crashRecursionCounter = 2

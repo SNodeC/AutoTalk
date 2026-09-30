@@ -13,7 +13,7 @@ from PySide6.QtWidgets import QApplication, QDialog, QMenu
 
 from autotalk.app import MainWindow
 from autotalk.project import Project
-from autotalk.settings import SettingsDialog
+from autotalk.settings import ScopedSettingsDialog
 from tools.bench_ui import prepared_project
 from test_surface_refresh import equivalent, snapshot
 
@@ -30,7 +30,7 @@ def edit(w, field):
     if field == 'after':
         inspector.slide_after.setCurrentIndex(inspector.slide_after.findData('pause'))
     elif field == 'pause_seconds':
-        inspector.inherit_pause.setChecked(False)
+        inspector.slide_pause.setValue(1.2)
     elif field == 'budget_seconds':
         inspector.slide_budget.setValue(75)
     elif field == 'included':
@@ -66,7 +66,7 @@ def test_inspector_edits_only_owned_field(qtbot, tmp_path, field):
 def test_edit_has_one_refresh_no_hidden_loads_and_two_readiness_passes(qtbot, tmp_path, field):
     w = window(qtbot, tmp_path, 60)
     codes = {inspect.unwrap(method).__code__: name for name, method in
-             [('refresh', MainWindow.refresh), ('loads', SettingsDialog.load_settings),
+             [('refresh', MainWindow.refresh), ('loads', ScopedSettingsDialog.load_settings),
               ('ready', Project.ready), ('changed', MainWindow.configuration_changed)]}
     counts = Counter()
     def trace(frame, event, arg):

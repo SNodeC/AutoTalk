@@ -5,6 +5,44 @@ Implemented 27 September 2026 against the accepted
 [inventory](UI_INVENTORY.md) remains the pre-refactor coverage baseline; the
 [user guide](../USER_GUIDE.md) describes the current interaction routes.
 
+## Current settings and access contract — October 1
+
+The [scoped settings contract](SCOPED_SETTINGS_IMPLEMENTATION.md) supersedes the
+historical settings layout below. The main controls and single-owner rules remain.
+Preferences is this computer (immediate, Close). Talk defaults, Talk settings and
+Slide sound edit independent drafts (Save/Cancel). No scope selector exists.
+
+| Controls | Current entrance / location | Priority / navigation depth |
+| --- | --- | --- |
+| Mode, duration, language, record, Start, text/audio/play, slide navigation | Main window | P1 / 0 |
+| Predefined voice and sample | Main voice button → Voice & language | P1 / 1 |
+| Personal/designed/saved voice | Main voice button → source tab | P2 / 2 |
+| Audience, objective, conference | Talk settings → Talk | P2 / 1 |
+| Delivery style and presets | Voice button → Writing & delivery | P2 / 2 |
+| Vocal attributes | Writing & delivery → More vocal attributes | P3 / 3 |
+| Slide include/after | Slide flow inspector | P3 / 0 |
+| Slide budget/pause, inheritance reset | Slide flow → Timing | P3 / 1 |
+| Slide voice/language | Slide sound… → Voice & language | P3 / 1 |
+| Slide directions/attributes | Slide sound… → Writing & delivery [→ More vocal attributes] | P3 / 2–3 |
+| Slide clips | Additional audio… → Audio & recording | P3 / 1 |
+| Recording source, microphone, destination, background | Presentation settings → Audio & recording | P2 / 1 plus scroll if needed |
+| Pause, tolerance, Quick/Realtime policies | Talk settings → Timing & playback | P2–P3 / 2 |
+| Fit duration | Talk → Fit duration…; or talk Timing → Save and fit… | P2 / 1–2 |
+| Display/system sound | Settings → Preferences… → Display & sound (Ctrl+,) | P2 / 2; shortcut opens directly |
+| Account | Settings → Account… | P3 / 2 |
+| Speech engine | Status-bar engine button → Preferences/Speech engine | P3–P4 / 1 |
+| Inheritable application defaults | Settings → Talk defaults… → relevant page | P3 / 2–3 |
+| Codex model/effort and speech sampling | Talk settings → AI model | P4 / 2 plus scroll if needed |
+
+Count navigation separately from entering values, executing actions and Save.
+Pages use the same order at each scope, omitting empty pages. P1 main controls
+remain directly visible at 940×680. Fixed-scope titles, source captions and Reset
+identify ownership; Cancel does not save or undo unrelated changes. See the
+[October 1 evidence](../reviews/2026-10-01-settings-refactor.md) for sizes, screenshots,
+keyboard/pointer tests, test counts and measured edit/Save latency.
+
+## Historical placement records
+
 ## Subsequent settings refinement
 
 The settings-specific locations below describe the preceding canonical-dialog
