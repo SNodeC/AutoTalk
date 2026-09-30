@@ -109,9 +109,10 @@ class SettingsPanel(QWidget):
             self.form.addRow(name.replace("_", " ").capitalize(), spin)
         self.recording_widget = QWidget()
         self.form = QFormLayout(self.recording_widget)
-        self.record = QCheckBox("Record presentation as a video")
+        self.record = self.read_only() if window.scope == 1 else QCheckBox("Record presentation as a video")
         self.fields["record_presentation"] = self.record
-        self.record.toggled.connect(lambda value: self.window.edit_setting("record_presentation", value))
+        if window.scope != 1:
+            self.record.toggled.connect(lambda value: self.window.edit_setting("record_presentation", value))
         self.record.setToolTip("Recording begins when the presentation starts. Choose slides or screen recording in Presentation settings → Recording.")
         self.combo("recording_source", "Recording source", [("Slide video + narration", "slides"), ("Screen + system audio (Linux)", "screen")])
         microphone = QCheckBox("Include microphone in screen recording")
@@ -129,6 +130,11 @@ class SettingsPanel(QWidget):
         self.combo("export_rate", "Export audio sample rate", [("24 kHz (native)", 24000), ("44.1 kHz", 44100), ("48 kHz", 48000)])
         self.combo("export_bitrate", "MP4 / M4A audio encoding", [("AAC 96 kbit/s", 96000), ("AAC 128 kbit/s", 128000), ("AAC 192 kbit/s", 192000)])
         self.form = main_form
+
+    def read_only(self):
+        widget = QLabel()
+        widget.setWordWrap(True)
+        return widget
 
     def bind(self, path, label, widget, signal):
         self.fields[path] = widget
@@ -179,7 +185,9 @@ class SettingsPanel(QWidget):
             value = w.setting_value(path) if path in SETTING_DEFAULTS else getattr(project, path, "")
             if path == "background_gain":
                 value *= 100
-            if isinstance(widget, QComboBox):
+            if isinstance(widget, QLabel):
+                widget.setText((("On" if value else "Off") if isinstance(value, bool) else str(value)) + " · " + w.setting_source(path))
+            elif isinstance(widget, QComboBox):
                 index = widget.findData(value)
                 widget.setCurrentIndex(index if index >= 0 else max(0, widget.findText(str(value))))
             elif isinstance(widget, QCheckBox):

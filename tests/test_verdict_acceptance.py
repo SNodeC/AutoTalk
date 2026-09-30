@@ -37,7 +37,7 @@ def test_conference_completion_restores_activity_without_erasing_capabilities(qt
         qtbot.waitUntil(lambda: w.job is None)
         assert dialog.isVisible()
         assert w.scope.toPlainText() == 'Verified conference topics'
-        assert w.settings[1].tolerance.isEnabled() and w.settings[1].settings_mode.isEnabled()
+        assert w.settings[1].tolerance.isEnabled() and w.mode.isEnabled()
         w.settings[1].tolerance.setFocus(); w.settings[1].tolerance.selectAll()
         qtbot.keyClicks(w.settings[1].tolerance, '23')
         qtbot.keyClick(w.settings[1].tolerance, Qt.Key.Key_Tab)

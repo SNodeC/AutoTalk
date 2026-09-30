@@ -25,10 +25,13 @@ def test_language_change_generates_fresh_text_before_start(qtbot, project, monke
     w.transport.select(0)
     make_audio(project)
     untouched = copy.deepcopy(project.slides[1])
-    dialog = w.settings[scope]
-    dialog.show_section('Voice & language')
-    dialog.settings_language.setCurrentText('German')
-    dialog.accept()
+    if scope == 1:
+        w.language.setCurrentText('German')
+    else:
+        dialog = w.settings[scope]
+        dialog.show_section('Voice & language')
+        dialog.settings_language.setCurrentText('German')
+        dialog.accept()
     assert w.narration_progress.value() == (1 if scope == 2 else 0)
     assert w.slide_progress.value() == (1 if scope == 2 else 0)
     assert w.regenerate_button.text() == 'Create slide text'
@@ -72,6 +75,21 @@ def test_language_change_generates_fresh_text_before_start(qtbot, project, monke
 def test_language_cancel_and_reset_restore_readiness(qtbot, project, scope):
     make_audio(project)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+    if scope == 1:
+        w.language.setCurrentText('German')
+        before = copy.deepcopy(w.project.versions)
+        selected = w.project.active_version
+        dialog = w.settings[1]; dialog.show_section('Voice & language')
+        dialog.options.inheritance['language'][1].click()
+        assert w.project.prepared and w.narration_progress.value() == 2
+        dialog.reject()
+        assert w.project.versions == before and w.project.active_version == selected
+        assert not w.project.prepared and not w.narration.toPlainText()
+        dialog.show_section('Voice & language')
+        dialog.options.inheritance['language'][1].click()
+        dialog.accept()
+        assert w.project.prepared and w.narration_progress.value() == 2
+        return
     dialog = w.settings[scope]
     dialog.show_section('Voice & language')
     dialog.settings_language.setCurrentText('German')

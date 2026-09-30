@@ -40,20 +40,21 @@ def test_precedence_empty_overrides_and_audio_identity(project):
 @pytest.mark.parametrize('save', [False, True])
 def test_scopes_save_cancel_and_config_separation(qtbot, project, save):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    for scope, language in enumerate(('German', 'French', 'Spanish')):
+    w.language.setCurrentText('French')
+    for scope, language in ((0, 'German'), (2, 'Spanish')):
         dialog = w.settings[scope]
         dialog.show_section('Voice & language')
         dialog.settings_language.setCurrentText(language)
         if scope == 2:
             dialog.speaker.setCurrentIndex(dialog.speaker.findData('Aiden'))
             assert w.project.setting('language', w.project.slides[0]) == 'Spanish'
-            assert w.project.setting('language', w.project.slides[1]) == ('French' if save else 'English')
+            assert w.project.setting('language', w.project.slides[1]) == 'French'
         (dialog.accept if save else dialog.reject)()
     stored = json.loads(QSettings().value('setting_defaults', '{}'))
     reopened = Project.load(project.manifest)
     assert stored.get('language', 'English') == ('German' if save else 'English')
-    assert reopened.language == ('French' if save else 'English')
-    assert reopened.setting('language', reopened.slides[0]) == ('Spanish' if save else 'English')
+    assert reopened.language == 'French'
+    assert reopened.setting('language', reopened.slides[0]) == ('Spanish' if save else 'French')
     assert reopened.setting('voice', reopened.slides[0]).speaker == ('Aiden' if save else 'Ryan')
     assert 'defaults' not in json.loads(project.manifest.read_text())
 

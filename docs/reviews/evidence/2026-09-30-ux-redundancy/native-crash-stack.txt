@@ -1,0 +1,10 @@
+Crash thread: QAudioContext. The Python faulthandler re-raised SIGSEGV.
+Thread 1 (Thread 0x7fd90d7fa6c0 (LWP 3343867)):
+#0  __pthread_kill_implementation (threadid=<optimized out>, signo=signo@entry=11, no_tid=no_tid@entry=0) at ./nptl/pthread_kill.c:44
+#1  0x00007fd9a8d2f06f in __pthread_kill_internal (threadid=<optimized out>, signo=11) at ./nptl/pthread_kill.c:89
+#2  0x00007fd9a8cd8582 in __GI_raise (sig=11) at ../sysdeps/posix/raise.c:26
+#3  0x000000000051d14b in faulthandler_fatal_error ()
+#4  0x00007fd9a8cd86b0 in <signal handler called> () at /usr/lib/x86_64-linux-gnu/libc.so.6
+#5  0x00007fd93099c312 in ??? () at /usr/lib/x86_64-linux-gnu/pipewire-0.3/libpipewire-module-protocol-native.so
+#6  0x00007fd930990166 in ??? () at /usr/lib/x86_64-linux-gnu/pipewire-0.3/libpipewire-module-protocol-native.so
+#7  0x00007fd9309908d8 in ??? () at /usr/lib/x86_64-linux-gnu/pipewire-0.3/libpipewire-module-protocol-native.so

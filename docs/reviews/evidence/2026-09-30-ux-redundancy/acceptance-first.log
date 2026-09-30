@@ -1,0 +1,86 @@
+.......FFF..F.                                                           [100%]
+=================================== FAILURES ===================================
+________________ test_language_options_focus_arrangement[combo] ________________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f690e3cc170>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-340/test_language_options_focus_ar0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+entrance = 'combo'
+
+    @pytest.mark.parametrize('entrance', ['combo', 'menu'])
+    def test_language_options_focus_arrangement(qtbot, project, entrance):
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        if entrance == 'combo':
+            w.language.setCurrentIndex(w.language.findData('options'))
+        else:
+            action(w, 'Talk', 'Language options…').trigger()
+        qtbot.wait(30)
+>       assert w.settings[1].options.fields['language_policy'].hasFocus()
+E       assert False
+E        +  where False = <built-in method hasFocus of PySide6.QtWidgets.QComboBox object at 0x7f690e4102c0>()
+E        +    where <built-in method hasFocus of PySide6.QtWidgets.QComboBox object at 0x7f690e4102c0> = <PySide6.QtWidgets.QComboBox(0x2717fb50) at 0x7f690e4102c0>.hasFocus
+
+tests/test_ux_redundancy.py:84: AssertionError
+________________ test_language_options_focus_arrangement[menu] _________________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f690e8b3710>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-340/test_language_options_focus_ar1/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+entrance = 'menu'
+
+    @pytest.mark.parametrize('entrance', ['combo', 'menu'])
+    def test_language_options_focus_arrangement(qtbot, project, entrance):
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        if entrance == 'combo':
+            w.language.setCurrentIndex(w.language.findData('options'))
+        else:
+            action(w, 'Talk', 'Language options…').trigger()
+        qtbot.wait(30)
+>       assert w.settings[1].options.fields['language_policy'].hasFocus()
+E       assert False
+E        +  where False = <built-in method hasFocus of PySide6.QtWidgets.QComboBox object at 0x7f690e85d0c0>()
+E        +    where <built-in method hasFocus of PySide6.QtWidgets.QComboBox object at 0x7f690e85d0c0> = <PySide6.QtWidgets.QComboBox(0x17951bb0) at 0x7f690e85d0c0>.hasFocus
+
+tests/test_ux_redundancy.py:84: AssertionError
+_________ test_inspector_source_pause_and_delivery_independence[False] _________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f69180ca3c0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-340/test_inspector_source_pause_an0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+talk_override = False
+
+    @pytest.mark.parametrize('talk_override', [False, True])
+    def test_inspector_source_pause_and_delivery_independence(qtbot, project, talk_override):
+        project.defaults['after'] = 'demo'
+        if talk_override:
+            project.set_setting('after', 'pause')
+        project.set_setting('delivery.instructions', 'Speak softly', project.slides[0])
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show(); reveal_timing(w)
+        source = 'talk' if talk_override else 'app'
+        assert w.slide_after.itemText(0) == f'Use {source} setting'
+>       assert f'From {source}: ' + ('Wait for presenter' if talk_override else 'Pause for live demo') in w.slide_after_source.text()
+E       AssertionError: assert ('From app: ' + 'Pause for live demo') in 'After this slide\nFrom app: Advance automatically'
+E        +  where 'After this slide\nFrom app: Advance automatically' = <built-in method text of PySide6.QtWidgets.QLabel object at 0x7f692415bb00>()
+E        +    where <built-in method text of PySide6.QtWidgets.QLabel object at 0x7f692415bb00> = <PySide6.QtWidgets.QLabel(0x24d1a2b0) at 0x7f692415bb00>.text
+E        +      where <PySide6.QtWidgets.QLabel(0x24d1a2b0) at 0x7f692415bb00> = <autotalk.app.MainWindow(0x271454f0) at 0x7f690f1e5a40>.slide_after_source
+
+tests/test_ux_redundancy.py:97: AssertionError
+____________________ test_menu_focus_status_and_background _____________________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f69304a3d70>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-340/test_menu_focus_status_and_bac0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+
+    def test_menu_focus_status_and_background(qtbot, project):
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+        assert not w.statusBar().currentMessage()
+        action(w, 'Settings', 'Account…').trigger(); qtbot.wait(30)
+>       assert w.codex_signin.hasFocus()
+E       assert False
+E        +  where False = <built-in method hasFocus of PySide6.QtWidgets.QPushButton object at 0x7f690e914dc0>()
+E        +    where <built-in method hasFocus of PySide6.QtWidgets.QPushButton object at 0x7f690e914dc0> = <PySide6.QtWidgets.QPushButton(0x1a47ee30) at 0x7f690e914dc0>.hasFocus
+E        +      where <PySide6.QtWidgets.QPushButton(0x1a47ee30) at 0x7f690e914dc0> = <autotalk.app.MainWindow(0x19b56f00) at 0x7f690e4133c0>.codex_signin
+
+tests/test_ux_redundancy.py:142: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_ux_redundancy.py::test_language_options_focus_arrangement[combo]
+FAILED tests/test_ux_redundancy.py::test_language_options_focus_arrangement[menu]
+FAILED tests/test_ux_redundancy.py::test_inspector_source_pause_and_delivery_independence[False]
+FAILED tests/test_ux_redundancy.py::test_menu_focus_status_and_background - a...
+4 failed, 10 passed in 4.36s

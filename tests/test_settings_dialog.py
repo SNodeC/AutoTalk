@@ -147,7 +147,7 @@ def test_mode_edit_updates_main_window_from_resolved_setting(qtbot, project, sco
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     dialog = w.settings[scope]
     dialog.show_section('Talk & preparation')
-    dialog.settings_mode.setCurrentText('Quick')
+    (w.mode if scope == 1 else dialog.settings_mode).setCurrentText('Quick')
     dialog.accept()
     assert w.mode.currentText() == w.project.mode == 'Quick'
     assert w.workspace.currentWidget() is w.quick_page
@@ -175,28 +175,27 @@ def test_cancel_after_background_work_preserves_completed_result(qtbot, project)
 
 @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
 @pytest.mark.parametrize('save', [False, True])
-def test_duration_is_editable_inside_talk_settings_and_shares_talk_state(qtbot, project, mode, save):
+def test_main_duration_persists_independently_of_talk_dialog(qtbot, project, mode, save):
     project.mode = mode
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     w.minutes.setFocus(); w.minutes.selectAll()
     qtbot.keyClicks(w.minutes, '8.5'); qtbot.keyClick(w.minutes, Qt.Key.Key_Tab)
     w.save()
-    w.talk_action.trigger()
-    spin = w.settings_minutes
-    assert spin.isVisible() and spin.isEnabled() and spin.value() == 8.5
+    spin = w.minutes
     spin.setFocus(); spin.selectAll()
     qtbot.keyClicks(spin, '12.5'); qtbot.keyClick(spin, Qt.Key.Key_Tab)
-    assert project.target_minutes == w.minutes.value() == spin.value() == 12.5
+    assert project.target_minutes == spin.value() == 12.5
+    w.save()
+    w.talk_action.trigger()
+    assert not hasattr(w, 'settings_minutes')
     w.audience.setText('A different audience')
     w.settings[1].show_section('Voice & language')
     w.settings[1].show_section('Talk & preparation')
-    assert spin.isVisible() and spin.value() == project.target_minutes == 12.5
-    assert spin not in w.settings[0].findChildren(type(spin))
-    assert spin not in w.settings[2].findChildren(type(spin))
+    for dialog in w.settings.values():
+        assert spin not in dialog.findChildren(type(spin))
     (w.settings[1].accept if save else w.settings[1].reject)()
-    expected = 12.5 if save else 8.5
-    assert Project.load(project.manifest).target_minutes == expected
-    assert w.project.target_minutes == w.minutes.value() == spin.value() == expected
+    assert Project.load(project.manifest).target_minutes == 12.5
+    assert w.project.target_minutes == w.minutes.value() == 12.5
 
 
 def test_clip_controls_stay_bound_to_the_open_slide(qtbot, project):

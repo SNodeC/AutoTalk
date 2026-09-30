@@ -406,7 +406,7 @@ class MainWindow(QMainWindow):
         p = self.project
         changes = []
         for name, value, title in (("title", self.talk_title.text(), "Title"), ("scope", self.scope.toPlainText(), "Audience topics"),
-                ("target_minutes", self.sender().value() if self.sender() in (self.minutes, self.settings_minutes) else p.target_minutes, "Talk length"), ("audience", self.audience.text(), "Audience"),
+                ("target_minutes", self.sender().value() if self.sender() in (self.minutes,) else p.target_minutes, "Talk length"), ("audience", self.audience.text(), "Audience"),
                 ("objective", self.objective.text(), "Talk objective"), ("conference_url", self.url.text().strip(), "Conference website")):
             if getattr(p, name) != value:
                 changes.append(title)
@@ -446,13 +446,16 @@ class MainWindow(QMainWindow):
         self.notes_toggle.setChecked(False)
         self.notes_toggle.setEnabled(bool(slide.notes.strip()))
         self.notes_toggle.setText("AI notes" if slide.notes.strip() else "No AI notes")
-        self.slide_directions.setText(self.project.setting("delivery.instructions", slide))
         self.slide_budget.setValue(slide.budget_seconds)
         self.slide_include.setChecked(slide.included)
-        self.slide_after.setItemText(0, "Talk: " + {"advance": "advance", "pause": "wait", "demo": "live demo"}[self.project.setting("after")])
-        self.slide_after.setToolTip("Use this talk’s setting: " + self.slide_after.itemText(0).removeprefix("Talk: ") + ". Choose another action to override it for this slide.")
+        source = "app" if self.project.setting_source("after") == "Application default" else "talk"
+        wording = self.slide_after.itemText(self.slide_after.findData(self.project.setting("after")))
+        self.slide_after_source.setText(f"After this slide\nFrom {source}: {wording}")
+        self.slide_after.setItemText(0, f"Use {source} setting")
         self.slide_after.setCurrentIndex(self.slide_after.findData(slide.overrides.get("after")))
-        self.inherit_delivery.setChecked("delivery.instructions" not in slide.overrides)
+        self.inherit_pause.setText(f"Use talk pause ({self.project.setting('pause_seconds'):g} s)")
+        self.inherit_pause.setChecked("pause_seconds" not in slide.overrides)
+        self.slide_pause.setValue(self.project.setting("pause_seconds", slide))
         self.loading = False
         self.refresh()
 
@@ -489,12 +492,11 @@ class MainWindow(QMainWindow):
         self.codex_signin.setEnabled(editable and not self.codex_settings.get("signed_in", False))
         self.signin_button.setVisible(p is not None and self.codex_signin.isEnabled())
         self.codex_signout.setEnabled(editable and bool(self.codex_settings.get("signed_in")))
-        for widget in (self.minutes, self.settings_minutes):
-            if p and widget.value() != p.target_minutes:
-                widget.blockSignals(True)
-                widget.setValue(p.target_minutes)
-                widget.blockSignals(False)
-        self.summary.setText(f"Target {clock(p.target_minutes*60)} · Audio {clock(p.total_seconds) if p.prepared else 'not ready'} · {p.language}" if p else "PDF slides → spoken presentation")
+        if p and self.minutes.value() != p.target_minutes:
+            self.minutes.blockSignals(True)
+            self.minutes.setValue(p.target_minutes)
+            self.minutes.blockSignals(False)
+        self.summary.setText(f"Audio {clock(p.total_seconds) if p.prepared else 'not ready'}" if p else "PDF slides → spoken presentation")
         self.engine_action.setEnabled(True)
         self.update_speech_controls()
         if not p:
@@ -526,7 +528,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle((p.title or "Untitled talk") + "[*] — AutoTalk")
         self.voice_button.setText(p.voice.label + "…")
         self.voice_button.setToolTip(p.setting_source("voice"))
-        self.slide_directions.setEnabled(p.setting("voice", p.slides[self.transport.index]).source != "Base" and not self.inherit_delivery.isChecked())
+        self.slide_pause.setEnabled(authoring and not self.inherit_pause.isChecked())
         self.mode.setToolTip(self.mode.currentData(Qt.ItemDataRole.ToolTipRole))
         for widget in (self.url, self.scope, self.audience, self.objective, self.conference_button):
             widget.setEnabled(p.mode != "Quick")
@@ -542,7 +544,7 @@ class MainWindow(QMainWindow):
         ready = sum(p.ready(s) for s in p.included_slides)
         finished = self.transport.state == "finished"
         self.duration_label.setText(("Slides finished — recording continues" if self.transport.capture else "Presentation finished") if finished else f"{clock(p.total_seconds)} prepared  /  {clock(p.target_minutes*60)} target")
-        self.timing_summary.setText(self.summary.text() + f"\n{ready}/{len(p.included_slides)} included slides have current audio. " +
+        self.timing_summary.setText(f"Target {clock(p.target_minutes*60)} · {clock(p.total_seconds)} prepared audio\n{ready}/{len(p.included_slides)} included slides have current audio. " +
             ("Within requested tolerance." if p.within_target else
              f"Difference: {p.total_seconds-p.target_minutes*60:+.1f} seconds (tolerance ±{p.tolerance_seconds:g}s)." if p.prepared
              else "Start prepares missing text and audio automatically."))
@@ -599,7 +601,7 @@ class MainWindow(QMainWindow):
         self.start_action.setText(caption)
         if not self.job:
             self.status.setText("Start reuses current audio and prepares any missing text or speech.")
-        self.quick_summary.setText(f"{p.title}\n{len(p.included_slides)} slides · {p.voice.label}")
+        self.quick_summary.setText(f"{len(p.included_slides)} slides")
         for action, control in self.control_actions:
             action.setEnabled(control.isEnabled())
         self.update_timing()
@@ -609,7 +611,6 @@ class MainWindow(QMainWindow):
             return
         self.update_speech_controls()
         capture = self.transport.capture
-        self.record.setText(f"Recording video • {clock(capture.frames / RATE)}" if capture else "Record presentation as a video")
         self.record.setToolTip("Recording source: " + ("Screen + system audio" if self.project and self.project.recording_source == "screen" else "Slide video + narration") + ". Configure it in Presentation settings → Recording.")
         total = self.transport.total_seconds
         elapsed = self.transport.elapsed
@@ -624,7 +625,7 @@ class MainWindow(QMainWindow):
         elif self.pending_exports or self.job and self.job.title.startswith(("Saving", "Export")):
             recording = "Saving video…"
         else:
-            recording = "Will record when presentation starts" if self.project and self.project.record_presentation else "Recording off"
+            recording = ""
         output = ""
         if self.output_button.isEnabled() and Path(self.output_path).is_file():
             date = datetime.fromtimestamp(Path(self.output_path).stat().st_mtime).strftime("%d %b, %H:%M")
@@ -632,6 +633,7 @@ class MainWindow(QMainWindow):
         self.saved_output.setText(output)
         self.saved_output.setVisible(bool(output))
         self.record_status.setText(recording)
+        self.record_status.setVisible(bool(recording))
         if self.job:
             elapsed = clock(time.monotonic()-self.job_started)
             self.statusBar().showMessage(f"Operation elapsed: {elapsed}")
@@ -897,8 +899,9 @@ class MainWindow(QMainWindow):
             slide.budget_seconds = self.slide_budget.value()
         slide.included = self.slide_include.isChecked()
         self.project.set_setting("after", self.slide_after.currentData(), slide, self.slide_after.currentData() is None)
-        self.project.set_setting("delivery.instructions", self.slide_directions.text(), slide, inherit=self.inherit_delivery.isChecked())
+        self.project.set_setting("pause_seconds", self.slide_pause.value(), slide, inherit=self.inherit_pause.isChecked())
         self.configuration_changed()
+        self.show_slide(self.transport.index)
 
     def regenerate_slide(self):
         if self.check_source_pdf():
@@ -962,11 +965,6 @@ class MainWindow(QMainWindow):
     def open_talk_folder(self):
         if self.project:
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.project.root)))
-
-    def slide_directions_changed(self, value):
-        if not self.loading and self.project:
-            self.project.set_setting("delivery.instructions", value, self.project.slides[self.transport.index])
-            self.configuration_changed()
 
     def show_clip(self, *_):
         if not self.project:
@@ -1123,7 +1121,7 @@ class MainWindow(QMainWindow):
         value = self.language.currentData()
         if value == "options":
             self.refresh()
-            self.settings[1].show_section("Voice & language", focus="settings_language")
+            self.settings[1].show_section("Voice & language", focus=self.settings[1].options.fields["language_policy"])
         else:
             if value in self.project.versions:
                 self.project.active_version = value
