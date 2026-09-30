@@ -177,6 +177,7 @@ def test_discovery_updates_ui_without_changing_saved_selections(fake_server, qtb
     window.connect_chatgpt(interactive=False)
     qtbot.waitUntil(lambda: window.job is None)
     assert 'Connected to ChatGPT' in window.settings[0].connection.text()
+    window.settings[1].show_section('AI & speech engine')
     assert window.settings[1].codex_model.itemText(0) == 'Account default (Vision)'
     assert window.settings[1].codex_model.currentData() == 'test-vision'
     assert window.settings[1].codex_effort.currentData() == 'high'
@@ -223,6 +224,7 @@ def test_application_startup_discovers_without_pdf_and_preserves_launch_project(
     def event_loop():
         qtbot.waitUntil(lambda: bool(windows[0].codex_settings) and windows[0].job is None)
         assert bool(windows[0].project) == open_saved
+        windows[0].settings[1 if open_saved else 0].show_section('AI & speech engine')
         assert windows[0].settings[1 if open_saved else 0].codex_model.count() == 2
         assert windows[0].settings[1 if open_saved else 0].codex_effort.findData('high') >= 0
         windows[0].close()
@@ -251,7 +253,8 @@ def test_discovery_protocol_failure_can_be_retried_explicitly(fake_server, monke
     fake_server.write_text(healthy)
     window.connect_chatgpt()
     qtbot.waitUntil(lambda: window.job is None)
-    assert window.settings[1].codex_model.count() == 2 and 'Connected' in window.settings[0].connection.text()
+    window.settings[0].show_section('AI & speech engine')
+    assert window.settings[0].codex_model.count() == 2 and 'Connected' in window.settings[0].connection.text()
 
 
 def test_ui_displays_configured_effort_instead_of_catalog_suggestion(fake_server, qtbot, project):
@@ -262,6 +265,7 @@ def test_ui_displays_configured_effort_instead_of_catalog_suggestion(fake_server
     window = MainWindow(); qtbot.addWidget(window); window.adopt(project)
     window.connect_chatgpt(interactive=False)
     qtbot.waitUntil(lambda: window.job is None)
+    window.settings[1].show_section('AI & speech engine')
     assert window.settings[1].codex_effort.currentText() == 'Codex default (high)'
     assert window.settings[1].codex_effort.currentData() == ''
     assert project.codex_model == project.codex_effort == ''
@@ -305,6 +309,7 @@ def test_auth_buttons_follow_account_and_logout_preserves_talk(fake_server, qtbo
     qtbot.waitUntil(lambda: window.job is None)
     assert window.settings[0].codex_signin.isEnabled() and not window.settings[0].codex_signout.isEnabled()
     assert not window.codex_settings['signed_in'] and window.codex_settings['models'] == []
+    window.settings[1].show_section('AI & speech engine')
     assert window.settings[1].codex_model.currentData() == 'test-vision'
     assert window.settings[1].codex_effort.currentData() == 'high'
     saved = Project.load(project.manifest)

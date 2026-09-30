@@ -77,6 +77,13 @@ def test_mutation_invalidates_and_snapshots_exclude_cache(project):
         project.select_language('German')
         assert not project._pass_memo
         assert not project.text_ready(project.slides[0])
+        for mutation in (lambda: project.set_included(project.slides[-1], False),
+                         lambda: project.set_defaults({'pause_seconds': 2}),
+                         lambda: project.activate_version('main')):
+            project.speech_key(project.slides[0])
+            mutation()
+            assert not project._pass_memo
+            assert queries(project) == queries(copy.deepcopy(project))
     assert not hasattr(project, '_pass_memo')
 
 

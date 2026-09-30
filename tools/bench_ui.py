@@ -7,6 +7,7 @@ Counts are query-body executions (cache hits do not execute a query body).
 Timing excludes tracing, fixture setup, queued painting and aggregate flushing.
 """
 import argparse
+import copy
 import inspect
 import json
 import statistics
@@ -24,6 +25,7 @@ from PySide6.QtWidgets import QApplication
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from autotalk.app import MainWindow
 from autotalk.project import Project, Slide, file_hash
+from autotalk.settings import SettingsDialog
 
 
 def prepared_project(root, count):
@@ -56,17 +58,33 @@ def benchmark(count, repeats):
         window = MainWindow(); window.adopt(project); window.show()
         QApplication.processEvents()
         window.elapsed_timer.stop(); window.transport.timer.stop()
-        texts = [s.narration for s in project.slides]
+        original = copy.deepcopy(project)
         def restore():
-            for slide, text in zip(project.slides, texts):
-                project.set_narration(slide, text)
-            window.show_slide(window.transport.index)
+            nonlocal project
+            project = copy.deepcopy(original)
+            window.adopt(project)
+            window.select_slide(count // 2)
+            window.elapsed_timer.stop(); window.transport.timer.stop()
         codes = {inspect.unwrap(getattr(Project, name)).__code__: name
                  for name in ('ready', 'speech_key', 'text_ready', 'asset')}
+        codes.update({inspect.unwrap(method).__code__: name for name, method in
+                      [('refresh', MainWindow.refresh), ('dialog_loads', SettingsDialog.load_settings),
+                       ('configuration_changed', MainWindow.configuration_changed)]})
         result = {'slides': count}
         actions = {'refresh': window.refresh,
                    'keystroke': lambda: window.narration.insertPlainText('x'),
-                   'selection': lambda: window.select_slide((window.transport.index + 1) % count)}
+                   'selection': lambda: window.slide_list.setCurrentRow((window.transport.index + 1) % count)}
+        actions.update({
+            'after': lambda: window.inspector.slide_after.setCurrentIndex(window.inspector.slide_after.findData('pause')),
+            'pause': lambda: window.inspector.inherit_pause.setChecked(False),
+            'budget': lambda: window.inspector.slide_budget.setValue(75),
+            'include': lambda: window.inspector.slide_include.setChecked(False),
+            'duration': lambda: window.minutes.setValue(12),
+            'record': lambda: window.record.setChecked(True),
+            'mode': lambda: window.mode.setCurrentText('Realtime'),
+            'editor_next': lambda: window.editor_next.click() if hasattr(window, 'editor_next') else window.slide_list.setCurrentRow(window.transport.index + 1),
+            'editor_previous': lambda: window.editor_previous.click() if hasattr(window, 'editor_previous') else window.slide_list.setCurrentRow(window.transport.index - 1),
+        })
         if hasattr(window, 'flush_refresh'):
             actions['aggregates'] = window.flush_refresh
         for name, action in actions.items():

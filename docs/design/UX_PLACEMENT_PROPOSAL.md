@@ -404,3 +404,14 @@ See [UX placement verification](UX_PLACEMENT_VERIFICATION.md) for the implementa
 mapping, measured navigation depth, Linux Xvfb checks and remaining validation
 limits. Ratings describe conformance to the agreed placement metric; they do not
 substitute for testing with recruited first-time users.
+
+## Editor and Presenter navigation (2026-10-01)
+
+Previous and Next are P1 controls on the slide-information row below the Editor
+preview (zero-click visibility, one-click selection). They include excluded slides,
+matching the slide navigator. Presenter controls step through included slides;
+stopped navigation remains available even when some audio needs updating.
+
+View → Previous slide / Next slide mirrors the visible view, using Ctrl+PgUp /
+Ctrl+PgDn. Presentation no longer contains a second pair. Quick and modal dialogs
+disable these commands. The main row and settings ownership are unchanged.

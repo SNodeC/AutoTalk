@@ -367,12 +367,19 @@ class Playback(QObject):
     def toggle(self):
         self.pause() if self.playing else self.play()
 
+    def neighbour(self, amount, included_only=True):
+        if not self.project:
+            return None
+        slides = self.project.included_slides if included_only else self.project.slides
+        indices = [s.page-1 for s in slides if (s.page-1-self.index)*amount > 0]
+        return (min(indices) if amount > 0 else max(indices)) if indices else None
+
     def step(self, amount, play=None):
         if not self.project:
             return
-        indices = [s.page-1 for s in self.project.included_slides if (s.page-1-self.index)*amount > 0]
-        if indices:
-            self.select(min(indices) if amount > 0 else max(indices), play=self.playing if play is None else play)
+        index = self.neighbour(amount)
+        if index is not None:
+            self.select(index, play=self.playing if play is None else play)
         elif amount > 0:
             self._finish()
 

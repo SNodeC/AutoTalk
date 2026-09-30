@@ -38,7 +38,7 @@ def test_p1_controls_are_visible_without_scroll_and_do_not_overlap(qtbot, projec
         visible_inside(control, w)
     if mode != 'Quick':
         for control in (w.talk_text_button, w.talk_audio_button, w.narration, w.regenerate_button,
-                        w.slide_audio_button, w.preview_button, w.slide_list):
+                        w.slide_audio_button, w.preview_button, w.slide_list, w.editor_previous, w.editor_next):
             visible_inside(control, w)
         assert w.image.height() >= 100 and w.narration.height() >= 110
         for inherited in ('advance', 'pause', 'demo'):

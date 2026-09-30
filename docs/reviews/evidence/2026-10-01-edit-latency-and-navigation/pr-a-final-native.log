@@ -1,0 +1,93 @@
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.0' (uid=1000 pid=3418158 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Activating service name='org.gtk.vfs.Daemon' requested by ':1.2' (uid=1000 pid=3418158 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Successfully activated service 'org.gtk.vfs.Daemon'
+dbus-daemon[3418178]: Activating service name='org.a11y.atspi.Registry' requested by ':1.1' (uid=1000 pid=3418158 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Activating service name='org.xfce.Xfconf' requested by ':1.2' (uid=1000 pid=3418158 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3418178]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Successfully activated service 'org.xfce.Xfconf'
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.7' (uid=1000 pid=3418226 comm="artifacts/open-tasks/venv-qt610/bin/python -m pyte" label="unconfined")
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.8' (uid=1000 pid=3418259 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.8' (uid=1000 pid=3418259 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+
+(/usr/libexec/xdg-desktop-portal:3418259): xdg-desktop-portal-WARNING **: 22:56:03.384: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.8' (uid=1000 pid=3418259 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.kde' requested by ':1.8' (uid=1000 pid=3418259 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.kde'
+xdp-kde-clipboard: Couldn't resolve QWaylandApplication - clipboard will not work
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.kwallet' requested by ':1.8' (uid=1000 pid=3418259 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+kf.wallet.ksecretd: Lacking a socket, pipe: 0 env: 0
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.kwallet'
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Activating service name='org.gtk.vfs.Metadata' requested by ':1.2' (uid=1000 pid=3418158 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3418156]: [session uid=1000 pid=3418156 pidfd=5] Successfully activated service 'org.gtk.vfs.Metadata'
+........................................................................ [ 13%]
+........................................................................ [ 27%]
+........................................................................ [ 41%]
+........................................................................ [ 55%]
+........................................................................ [ 69%]
+....................................
+(/usr/libexec/xdg-desktop-portal:3418259): xdg-desktop-portal-WARNING **: 22:57:40.258: Realtime error: Could not map tid 3420053 of pid 3418226: Process ids could not be found: 3420053
+.................................... [ 83%]
+....................................F................................... [ 97%]
+............                                                             [100%]
+=================================== FAILURES ===================================
+_____________ test_long_talk_and_voice_names_preserve_p1_workspace _____________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7fdb864da900>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-391/test_long_talk_and_voice_names0/talk'), title='An unusually long...conference narration voice', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+
+    def test_long_talk_and_voice_names_preserve_p1_workspace(qtbot, project):
+        project.title = 'An unusually long title about preparing and delivering reliable multilingual presentations ' * 3
+        project.voice.name = 'My carefully designed calm conference narration voice'
+        w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.resize(940, 680); w.show()
+        qtbot.wait(20)
+        assert w.size().toTuple() == (940, 680)
+        for control in (w.start_button, w.voice_button, w.narration, w.slide_audio_button):
+>           visible_inside(control, w)
+
+tests/test_ux_placement.py:269:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+widget = <PySide6.QtWidgets.QPlainTextEdit(0x21cf0ba0) at 0x7fdb610ac500>
+window = <autotalk.app.MainWindow(0x6767e3a0) at 0x7fdb680e1800>
+
+    def visible_inside(widget, window):
+        assert widget.isVisible(), widget.objectName() or getattr(widget, 'text', lambda: '')()
+        origin = widget.mapTo(window, QPoint())
+        assert window.rect().contains(origin)
+        assert window.rect().contains(origin + QPoint(widget.width()-1, widget.height()-1))
+        ancestor = widget.parentWidget()
+        while ancestor is not window:
+            assert ancestor.rect().contains(widget.mapTo(ancestor, QPoint()))
+>           assert ancestor.rect().contains(widget.mapTo(ancestor, QPoint(widget.width()-1, widget.height()-1)))
+E           assert False
+E            +  where False = <built-in method contains of PySide6.QtCore.QRect object at 0x7fdb60e822c0>(PySide6.QtCore.QPoint(537, 248))
+E            +    where <built-in method contains of PySide6.QtCore.QRect object at 0x7fdb60e822c0> = PySide6.QtCore.QRect(0, 0, 538, 248).contains
+E            +      where PySide6.QtCore.QRect(0, 0, 538, 248) = <built-in method rect of PySide6.QtWidgets.QSplitter object at 0x7fdb610c9140>()
+E            +        where <built-in method rect of PySide6.QtWidgets.QSplitter object at 0x7fdb610c9140> = <PySide6.QtWidgets.QSplitter(0x20dc2f80) at 0x7fdb610c9140>.rect
+E            +    and   PySide6.QtCore.QPoint(537, 248) = <built-in method mapTo of PySide6.QtWidgets.QPlainTextEdit object at 0x7fdb610ac500>(<PySide6.QtWidgets.QSplitter(0x20dc2f80) at 0x7fdb610c9140>, PySide6.QtCore.QPoint(537, 109))
+E            +      where <built-in method mapTo of PySide6.QtWidgets.QPlainTextEdit object at 0x7fdb610ac500> = <PySide6.QtWidgets.QPlainTextEdit(0x21cf0ba0) at 0x7fdb610ac500>.mapTo
+E            +      and   PySide6.QtCore.QPoint(537, 109) = QPoint((538 - 1), (110 - 1))
+E            +        where 538 = <built-in method width of PySide6.QtWidgets.QPlainTextEdit object at 0x7fdb610ac500>()
+E            +          where <built-in method width of PySide6.QtWidgets.QPlainTextEdit object at 0x7fdb610ac500> = <PySide6.QtWidgets.QPlainTextEdit(0x21cf0ba0) at 0x7fdb610ac500>.width
+E            +        and   110 = <built-in method height of PySide6.QtWidgets.QPlainTextEdit object at 0x7fdb610ac500>()
+E            +          where <built-in method height of PySide6.QtWidgets.QPlainTextEdit object at 0x7fdb610ac500> = <PySide6.QtWidgets.QPlainTextEdit(0x21cf0ba0) at 0x7fdb610ac500>.height
+
+tests/test_ux_placement.py:26: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_ux_placement.py::test_long_talk_and_voice_names_preserve_p1_workspace
+1 failed, 515 passed in 137.13s (0:02:17)
+
+(xfconfd:3418196): xfconfd-WARNING **: 22:58:20.475: Name org.xfce.Xfconf lost on the message dbus, exiting.
+A connection to the bus can't be made
+The X11 connection broke (error 1). Did the X11 server die?
+The X11 connection broke (error 1). Did the X11 server die?
+KCrash: Application 'xdg-desktop-portal-kde' crashing... crashRecursionCounter = 2

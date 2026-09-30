@@ -535,6 +535,10 @@ background track…**. Adjust **Background volume**, enable **Loop** if wanted, 
 choose **Remove background**. Listen to a presentation/export to check the balance.
 Imported clips and between-slide pauses count toward duration fitting.
 
+If an edit makes other slides’ audio stale, the status line names up to three slides
+and reports any additional count. The last included slide has no trailing pause;
+excluding the last slide can therefore make the new last slide’s audio need updating.
+
 ## Present, pause, continue and give a live demo
 
 Before starting, open **Application → Display & sound**:
@@ -552,7 +556,7 @@ belongs to the system. Select the output before beginning screen recording.
 | **Start / Prepare and start** / **F5** | The same preparation-and-start command as the upper-right button. |
 | **Presenter → More actions → Start from selected slide** / **Shift+F5** | Begin from the selected slide when presentation is available. |
 | **Pause** / fullscreen **Space** | Pause narration; press Space or use Continue to resume. |
-| **Previous / Next** | Navigate included slides. Navigating starts that slide from its beginning; it is not an audio seek control. |
+| **Previous / Next** / **Ctrl+PgUp / Ctrl+PgDn** | In the Editor, select any slide, including excluded slides. In the Presenter, navigate included slides only. While stopped, navigation only selects a slide and does not prepare or play audio. During playback, navigation retains the existing playback behavior. View-menu actions follow the visible view; they are unavailable on the Quick page or in modal dialogs. |
 | Fullscreen **Esc** | Pause and leave fullscreen, preserving the playback position. |
 | **Continue presentation** / **F6** | Reopen fullscreen and continue from the retained position. |
 | **Pause for a live demo** | Pause narration and leave fullscreen. |
@@ -831,6 +835,7 @@ speech GPU, unload/close that instance before attempting another model load.
 | **Ctrl+X / Ctrl+C / Ctrl+V / Ctrl+A** | Cut / copy / paste / select all in the focused editor |
 | **F5 / Shift+F5** | Start or prepare and start / start selected slide when ready |
 | **F6** | Continue presentation |
+| **Ctrl+PgUp / Ctrl+PgDn** | Previous / next slide in the visible Editor or Presenter |
 | **Space** in fullscreen | Pause / continue |
 | **Right or Page Down / Left or Page Up** in fullscreen | Next / previous slide |
 | **Esc** in fullscreen | Pause and return to controls |

@@ -158,17 +158,14 @@ class MainWindow(QMainWindow):
     def edit_setting(self, name, value, inherit=False, *, scope=1, slide=None):
         if self.loading or scope not in SETTING_DEFAULTS[name][1]:
             return
-        if scope == 0:
-            self.defaults.pop(name, None) if inherit else self.defaults.update({name: copy.deepcopy(value)})
-            if self.project:
-                self.apply_defaults(self.project)
-        elif self.project:
-            self.project.set_setting(name, value, self.project.slides[slide] if scope == 2 else None, inherit)
-            if name == "language" and scope == 1:
-                self.adopt(self.project)
-        self.load_settings(preserve_candidate=name != "voice")
-        self.configuration_changed()
-        self.refresh()
+        def apply():
+            if scope == 0:
+                self.defaults.pop(name, None) if inherit else self.defaults.update({name: copy.deepcopy(value)})
+                if self.project:
+                    self.apply_defaults(self.project)
+            elif self.project:
+                self.project.set_setting(name, value, self.project.slides[slide] if scope == 2 else None, inherit)
+        self.configuration_changed(apply, edited=slide + 1 if scope == 2 else None, preserve_candidate=name != "voice")
 
     def begin_settings(self, dialog):
         dialog.defaults_before = copy.deepcopy(self.defaults)
@@ -210,7 +207,7 @@ class MainWindow(QMainWindow):
         self.refresh()
 
     def apply_defaults(self, project):
-        project.defaults = copy.deepcopy(self.defaults)
+        project.set_defaults(self.defaults)
         voice = project.defaults.get("voice")
         if voice:
             for ref in voice.references.values():
@@ -224,7 +221,8 @@ class MainWindow(QMainWindow):
     def load_settings(self, *_, preserve_candidate=False):
         for dialog in self.settings.values():
             dialog.defaults = self.defaults
-            dialog.load_settings(preserve_candidate=preserve_candidate)
+            if dialog.isVisible():
+                dialog.load_settings(preserve_candidate=preserve_candidate)
 
     def event(self, event):
         if event.type() == QEvent.Type.WindowActivate and hasattr(self, "source_notice"):
@@ -318,6 +316,7 @@ class MainWindow(QMainWindow):
         self.job_live = False
         self.progress.hide()
         self.cancel_button.hide()
+        self.status.setText("Start reuses current audio and prepares any missing text or speech.")
         self.refresh()
         if self.project:
             self.show_slide(self.transport.index)
@@ -377,6 +376,7 @@ class MainWindow(QMainWindow):
         self.transport.load(project)
         self.transport.select(min(selected, len(project.slides)-1))
         self.refresh()
+        self.status.setText("Start reuses current audio and prepares any missing text or speech.")
         self.log.appendPlainText(f"Talk loaded: {project.title}")
         recent = self.preferences.value("recent_projects", [])
         recent = recent if isinstance(recent, list) else [recent]
@@ -472,21 +472,15 @@ class MainWindow(QMainWindow):
     def details_changed(self, *_):
         if self.loading or not self.project:
             return
-        self.transport.stop()
-        self.setWindowModified(True)
-        p = self.project
-        changes = []
-        for name, value, title in (("title", self.settings[1].talk_title.text(), "Title"), ("scope", self.settings[1].conference_scope.toPlainText(), "Audience topics"),
-                ("target_minutes", self.sender().value() if self.sender() in (self.minutes,) else p.target_minutes, "Talk length"), ("audience", self.settings[1].audience.text(), "Audience"),
-                ("objective", self.settings[1].objective.text(), "Talk objective"), ("conference_url", self.settings[1].url.text().strip(), "Conference website")):
-            if getattr(p, name) != value:
-                changes.append(title)
-            setattr(p, name, value)
-        self.load_settings()
-        self.transport.refresh_audio()
-        self.refresh()
-        if changes:
-            self.log_message(", ".join(changes) + " changed. Existing narration is kept; use Rewrite slide text to replace it.")
+        p, dialog = self.project, self.settings[1]
+        values = {"title": dialog.talk_title.text(), "scope": dialog.conference_scope.toPlainText(),
+                  "target_minutes": self.minutes.value(), "audience": dialog.audience.text(),
+                  "objective": dialog.objective.text(), "conference_url": dialog.url.text().strip()}
+        names = {"title": "Title", "scope": "Audience topics", "target_minutes": "Talk length", "audience": "Audience", "objective": "Talk objective", "conference_url": "Conference website"}
+        changed = [names[key] for key, value in values.items() if getattr(p, key) != value]
+        self.configuration_changed(lambda: [setattr(p, key, value) for key, value in values.items()])
+        if changed:
+            self.log_message(", ".join(changed) + " changed. Existing narration is kept; use Rewrite slide text to replace it.")
 
     def narration_changed(self):
         if not self.loading and self.project:
@@ -503,11 +497,11 @@ class MainWindow(QMainWindow):
         if not self.loading and index >= 0:
             self.transport.select(index)
 
-    def show_slide(self, index):
+    def show_slide(self, index, *, surfaces=True):
         self.flush_refresh()
         if not self.project:
             return
-        self.loading = True
+        previous, self.loading = self.loading, True
         slide = self.project.slides[index]
         self.slide_list.setCurrentRow(index)
         self.image.show_file(self.project.image(slide))
@@ -522,7 +516,9 @@ class MainWindow(QMainWindow):
         self.notes_toggle.setChecked(False)
         self.notes_toggle.setEnabled(bool(slide.notes.strip()))
         self.notes_toggle.setText("AI notes" if slide.notes.strip() else "No AI notes")
-        self.loading = False
+        self.loading = previous
+        if not surfaces:
+            return
         with self.project.pass_cache():
             self.refresh_editor()
             self.refresh_inspector()
@@ -603,11 +599,13 @@ class MainWindow(QMainWindow):
             for action, control in self.control_actions:
                 action.setEnabled(False)
             for control in (self.play_button, self.continue_button, self.end_button, self.demo_button,
-                            self.previous_button, self.next_button, self.preview_button, self.settings[1].fit_button, self.export_button):
+                            self.previous_button, self.next_button, self.editor_previous, self.editor_next, self.preview_button, self.settings[1].fit_button, self.export_button):
                 control.setEnabled(False)
             return
         if self.workspace.currentWidget() in (self.editor, self.quick_page):
+            self.workspace.blockSignals(True)
             self.workspace.setCurrentWidget(self.quick_page if p.mode == "Quick" else self.editor)
+            self.workspace.blockSignals(False)
         self.preparation.setVisible(p.mode != "Quick" and self.workspace.currentWidget() is self.editor)
         self.view_switch.setTabText(0, "Quick" if p.mode == "Quick" else "Editor")
         self.view_switch.blockSignals(True)
@@ -725,8 +723,10 @@ class MainWindow(QMainWindow):
         if self.end_button.property("primary") != finished:
             self.end_button.setProperty("primary", finished)
             self.end_button.style().polish(self.end_button)
-        self.previous_button.setEnabled(can_play and any(s.page < slide.page for s in p.included_slides))
-        self.next_button.setEnabled(can_play and any(s.page > slide.page for s in p.included_slides))
+        stopped = self.transport.state in ("stopped", "finished") and not self.presentation
+        for direction, editor, presenter in ((-1, self.editor_previous, self.previous_button), (1, self.editor_next, self.next_button)):
+            editor.setEnabled((editable or can_play) and self.transport.neighbour(direction, False) is not None)
+            presenter.setEnabled((editable or can_play if stopped else can_play) and self.transport.neighbour(direction) is not None)
 
     @ui_pass
     def refresh_footer(self):
@@ -741,14 +741,14 @@ class MainWindow(QMainWindow):
             self.slide_progress.setRange(0, len(p.included_slides))
             self.slide_progress.setValue(ready)
             self.slide_progress.setFormat("Prepared slides: %v / %m")
-        if not self.job:
-            self.status.setText("Start reuses current audio and prepares any missing text or speech.")
         self.update_timing()
 
     @ui_pass
     def refresh_actions(self):
         p = self.project
         if not p:
+            self.previous_action.setEnabled(False)
+            self.next_action.setEnabled(False)
             return
         editable, authoring = self.editable, self.authoring
         self.talk_text_button.setEnabled(authoring and any(not p.text_ready(s) for s in p.included_slides))
@@ -756,6 +756,8 @@ class MainWindow(QMainWindow):
         self.export_button.setEnabled(editable and p.prepared)
         for action, control in self.control_actions:
             action.setEnabled(control.isEnabled())
+        for action, editor, presenter in ((self.previous_action, self.editor_previous, self.previous_button), (self.next_action, self.editor_next, self.next_button)):
+            action.setEnabled(self.workspace.currentWidget() is not self.quick_page and (presenter if self.workspace.currentWidget() is self.presenter else editor).isEnabled())
 
 
     @ui_pass
@@ -796,7 +798,8 @@ class MainWindow(QMainWindow):
     def playback_state_changed(self):
         if self.job_live and self.transport.state == "playing":
             self.measurements.setdefault("First playback", time.monotonic()-self.job_started)
-        self.refresh()
+        if not self.loading:
+            self.refresh()
 
     def connect_chatgpt(self, *, interactive=True, sign_out=False):
         def connect(task):
@@ -891,21 +894,42 @@ class MainWindow(QMainWindow):
             self.workspace.setCurrentWidget(self.quick_page if self.project and self.project.mode == "Quick" else self.editor)
         self.refresh()
 
-    def configuration_changed(self):
-        if self.loading or not self.project:
+    def configuration_changed(self, mutation=lambda: None, *, edited=None, inclusion=False, preserve_candidate=True):
+        if self.loading:
             return
-        self.transport.stop()
-        self.transport.refresh_audio()
-        self.setWindowModified(True)
-        self.show_slide(self.transport.index)
-        self.refresh()
+        self.flush_refresh()
+        p = self.project
+        self.loading = True
+        try:
+            with p.pass_cache() if p else nullcontext():
+                before = {s.page: p.pause_after(s) for s in p.included_slides if p.ready(s)} if p else {}
+                mutation()
+                self.transport.stop()
+                self.transport.refresh_audio()
+                self.load_settings(preserve_candidate=preserve_candidate)
+                if p:
+                    self.setWindowModified(True)
+                    self.show_slide(self.transport.index, surfaces=False)
+                self.refresh()
+                stale = [s for s in p.included_slides if s.page != edited and s.page in before and not p.ready(s)] if p else []
+                if stale:
+                    pages = ", ".join(str(s.page) for s in stale[:3]) + (f" and {len(stale)-3} more" if len(stale) > 3 else "")
+                    cause = ": trailing pause changed after changing the included slides." if inclusion and all(before[s.page] != p.pause_after(s) for s in stale) else " after this change."
+                    self.log_message(f"Slide{'s' if len(stale) > 1 else ''} {pages} audio needs updating" + cause)
+        finally:
+            self.loading = False
 
     def mode_changed(self, value):
-        if self.loading or not self.project:
+        self.edit_setting("mode", value)
+
+    def navigate_slide(self, direction):
+        presenter = self.workspace.currentWidget() is self.presenter
+        control = (self.previous_button if direction < 0 else self.next_button) if presenter else (self.editor_previous if direction < 0 else self.editor_next)
+        if QApplication.activeModalWidget() or not control.isEnabled() or self.workspace.currentWidget() is self.quick_page:
             return
-        self.project.mode = value
-        self.load_settings()
-        self.configuration_changed()
+        index = self.transport.neighbour(direction, presenter)
+        if index is not None:
+            self.transport.select(index, play=self.transport.playing) if presenter else self.slide_list.setCurrentRow(index)
 
     def start_mode(self):
         self.flush_refresh()
@@ -1225,10 +1249,9 @@ class MainWindow(QMainWindow):
             self.settings[1].show_section("Voice & language", focus=self.settings[1].options.fields["language_policy"])
         else:
             if value in self.project.versions:
-                self.project.active_version = value
+                self.configuration_changed(lambda: self.project.activate_version(value))
             else:
-                self.project.set_setting("language", value)
-            self.adopt(self.project)
+                self.edit_setting("language", value)
             self.save()
 
     def speech_preferences(self, save=False):
