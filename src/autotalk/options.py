@@ -30,14 +30,15 @@ SAMPLING = {"temperature": (0.0, 2.0, 0.9), "top_k": (1, 200, 50),
 class SettingsPanel(QWidget):
     changed = Signal()
 
-    def __init__(self, window):
+    def __init__(self, dialog):
         from .ui import disclosure
         super().__init__()
-        self.window = window
+        self.dialog = dialog
         self.inheritance = {}
         self.project = None
         self.loading = False
         self.fields = {}
+        self.rows = {}
         self.vocal = []
         box = QVBoxLayout(self)
         self.form = QFormLayout()
@@ -96,7 +97,7 @@ class SettingsPanel(QWidget):
         self.form = QFormLayout(self.synthesis_widget)
         self.override = QCheckBox("Override main speech generator sampling defaults")
         self.override.toggled.connect(self.sampling_changed)
-        self.form.addRow("Advanced synthesis", self.override)
+        self.form.addRow("Advanced synthesis", self.field("delivery.sampling", self.override))
         self.sampling = {}
         for name, (low, high, default) in SAMPLING.items():
             spin = QSpinBox() if isinstance(default, int) else QDoubleSpinBox()
@@ -109,10 +110,10 @@ class SettingsPanel(QWidget):
             self.form.addRow(name.replace("_", " ").capitalize(), spin)
         self.recording_widget = QWidget()
         self.form = QFormLayout(self.recording_widget)
-        self.record = self.read_only() if window.scope == 1 else QCheckBox("Record presentation as a video")
+        self.record = self.read_only() if dialog.scope == 1 else QCheckBox("Record presentation as a video")
         self.fields["record_presentation"] = self.record
-        if window.scope != 1:
-            self.record.toggled.connect(lambda value: self.window.edit_setting("record_presentation", value))
+        if dialog.scope != 1:
+            self.record.toggled.connect(lambda value: self.dialog.edit_setting("record_presentation", value))
         self.record.setToolTip("Recording begins when the presentation starts. Choose slides or screen recording in Presentation settings → Recording.")
         self.combo("recording_source", "Recording source", [("Slide video + narration", "slides"), ("Screen + system audio (Linux)", "screen")])
         microphone = QCheckBox("Include microphone in screen recording")
@@ -139,7 +140,11 @@ class SettingsPanel(QWidget):
     def bind(self, path, label, widget, signal):
         self.fields[path] = widget
         self.form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
-        self.form.addRow(label, widget)
+        field = self.field(path, widget)
+        if path in ("language_policy", "buffer_seconds", "delivery.attributes.age", "recording_policy", "export_rate", "export_bitrate"):
+            self.rows[path] = (label, field)
+        else:
+            self.form.addRow(label, field)
         signal.connect(lambda *args, p=path: self.edit(p))
         return widget
 
@@ -149,18 +154,23 @@ class SettingsPanel(QWidget):
             widget.addItem(text, value)
         return self.bind(path, label, widget, widget.currentIndexChanged)
 
-    def add_inheritance(self, path, widget):
-        parent = widget.parentWidget()
-        container = QWidget(parent)
-        parent.layout().replaceWidget(widget, container)
+    def place(self, path, layout):
+        layout.addRow(*self.rows.pop(path))
+
+    def field(self, path, widget):
+        self.fields[path] = widget
+        if path not in SETTING_DEFAULTS:
+            return widget
+        container = QWidget()
         box = QHBoxLayout(container)
         box.setContentsMargins(0, 0, 0, 0)
         box.addWidget(widget, 1)
         reset = QPushButton()
         reset.setToolTip("Remove this override and use the parent setting")
-        reset.clicked.connect(lambda: self.window.edit_setting(path, None, inherit=True))
+        reset.clicked.connect(lambda: self.dialog.edit_setting(path, None, inherit=True))
         box.addWidget(reset)
         self.inheritance[path] = (container, reset)
+        return container
 
     def edit(self, path):
         if self.loading:
@@ -168,18 +178,18 @@ class SettingsPanel(QWidget):
         widget = self.fields[path]
         value = widget.currentData() if isinstance(widget, QComboBox) else widget.isChecked() if isinstance(widget, QCheckBox) else widget.text() if isinstance(widget, QLineEdit) else widget.value()
         if path in SETTING_DEFAULTS:
-            self.window.edit_setting(path, value)
+            self.dialog.edit_setting(path, value)
         elif self.project:
             setattr(self.project, path, value)
             self.changed.emit()
 
     def sampling_changed(self, *_):
         if not self.loading:
-            self.window.edit_setting("delivery.sampling", {k: v.value() for k, v in self.sampling.items()} if self.override.isChecked() else {})
+            self.dialog.edit_setting("delivery.sampling", {k: v.value() for k, v in self.sampling.items()} if self.override.isChecked() else {})
 
     def load(self, project):
         self.project, self.loading = project, True
-        w = self.window
+        w = self.dialog
         scope = w.scope
         for path, widget in self.fields.items():
             value = w.setting_value(path) if path in SETTING_DEFAULTS else getattr(project, path, "")
@@ -260,7 +270,7 @@ class SettingsPanel(QWidget):
                 directory = data_dir() / "delivery"
                 directory.mkdir(parents=True, exist_ok=True)
                 (directory / (uuid.uuid4().hex + ".json")).write_text(json.dumps({
-                    "name": name.strip(), "delivery": {k: v for k, v in asdict(self.window.voice_context().delivery).items() if k != "sampling"}}, ensure_ascii=False), encoding="utf-8")
+                    "name": name.strip(), "delivery": {k: v for k, v in asdict(self.dialog.voice_context().delivery).items() if k != "sampling"}}, ensure_ascii=False), encoding="utf-8")
                 self.refresh_presets()
             except OSError as error:
                 QMessageBox.warning(self, "Save preset", str(error))
@@ -274,6 +284,6 @@ class SettingsPanel(QWidget):
             settings = {key: delivery.attributes.get(key.split(".")[2], "") if key.startswith("delivery.attributes.") else getattr(delivery, key.split(".")[1])
                         for key in SETTING_DEFAULTS if key.startswith("delivery.") and key != "delivery.sampling"}
             for key, setting in read_settings(settings).items():
-                self.window.edit_setting(key, setting)
+                self.dialog.edit_setting(key, setting)
         except (OSError, ValueError, TypeError, KeyError) as error:
             QMessageBox.warning(self, "Load preset", str(error))

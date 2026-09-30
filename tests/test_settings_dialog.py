@@ -54,7 +54,7 @@ def test_buttons_and_nested_account_window_preserve_independent_transactions(qtb
     w.talk_action.trigger()
     talk = w.settings[1]
     original = w.project.audience
-    w.audience.setText('A changed audience')
+    w.settings[1].audience.setText('A changed audience')
     talk.show_section('AI & speech engine')
     qtbot.mouseClick(next(b for b in talk.findChildren(QPushButton) if b.text() == 'Account settings…'), Qt.LeftButton)
     application = w.settings[0]
@@ -75,7 +75,7 @@ def test_talk_save_cancel_applies_across_its_sections_only(qtbot, project, save)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     dialog = w.settings[1]
     w.talk_action.trigger()
-    w.audience.setText('Conference speakers')
+    w.settings[1].audience.setText('Conference speakers')
     dialog.show_section('Voice & language')
     dialog.speaker.setCurrentIndex(dialog.speaker.findData('Aiden'))
     dialog.show_section('Presentation & recording')
@@ -99,15 +99,15 @@ def test_talk_save_cancel_applies_across_its_sections_only(qtbot, project, save)
 @pytest.mark.parametrize('save', [False, True])
 def test_application_display_and_model_policies_are_transactional(qtbot, project, save):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    w.screen.addItem('Second test display', 1)
+    w.settings[0].screen.addItem('Second test display', 1)
     dialog = w.settings[0]
     dialog.show_section('Application')
-    w.screen.setCurrentIndex(1)
-    dialog.show_section('AI & speech engine', focus=w.engine_state)
-    next(b for b in w.gpu_retention.buttons() if b.property('value') == 'operation').click()
+    w.settings[0].screen.setCurrentIndex(1)
+    dialog.show_section('AI & speech engine', focus=w.settings[0].engine_state)
+    next(b for b in w.settings[0].gpu_retention.buttons() if b.property('value') == 'operation').click()
     assert w.speech.retention == 'session'
     (dialog.accept if save else dialog.reject)()
-    assert w.screen.currentIndex() == (1 if save else 0)
+    assert w.settings[0].screen.currentIndex() == (1 if save else 0)
     assert w.speech.retention == ('operation' if save else 'session')
 
 
@@ -119,8 +119,8 @@ def test_application_settings_work_without_a_talk(qtbot):
     assert dialog.scope == 0 and not hasattr(dialog, 'scope_selector')
     w.settings[1].show_section(); w.settings[2].show_section()
     assert not w.settings[1].isVisible() and not w.settings[2].isVisible()
-    dialog.show_section('AI & speech engine', focus=w.engine_state)
-    next(b for b in w.gpu_retention.buttons() if b.property('value') == 'idle').click()
+    dialog.show_section('AI & speech engine', focus=w.settings[0].engine_state)
+    next(b for b in w.settings[0].gpu_retention.buttons() if b.property('value') == 'idle').click()
     dialog.accept()
     assert w.speech.retention == 'idle' and w.project is None
 
@@ -164,7 +164,7 @@ def test_cancel_after_background_work_preserves_completed_result(qtbot, project)
         release.set(); qtbot.waitUntil(lambda: w.job is None)
         w.settings[0].reject()
         w.settings[1].show_section('Talk & preparation')
-        w.audience.setText('Unwanted later edit')
+        w.settings[1].audience.setText('Unwanted later edit')
         w.settings[1].reject()
         assert w.project.audience == 'Newly prepared context'
         assert Project.load(project.manifest).audience == 'Newly prepared context'
@@ -188,7 +188,7 @@ def test_main_duration_persists_independently_of_talk_dialog(qtbot, project, mod
     w.save()
     w.talk_action.trigger()
     assert not hasattr(w, 'settings_minutes')
-    w.audience.setText('A different audience')
+    w.settings[1].audience.setText('A different audience')
     w.settings[1].show_section('Voice & language')
     w.settings[1].show_section('Talk & preparation')
     for dialog in w.settings.values():
@@ -207,8 +207,8 @@ def test_clip_controls_stay_bound_to_the_open_slide(qtbot, project):
     dialog = w.settings[2]
     dialog.show_section('Presentation & recording')
     w.transport.select(1)
-    w.clip_gain.setFocus(); w.clip_gain.selectAll(); qtbot.keyClicks(w.clip_gain, '0.5')
-    qtbot.keyClick(w.clip_gain, Qt.Key.Key_Tab)
+    w.settings[2].clip_gain.setFocus(); w.settings[2].clip_gain.selectAll(); qtbot.keyClicks(w.settings[2].clip_gain, '0.5')
+    qtbot.keyClick(w.settings[2].clip_gain, Qt.Key.Key_Tab)
     assert w.project.slides[0].clips[0].gain == .5
     assert w.project.slides[1].clips[0].gain == 1
     dialog.accept()

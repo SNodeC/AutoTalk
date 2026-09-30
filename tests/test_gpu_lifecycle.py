@@ -43,7 +43,7 @@ def finish_job(w, qtbot):
 
 
 def select_policy(w, name, value):
-    next(b for b in getattr(w, name).buttons() if b.property('value') == value).click()
+    next(b for b in getattr(w.settings[0], name).buttons() if b.property('value') == value).click()
 
 
 def save_policy(w, retention, loading='needed'):
@@ -140,14 +140,14 @@ def test_saved_preferences_and_cancel_do_not_undo_manual_load(engine, project, q
     w = MainWindow(); qtbot.addWidget(w, before_close_func=lambda widget: finish_job(widget, qtbot)); w.adopt(project); w.show()
     w.settings[0].show_section("AI & speech engine")
     select_policy(w, 'gpu_retention', 'operation')
-    assert w.speech.retention == 'session' and 'unsaved' in w.engine_policy_note.text()
+    assert w.speech.retention == 'session' and 'unsaved' in w.settings[0].engine_policy_note.text()
     pid = load(w, qtbot)
     w.settings[0].reject()
     assert w.speech.process.pid == pid and w.speech.retention == 'session'
     save_policy(w, 'operation', 'start')
     assert w.speech.process.pid == pid
     reopened = MainWindow(); qtbot.addWidget(reopened)
-    assert reopened.gpu_loading.checkedButton().property('value') == 'start'
+    assert reopened.settings[0].gpu_loading.checkedButton().property('value') == 'start'
     assert reopened.speech.retention == 'operation' and reopened.speech.process is None
     w.unload_gpu_action.trigger()
     qtbot.waitUntil(lambda: w.speech.process is None)
@@ -236,7 +236,7 @@ def test_cancel_load_and_end_during_load_leave_no_worker(engine, project, qtbot)
     engine.with_name('delay').write_text('1')
     make_audio(project, seconds=3)
     w = MainWindow(); qtbot.addWidget(w, before_close_func=lambda widget: finish_job(widget, qtbot)); w.adopt(project); w.show()
-    w.settings[0].show_section("AI & speech engine"); w.load_gpu_button.click()
+    w.settings[0].show_section("AI & speech engine"); w.settings[0].load_gpu_button.click()
     qtbot.waitUntil(lambda: w.speech.process is not None)
     assert w.progress.isVisible() and w.progress.parentWidget() is w.settings[0]
     w.settings[0].cancel_job.click()
@@ -261,8 +261,8 @@ def test_changing_policy_during_work_waits_for_the_safe_boundary(engine, project
         w.start_job('Preparing speech…', operation)
         qtbot.waitUntil(lambda: w.speech.state == 'in_use')
         w.settings[0].show_section("AI & speech engine")
-        assert w.gpu_retention.buttons()[0].isEnabled()
-        assert not w.unload_gpu_button.isEnabled()
+        assert w.settings[0].gpu_retention.buttons()[0].isEnabled()
+        assert not w.settings[0].unload_gpu_button.isEnabled()
         select_policy(w, 'gpu_retention', 'operation')
         w.settings[0].accept()
         assert w.speech.process is not None and w.speech.retention == 'operation'
@@ -309,7 +309,7 @@ def test_slow_gpu_teardown_keeps_prepared_audio_and_controls_responsive(engine, 
     w.unload_gpu_action.trigger()
     qtbot.waitUntil(lambda: w.speech.state == 'unloading')
     w.settings[0].show_section("AI & speech engine")
-    assert not w.load_gpu_button.isEnabled() and not w.unload_gpu_button.isEnabled()
+    assert not w.settings[0].load_gpu_button.isEnabled() and not w.settings[0].unload_gpu_button.isEnabled()
     qtbot.waitUntil(lambda: w.transport.position > position + .1)
     assert w.speech.process is not None and w.transport.playing
     w.settings[0].reject()
@@ -330,7 +330,7 @@ def test_explicit_update_check_keeps_loaded_model_and_policies(engine, project, 
     w = MainWindow(); qtbot.addWidget(w, before_close_func=lambda widget: finish_job(widget, qtbot))
     w.adopt(project); w.show(); save_policy(w, 'operation'); pid = load(w, qtbot)
     manifest = project.manifest.read_bytes()
-    w.settings[0].show_section("AI & speech engine"); w.check_model_button.click()
+    w.settings[0].show_section("AI & speech engine"); w.settings[0].check_model_button.click()
     qtbot.waitUntil(lambda: w.job is None)
     assert messages and ('different upstream revision' in messages[0]) == newer
     assert w.speech.process.pid == pid and w.speech.retention == 'operation'
@@ -338,7 +338,7 @@ def test_explicit_update_check_keeps_loaded_model_and_policies(engine, project, 
     assert project.manifest.read_bytes() == manifest
     w.settings[0].reject()
     make_audio(project, seconds=3); w.adopt(project); w.present()
-    assert not w.check_model_button.isEnabled()
+    assert not w.settings[0].check_model_button.isEnabled()
     w.stop_presentation()
 
 

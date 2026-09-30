@@ -1,8 +1,8 @@
 # UI performance and surface ownership
 
 Base: `4f21166`, unmerged `codex/ux-redundancy`. Implementation branch:
-`codex/ui-structure-perf`. Linux verification only. This report is incremental;
-C1–C4 are separate verification checkpoints, not a claim of completion.
+`codex/ui-structure-perf`. Linux verification only. C1–C4 are completed as separate verification checkpoints; the documented
+measurement and Qt-popup qualifications below are part of the result.
 
 ## Invariants and measurement
 
@@ -147,3 +147,160 @@ explicit surface entry points, their no-project guards, derived enablement
 properties and flush boundaries are retained instead of packing statements or
 adding a generic dispatch abstraction. C4 will move these responsibilities to
 the actual component owners.
+
+## C4 — component ownership
+
+`InspectorPanel` owns inclusion, after-slide, timing/pause and delivery/audio
+entrances. The window retains only `inspector`, with no widget aliases. Fixed-scope
+dialogs construct and render their own sections, including clips, background,
+account and engine controls. SettingsPanel now creates editor/reset containers
+before their single final placement; deferred construction rows are consumed and
+deleted after building. There are no `takeRow` or `replaceWidget` calls in src.
+
+The controller retains application operations, recording/session lifetime and
+Save/Cancel coordination. Dialog-owned `before` snapshots are preserved. Explicit
+begin/finish callbacks and operation/navigation signals replace reach-through to
+window internals. The allowed window interface is documented in settings.py and
+inspector.py and enforced by an AST test over settings.py/options.py/inspector.py.
+Existing test assertions were retained; widget paths and moved mock targets were
+updated mechanically. A new clip test verifies gain and placement rollback in
+memory and after reopening. The conference/duration mutation handler remains in
+the controller to preserve its original update behavior.
+
+Keyboard traversal was measured on `4f21166` before changing ownership. Direct
+field placement initially interleaved reset buttons; explicit tab ordering now
+preserves the base order. A regression test compares all 93/92/90 named focusable
+controls in application/talk/slide dialogs against the recorded base list.
+
+One literal acceptance assertion needs a Qt-specific qualification: native
+QComboBox popups are child QObjects but independent Qt.Popup windows. They cannot
+have `window() == dialog` without changing native combo behavior. Tests require
+that equality for all embedded content; popup children must belong to a native
+combo popup whose owning combo's window is the dialog. This is not an application
+exception, reparenting shim or alternate dialog implementation.
+
+### Visual verification
+
+Captured 55 native Qt/Breeze screenshots: all three modes at 940×680/1100×850;
+all visible pages per scope at 760×580/920×760, including scroll positions;
+inspector and recording pages in light/dark at 100%/150%. Each image was inspected
+in contact sheets, with full-size checks of the changed regions. Window sizes
+and dialog button containment are asserted by the capture script.
+
+Capture commands (run with the native PYTHONPATH/LD_LIBRARY_PATH above):
+
+```
+QT_QPA_PLATFORM=xcb xvfb-run -a artifacts/open-tasks/venv-qt610/bin/python docs/reviews/evidence/2026-09-30-ui-structure-perf/screens.py
+QT_SCALE_FACTOR=1.5 QT_QPA_PLATFORM=xcb xvfb-run -a artifacts/open-tasks/venv-qt610/bin/python docs/reviews/evidence/2026-09-30-ui-structure-perf/screens.py
+```
+
+The archived base set is actually under
+`docs/reviews/evidence/2026-09-30-ux-redundancy/screens` (the brief omitted
+`evidence`). Comparison tool:
+` .venv/bin/python docs/reviews/evidence/2026-09-30-ui-structure-perf/compare-screens.py <base-directory> <current-directory>`.
+The decoded RGBA pixels are compared without rescaling, tolerance or masking.
+
+Against the archived set: **43/55 pixel-identical**. Every remaining delta:
+
+| Images | Delta |
+|---|---|
+| main Prepared/Realtime, both sizes | Narration focus border |
+| dialog-0-2, 760 part1 and 920 part0 | Loop checkbox focus indicator (76 pixels each) |
+| recording-dark, 150%, top/bottom | Recording-source combo focus border |
+| inspector-light, 100% | Narration focus border and temporary project path |
+| inspector-light, 150% | Narration focus border |
+| inspector-dark, 100%/150% | Temporary project path in status bar |
+
+A fresh unmodified `4f21166` checkout was captured with the same script, native
+libraries and machine to distinguish capture state from application changes.
+**52/55 are exactly identical**. Only inspector-dark 100%/150% and inspector-light
+100% differ, solely in the generated `/tmp/.../talk/talk.autotalk.json` status-bar
+path. The fresh base reproduces the focus highlights above. Both complete sets
+and pixel-count/bounding-box manifests are committed. Thus raw archived captures
+are not claimed to be 55/55 identical; no layout, wording, styling or control
+placement delta remains.
+
+The first visual pass caught missing styled-background painting on the new
+QWidget subclass; enabling Qt's WA_StyledBackground restored the existing Breeze
+background without adding a stylesheet or changing the theme.
+
+### Failed attempts and final verification
+
+- First C4 focused run: 33 passed, two failures from an overly broad mechanical
+  replacement that also changed Job.url. Restored the worker signal.
+- Next focused runs: 66 passed twice. Ownership test initially treated native
+  combo popups as embedded widgets, then used isAncestorOf across a window
+  boundary; corrected it to verify the owning combo's window instead.
+- First C4 full runs: wheel 466 passed/24 failed; native 468 passed/22 failed.
+  Remaining old dynamic/reopened widget paths and conference mock targets caused
+  the failures, alongside the popup test and one wheel focus assertion.
+- A focused offscreen acceptance run had an accidental test import rename and a
+  signal-cleanup timeout; the import was corrected and playback/signal acceptance
+  retained in the normal Xvfb/full-audio-server runs.
+- Next full runs: wheel 490 passed/one failed; native likewise, from the last
+  `reopened.gpu_loading` test path. Its focused rerun passed after the path update.
+- Another wheel run: 490 passed/one Account-focus failure, the same 30 ms focus
+  assertion that was intermittent at C1. No assertions, timeouts or markers were
+  relaxed. Final full-suite results follow below.
+- An isolated development helper was first invoked with a wrong relative path;
+  it made no edits and was rerun from the scratch checkout. Radon installation
+  and the initial tab-order diagnostic's QWidget.window lookup errors were also
+  corrected in diagnostic tooling only.
+
+The last bare-Xvfb native run also hit the 30 ms language-menu focus assertion
+(490 passed/one failed). The installed `xfwm4` was therefore started on the
+private Xvfb display, with a private D-Bus session and temporary xfwm configuration.
+No production desktop, window manager or test assertions were changed. The
+focused UX suite passed 14 tests in that environment. The full-suite command is:
+
+```
+AUTOTALK_TEST_WM=1 .venv/bin/python docs/reviews/evidence/2026-09-30-ui-structure-perf/full-tests.py c4-managed
+```
+
+The driver expands this to `xvfb-run -a dbus-run-session -- <python>
+.../xvfb-session.py <python> -m pytest -q`, retaining the same null-audio-sink and
+native Qt environment. Private-session desktop portal daemons emitted shutdown
+warnings (including a portal-kde KCrash message after the focused session); those
+were session cleanup messages, not AutoTalk test-process crashes. No application
+libraries were modified.
+
+C4 additionally splits dialog synchronization into section/voice/engine/talk
+methods. Maximum refresh/sync CC is **23** (SettingsDialog.sync); main-window
+surface maximum remains **20**, InspectorPanel.refresh **4**. The AST ownership,
+embedded-widget ownership, exact tab-order and clip-rollback tests pass.
+
+| Final checkpoint | Slides | Full refresh ms | Keystroke ms | Selection ms | Aggregate flush ms |
+|---|---:|---:|---:|---:|---:|
+| C4 | 20 | 4.015 | 0.344 | 7.561 | 3.646 |
+| C4 | 60 | 10.235 | 0.378 | 13.326 | 9.389 |
+
+At 60 slides this is **7.78×** faster full refresh and **78.54×** faster synchronous
+keystrokes than the recorded baseline. Counts remain 60/60/60/60 for full refresh
+and 1/1/1/1 for keystrokes (ready/speech_key/text_ready/asset). Aggregates remain
+within the per-pass limits. These are synthetic UI measurements, not speech-model
+startup or synthesis measurements.
+
+| Commit | Production added/deleted | Net production | Net from base | Tests added/deleted |
+|---|---:|---:|---:|---:|
+| C1 | 69 / 2 | +67 | +67 | 123 / 0 |
+| C2 | 18 / 8 | +10 | +77 | 75 / 0 |
+| C3 | 188 / 58 | +130 | +207 | 113 / 0 |
+| C4 | 551 / 407 | +144 | +351 | 183 / 90 |
+
+C4 is within its +150 ceiling. C1+C2 and C3 exceed their estimates for the explicit
+lifetime/refresh boundaries described above. Tests total **+404 net lines**;
+benchmark tools, verification scripts, screenshots and this report are separate.
+
+
+Final C4 checkpoint on unchanged production sources: stock Qt **491 passed in
+100.05 s**, native Qt/Breeze **491 passed in 123.38 s**. Both subprocesses exited
+zero. The complete logs are committed as `c4-wheel.log` and `c4-native.log`.
+Source hashes were checked against the frozen verification snapshot. Physical
+ALSA sink/source mute and volume values match the initial C1 snapshot; private
+null sinks were released by the driver. The approved bundled Qt Multimedia SHA256
+remains `a7243f9b75189d79d97171bee23e388a135e1e1572571e392e424b9a9603782f`.
+
+All four code checkpoints passed complete suites on both requested Qt builds.
+No application runtime dependencies, schema, settings resolution, Codex/engine
+protocol, audio fingerprints or platform support were changed. Windows/macOS and
+live speech-model startup/synthesis were outside this Linux UI task.

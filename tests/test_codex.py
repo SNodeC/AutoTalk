@@ -176,7 +176,7 @@ def test_discovery_updates_ui_without_changing_saved_selections(fake_server, qtb
     window = MainWindow(); qtbot.addWidget(window); window.adopt(project)
     window.connect_chatgpt(interactive=False)
     qtbot.waitUntil(lambda: window.job is None)
-    assert 'Connected to ChatGPT' in window.connection.text()
+    assert 'Connected to ChatGPT' in window.settings[0].connection.text()
     assert window.settings[1].codex_model.itemText(0) == 'Account default (Vision)'
     assert window.settings[1].codex_model.currentData() == 'test-vision'
     assert window.settings[1].codex_effort.currentData() == 'high'
@@ -208,7 +208,7 @@ def test_passive_startup_failure_is_nonmodal_and_closes(fake_server, monkeypatch
     qtbot.waitUntil(lambda: window.job is None)
     assert window.welcome.isEnabled() and not window.codex_settings.get('models')
     if failure != 'cancel':
-        assert 'Restart AutoTalk to retry' in window.connection.text()
+        assert 'Restart AutoTalk to retry' in window.settings[0].connection.text()
     window.close()
 
 
@@ -247,11 +247,11 @@ def test_discovery_protocol_failure_can_be_retried_explicitly(fake_server, monke
     window = MainWindow(); qtbot.addWidget(window)
     window.connect_chatgpt(interactive=False)
     qtbot.waitUntil(lambda: window.job is None)
-    assert 'offline' in window.connection.text() and window.welcome.isEnabled()
+    assert 'offline' in window.settings[0].connection.text() and window.welcome.isEnabled()
     fake_server.write_text(healthy)
     window.connect_chatgpt()
     qtbot.waitUntil(lambda: window.job is None)
-    assert window.settings[1].codex_model.count() == 2 and 'Connected' in window.connection.text()
+    assert window.settings[1].codex_model.count() == 2 and 'Connected' in window.settings[0].connection.text()
 
 
 def test_ui_displays_configured_effort_instead_of_catalog_suggestion(fake_server, qtbot, project):
@@ -290,20 +290,20 @@ def test_auth_buttons_follow_account_and_logout_preserves_talk(fake_server, qtbo
         fake_server.write_text(healthy.replace("{'account':{'type':'chatgpt','planType':'plus'}}", "{'account':None}"))
     window = MainWindow(); qtbot.addWidget(window); window.adopt(project)
     window.connect_chatgpt(interactive=False)
-    assert not window.codex_signin.isEnabled() and not window.codex_signout.isEnabled()
+    assert not window.settings[0].codex_signin.isEnabled() and not window.settings[0].codex_signout.isEnabled()
     qtbot.waitUntil(lambda: window.job is None)
-    assert window.codex_signin.isEnabled() == (not signed_in)
-    assert window.codex_signout.isEnabled() == signed_in
+    assert window.settings[0].codex_signin.isEnabled() == (not signed_in)
+    assert window.settings[0].codex_signout.isEnabled() == signed_in
     if not signed_in:
         fake_server.write_text(healthy)
-        qtbot.mouseClick(window.codex_signin, Qt.MouseButton.LeftButton)
+        qtbot.mouseClick(window.settings[0].codex_signin, Qt.MouseButton.LeftButton)
         qtbot.waitUntil(lambda: window.job is None)
-        assert not window.codex_signin.isEnabled() and window.codex_signout.isEnabled()
+        assert not window.settings[0].codex_signin.isEnabled() and window.settings[0].codex_signout.isEnabled()
     before = len(requests(fake_server))
-    qtbot.mouseClick(window.codex_signout, Qt.MouseButton.LeftButton)
-    assert not window.codex_signin.isEnabled() and not window.codex_signout.isEnabled()
+    qtbot.mouseClick(window.settings[0].codex_signout, Qt.MouseButton.LeftButton)
+    assert not window.settings[0].codex_signin.isEnabled() and not window.settings[0].codex_signout.isEnabled()
     qtbot.waitUntil(lambda: window.job is None)
-    assert window.codex_signin.isEnabled() and not window.codex_signout.isEnabled()
+    assert window.settings[0].codex_signin.isEnabled() and not window.settings[0].codex_signout.isEnabled()
     assert not window.codex_settings['signed_in'] and window.codex_settings['models'] == []
     assert window.settings[1].codex_model.currentData() == 'test-vision'
     assert window.settings[1].codex_effort.currentData() == 'high'
@@ -325,15 +325,15 @@ def test_catalog_failure_keeps_account_known_and_signout_available(fake_server, 
     window.connect_chatgpt(interactive=False)
     qtbot.waitUntil(lambda: window.job is None)
     assert window.codex_settings['signed_in'] and not window.codex_settings['models']
-    assert not window.codex_signin.isEnabled() and window.codex_signout.isEnabled()
+    assert not window.settings[0].codex_signin.isEnabled() and window.settings[0].codex_signout.isEnabled()
     errors = []
     monkeypatch.setattr(QMessageBox, 'warning', lambda *a: errors.append(a[-1]))
     fake_server.write_text(healthy.replace(" elif method=='thread/start':", """ elif method=='account/logout':
   send({'id':rid,'error':{'message':'Sign-out failed'}})
   continue
  elif method=='thread/start':"""))
-    window.codex_signout.click()
+    window.settings[0].codex_signout.click()
     qtbot.waitUntil(lambda: window.job is None)
     assert errors == ['Sign-out failed']
     assert window.codex_settings['signed_in']
-    assert not window.codex_signin.isEnabled() and window.codex_signout.isEnabled()
+    assert not window.settings[0].codex_signin.isEnabled() and window.settings[0].codex_signout.isEnabled()

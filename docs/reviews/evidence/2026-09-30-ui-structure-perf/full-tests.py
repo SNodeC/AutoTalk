@@ -18,7 +18,10 @@ try:
             env['PYTHONPATH']=str(root/'build/system-qt')+':'+str(root/'src')
             env['LD_LIBRARY_PATH']=str(root/'build/system-qt/PySide6/Qt/lib')+':'+str(root/'artifacts/open-tasks/venv-qt610/lib/python3.12/site-packages/shiboken6')
         with (out/(tag+'-full.log')).open('w') as log:
-            result=subprocess.run(['xvfb-run','-a',python,'-m','pytest','-q'],env=env,stdout=log,stderr=subprocess.STDOUT)
+            command=['xvfb-run','-a']
+            if os.environ.get('AUTOTALK_TEST_WM'):
+                command += ['dbus-run-session','--',python,str(root/'docs/reviews/evidence/2026-09-30-ui-structure-perf/xvfb-session.py')]
+            result=subprocess.run(command+[python,'-m','pytest','-q'],env=env,stdout=log,stderr=subprocess.STDOUT)
         print(tag, result.returncode, flush=True)
 finally:
     subprocess.run(['pactl','unload-module',module],check=True)

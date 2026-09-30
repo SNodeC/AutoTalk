@@ -7,7 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import QSize, Qt, QUrl
 from PySide6.QtGui import QAction, QIcon, QDesktopServices, QKeySequence, QPainter
 from PySide6.QtWidgets import (
-    QApplication, QAbstractSpinBox, QButtonGroup, QRadioButton, QComboBox, QCheckBox, QDialog, QDialogButtonBox, QDoubleSpinBox,
+    QApplication, QAbstractSpinBox, QComboBox, QCheckBox, QDialog, QDialogButtonBox, QDoubleSpinBox,
     QFormLayout, QHBoxLayout, QLayout, QLabel, QLineEdit, QListView, QListWidget,
     QPlainTextEdit, QProgressBar, QPushButton, QToolButton, QMessageBox, QScrollArea,
     QTableWidget, QHeaderView, QAbstractItemView, QSizePolicy, QSplitter, QStackedWidget, QTabBar, QMenu, QVBoxLayout, QWidget,
@@ -213,12 +213,12 @@ class SectionDialog(QDialog):
             focus.setFocus()
         self.raise_()
 
-    def sync(self, editable):
+    def sync(self, editable, job=None, **_):
         w = self.window
         self.buttons.setEnabled(not w.recorder.source)
-        self.cancel_job.setVisible(w.job is not None or bool(w.recorder.source))
+        self.cancel_job.setVisible(job is not None or bool(w.recorder.source))
         self.cancel_job.setText("Stop voice recording" if w.recorder.source else "Cancel operation")
-        if not w.job:
+        if not job:
             self.status.clear()
 
     def done(self, result):
@@ -235,81 +235,23 @@ def build(w):
     w.setStyleSheet(STYLE)
     w.actions, w.control_actions, w.dialogs = [], [], []
     from .settings import SettingsDialog
-    w.settings = {scope: SettingsDialog(w, scope) for scope in (0, 1, 2)}
+    w.settings = {scope: SettingsDialog(w, scope, w.defaults, w.preferences.value("presentation_display", ""), w.begin_settings, w.finish_settings) for scope in (0, 1, 2)}
+    for dialog in w.settings.values():
+        dialog.application_requested.connect(lambda page, focus: w.settings[0].show_section(page, focus=focus))
+        dialog.record_requested.connect(w.record_voice)
+        dialog.save_requested.connect(w.save)
+        dialog.finished.connect(w.settings_closed)
+    w.settings[1].details_changed.connect(w.details_changed)
+    application = w.settings[0]
+    for requested, action in ((application.sign_in_requested, w.connect_chatgpt),
+            (application.sign_out_requested, lambda: w.connect_chatgpt(sign_out=True)),
+            (application.load_requested, w.load_gpu), (application.unload_requested, w.release_gpu),
+            (application.model_check_requested, w.check_model_updates),
+            (application.engine_policy_changed, w.update_speech_controls),
+            (application.test_audio_requested, w.test_audio), (application.audio_settings_requested, w.system_audio_settings),
+            (w.settings[1].fit_requested, w.fit_duration)):
+        requested.connect(action)
     w.export_dialog = SectionDialog(w, "Recordings & export")
-    conference = w.settings[1].add("Talk & conference", "Talk & preparation", (1,))
-    conference.parentWidget().layout().removeWidget(conference)
-    conference.parentWidget().layout().insertWidget(0, conference)
-    fields = form(conference)
-    for attr, title, default in (("talk_title", "Talk title", ""), ("audience", "Audience", "General conference audience"),
-                                ("objective", "Talk objective", "Explain the key ideas and takeaways"), ("url", "Conference website", "")):
-        field = QLineEdit(default)
-        field.textChanged.connect(w.details_changed)
-        setattr(w, attr, field)
-        fields.addRow(title, field)
-    w.url.setPlaceholderText("https://conference.example/call-for-papers")
-    w.conference_button = button("Read conference website", w.read_conference)
-    conference.layout().addWidget(w.conference_button)
-    conference.layout().addWidget(label("Optional conference scope: enter topics or review the website summary."))
-    w.scope = QPlainTextEdit()
-    w.scope.setPlaceholderText("Themes, tracks, typical topics, edition/year…")
-    w.scope.textChanged.connect(w.details_changed)
-    conference.layout().addWidget(w.scope, 1)
-    w.sources = label("")
-    w.sources.setOpenExternalLinks(True)
-    conference.layout().addWidget(w.sources)
-    presentation = w.settings[0].add("Display & sound", "Application", (0,))
-    w.screen = combo([(f"Display {i+1}: {screen.name()}", i) for i, screen in enumerate(QApplication.screens())])
-    w.screen.setCurrentIndex(max(0, w.screen.findText(w.preferences.value("presentation_display", ""))))
-    fields = form(presentation)
-    fields.addRow("Fullscreen display on this computer", w.screen)
-    w.audio_test_button = button("Test audio", w.test_audio)
-    presentation.layout().addLayout(row(button("System audio settings…", w.system_audio_settings), w.audio_test_button))
-    presentation.layout().addWidget(label("System sound routing changes immediately. Cancel restores the display selection; external sound settings take effect immediately."))
-    presentation.layout().addStretch()
-    timing = w.settings[1].add("Measured timing", "Talk & preparation", (1,))
-    w.timing_summary = label("")
-    timing.layout().addWidget(w.timing_summary)
-    w.fit_button = button("Fit duration…", w.fit_duration)
-    timing.layout().addWidget(w.fit_button)
-    timing.layout().addWidget(button("Keep these settings for this talk", w.settings[1].pin_settings))
-    account = w.settings[0].add("Account — Codex", "Application", (0,))
-    w.connection = label("Not signed in to ChatGPT.")
-    account.layout().addWidget(w.connection)
-    w.codex_signin = button("Sign in", w.connect_chatgpt)
-    w.codex_signout = button("Sign out", lambda: w.connect_chatgpt(sign_out=True))
-    account.layout().addLayout(row(w.codex_signin, w.codex_signout))
-    account.layout().addWidget(label("Sign-in and sign-out act immediately on the shared Codex account on this computer. Model and reasoning use application defaults with optional talk overrides."))
-    account.layout().addStretch()
-    speech = w.settings[0].add("Speech engine — Qwen", "AI & speech engine", (0,))
-    w.engine_state, w.engine_model = label("Not loaded"), label("")
-    speech.layout().addWidget(w.engine_state)
-    speech.layout().addWidget(w.engine_model)
-    w.load_gpu_button = button("Load model now", w.load_gpu, True)
-    w.unload_gpu_button = button("Unload model now", w.release_gpu)
-    speech.layout().addLayout(row(w.load_gpu_button, w.unload_gpu_button))
-    w.check_model_button = button("Check for model updates…", w.check_model_updates)
-    speech.layout().addWidget(w.check_model_button)
-    for name, title, choices in (
-        ("gpu_loading", "When to load an unloaded model", [("When speech is first needed (recommended)", "needed"), ("When I start a presentation", "start")]),
-        ("gpu_retention", "When to release a loaded model", [("Never — keep loaded until I close AutoTalk", "session"),
-            ("When the presentation ends", "presentation"), ("After 5 minutes without speech generation", "idle"),
-            ("After each preparation or voice preview", "operation")])):
-        speech.layout().addWidget(label(title, "title"))
-        group = QButtonGroup(speech)
-        setattr(w, name, group)
-        for index, (title, value) in enumerate(choices):
-            choice = QRadioButton(title)
-            choice.setProperty("value", value)
-            group.addButton(choice, index)
-            speech.layout().addWidget(choice)
-        group.buttons()[0].setChecked(True)
-        group.buttonClicked.connect(w.update_speech_controls)
-    speech.layout().addWidget(label("Prepared audio can play during background loading. Previews always load a needed model. Manual loading follows the saved release policy; leaving fullscreen is not presentation end. Unloading keeps downloaded files."))
-    w.engine_policy_note = label("")
-    speech.layout().addWidget(w.engine_policy_note)
-    speech.layout().addStretch()
-
     exports = w.export_dialog.add("Recordings")
     exports.layout().addWidget(label("Saved and unfinished recordings", "title"))
     w.recordings = QTableWidget(0, 4)
@@ -448,44 +390,10 @@ def build(w):
     w.notes_toggle.setToolTip("Codex’s interpretation notes for this slide. These are not spoken.")
     center.layout().addLayout(row(w.notes_toggle, button("Insert language passage…", w.insert_passage), None))
     center.layout().addWidget(w.notes)
-    inspector = column("chrome", 10)
-    inspector.layout().addWidget(label("This slide", "title"))
-    w.slide_include = QCheckBox("Include in presentation")
-    w.slide_include.toggled.connect(w.slide_policy_changed)
-    inspector.layout().addWidget(w.slide_include)
-    w.slide_after = combo([("Use talk setting", None), ("Advance automatically", "advance"), ("Pause for live demo", "demo"), ("Wait for presenter", "pause")], w.slide_policy_changed)
-    w.slide_after_source = label("After this slide")
-    inspector.layout().addWidget(w.slide_after_source)
-    inspector.layout().addWidget(w.slide_after)
-    timing = column(margin=0)
-    w.slide_budget = number(0, 14400, 0, w.slide_policy_changed, " sec")
-    w.slide_budget.setSpecialValueText("Automatic")
-    timing.layout().addWidget(w.slide_budget)
-    w.inherit_pause = QCheckBox("Use talk pause")
-    w.inherit_pause.toggled.connect(w.slide_policy_changed)
-    timing.layout().addWidget(w.inherit_pause)
-    w.slide_pause = number(0, 10, .6, w.slide_policy_changed, " sec")
-    w.slide_pause.setSingleStep(.1)
-    form(timing).addRow("Pause after slide", w.slide_pause)
-    disclosure(inspector, "Timing", timing)
-    inspector.layout().addWidget(button("Slide voice && delivery…", lambda: w.settings[2].show_section("Voice & language")))
-    w.delivery_summary = label("")
-    inspector.layout().addWidget(w.delivery_summary)
-    inspector.layout().addWidget(button("Additional audio…", lambda: w.settings[2].show_section("Presentation & recording")))
-    inspector.layout().addWidget(label("Changes here affect only the selected slide."))
-    inspector.layout().addStretch()
-    extras = w.settings[2].add("Slide audio clips", "Presentation & recording", (2,))
-    w.clip_select = combo([], w.show_clip)
-    extras.layout().addWidget(w.clip_select)
-    w.clip_gain = number(0, 2, 1, w.clip_changed)
-    w.clip_gain.setSingleStep(.05)
-    w.clip_placement = combo([("Before narration", "before"), ("After narration", "after")], w.clip_changed)
-    fields = form(extras)
-    fields.addRow("Volume", w.clip_gain)
-    fields.addRow("Play", w.clip_placement)
-    w.remove_clip_button = button("Remove", w.remove_clip)
-    extras.layout().addLayout(row(button("Add…", w.add_clip), w.remove_clip_button))
-    extras.layout().addStretch()
+    from .inspector import InspectorPanel
+    w.inspector = InspectorPanel(w)
+    w.inspector.open_settings.connect(lambda page: w.settings[2].show_section(page))
+    inspector = w.inspector
     inspector_scroll = QScrollArea()
     inspector_scroll.setWidgetResizable(True)
     inspector_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
@@ -637,15 +545,15 @@ def build(w):
     command("Talk", "Create talk text", w.create_narration, control=w.talk_text_button)
     command("Talk", "Rewrite all talk text…", lambda: w.create_narration(rewrite=True), control=w.regenerate_button)
     command("Talk", "Create talk audio", w.prepare_talk, control=w.talk_audio_button)
-    command("Talk", "Fit duration…", w.fit_duration, control=w.fit_button)
+    command("Talk", "Fit duration…", w.fit_duration, control=w.settings[1].fit_button)
     command("Talk", "Language options…", lambda: w.settings[1].show_section("Voice & language", focus=w.settings[1].options.fields["language_policy"]), control=talk_button)
     slides_menu = menus["Talk"].addMenu("Selected slide")
     w.regenerate_action = command(slides_menu, "Rewrite slide text…", w.regenerate_slide, control=w.regenerate_button)
     command(slides_menu, "Create slide audio", w.prepare_slide, control=w.slide_audio_button)
     w.preview_action = command(slides_menu, "Play audio", w.preview_slide, control=w.preview_button)
-    include = command(slides_menu, "Include in presentation", w.slide_include.toggle, control=w.slide_include)
+    include = command(slides_menu, "Include in presentation", w.inspector.slide_include.toggle, control=w.inspector.slide_include)
     include.setCheckable(True)
-    slides_menu.aboutToShow.connect(lambda: include.setChecked(w.slide_include.isChecked()))
+    slides_menu.aboutToShow.connect(lambda: include.setChecked(w.inspector.slide_include.isChecked()))
     command(slides_menu, "Insert language passage…", w.insert_passage, control=w.regenerate_button)
     command(slides_menu, "Additional audio…", lambda: w.settings[2].show_section("Presentation & recording"), control=w.regenerate_button)
     modes = menus["Talk"].addMenu("Mode")
@@ -667,8 +575,8 @@ def build(w):
     command("Presentation", "Presentation settings…", lambda: w.settings[1].show_section("Presentation & recording"), control=w.presentation_button)
     command("Presentation", "System audio settings…", w.system_audio_settings)
     command("Settings", "Application settings…", lambda: w.settings[0].show_section("Application"), "Ctrl+,")
-    command("Settings", "Account…", lambda: w.settings[0].show_section("Application", focus=w.codex_signin))
-    w.engine_action = command("Settings", "Speech engine…", lambda: w.settings[0].show_section("AI & speech engine", focus=w.engine_state))
+    command("Settings", "Account…", lambda: w.settings[0].show_section("Application", focus=w.settings[0].codex_signin))
+    w.engine_action = command("Settings", "Speech engine…", lambda: w.settings[0].show_section("AI & speech engine", focus=w.settings[0].engine_state))
     w.load_gpu_action = command("Settings", "Load speech model now", w.load_gpu)
     w.unload_gpu_action = command("Settings", "Unload speech model now", w.release_gpu)
     w.engine_status = button("Speech engine: Not loaded…", w.engine_action.trigger)

@@ -3,22 +3,22 @@
 
 import argparse
 import copy
+from dataclasses import asdict
 from contextlib import closing, nullcontext
 from datetime import datetime
 import json
 import shutil
 import signal
 import subprocess
-import html
 import sys
 import time
 import wave
 from functools import partial, wraps
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QSettings, Qt, QThread, QTimer, QUrl, Signal
+from PySide6.QtCore import QEvent, QSettings, Qt, QThread, QTimer, QUrl, Signal, QMicrophonePermission
 from PySide6.QtGui import QDesktopServices, QIcon, QPixmap
-from PySide6.QtWidgets import QTableWidgetItem, QApplication, QFileDialog, QInputDialog, QLabel, QMainWindow, QMessageBox, QSizePolicy
+from PySide6.QtWidgets import QTableWidgetItem, QApplication, QFileDialog, QInputDialog, QLabel, QMainWindow, QMessageBox, QSizePolicy, QDialog
 
 
 from .codex import Codex
@@ -26,8 +26,8 @@ from .playback import Playback, Presentation
 from .project import LANGUAGES, Project, SETTING_DEFAULTS, read_settings, file_hash
 from .recording import Recorder
 from .runtime import SpeechSession, Cancelled, Task, child_env, data_dir, speech_session, check_model_update
-from .services import extract_scope, import_pdf, reload_pdf, install_pdf_reload, narrate, prepare, workflow, speech_config
-from .media import RATE, export_prepared, export_recording, import_clip
+from .services import import_pdf, reload_pdf, install_pdf_reload, narrate, prepare, workflow, speech_config
+from .media import RATE, export_prepared, export_recording
 
 def clock(seconds):
     seconds = max(0, round(seconds))
@@ -170,6 +170,45 @@ class MainWindow(QMainWindow):
         self.configuration_changed()
         self.refresh()
 
+    def begin_settings(self, dialog):
+        dialog.defaults_before = copy.deepcopy(self.defaults)
+        dialog.screen_before = self.settings[0].screen.currentIndex()
+        dialog.before = copy.deepcopy(self.project) if dialog.scope and not self.job else None
+
+    def finish_settings(self, dialog, result):
+        if self.recorder.source or self.job and dialog.before is not None and not getattr(self.job, "preserve_playback", False):
+            dialog.status.setText("Stop the current operation or voice recording before closing.")
+            return False
+        if self.transport.preview_path:
+            self.transport.stop()
+        accepted = result == QDialog.DialogCode.Accepted
+        if dialog.scope == 0:
+            if accepted:
+                self.preferences.setValue("setting_defaults", json.dumps(self.defaults, default=lambda v: asdict(v)))
+                self.preferences.setValue("presentation_display", self.settings[0].screen.currentText())
+            else:
+                self.defaults = dialog.defaults_before
+                self.settings[0].screen.setCurrentIndex(dialog.screen_before)
+            self.speech_preferences(accepted)
+            if self.project:
+                self.apply_defaults(self.project)
+        elif dialog.before is not None:
+            if not accepted:
+                if dialog.scope == 2:
+                    self.project.slides[dialog.slide_index] = dialog.before.slides[dialog.slide_index]
+                else:
+                    self.project = dialog.before
+                self.adopt(self.project)
+            if not self.save():
+                return False
+        return True
+
+    def settings_closed(self):
+        self.load_settings()
+        if self.project:
+            self.show_slide(self.transport.index)
+        self.refresh()
+
     def apply_defaults(self, project):
         project.defaults = copy.deepcopy(self.defaults)
         voice = project.defaults.get("voice")
@@ -184,6 +223,7 @@ class MainWindow(QMainWindow):
 
     def load_settings(self, *_, preserve_candidate=False):
         for dialog in self.settings.values():
+            dialog.defaults = self.defaults
             dialog.load_settings(preserve_candidate=preserve_candidate)
 
     def event(self, event):
@@ -323,11 +363,11 @@ class MainWindow(QMainWindow):
         self.project = project
         self.apply_defaults(project)
         self.loading = True
-        self.talk_title.setText(project.title)
-        self.scope.setPlainText(project.scope)
-        self.url.setText(project.conference_url)
-        self.audience.setText(project.audience)
-        self.objective.setText(project.objective)
+        self.settings[1].talk_title.setText(project.title)
+        self.settings[1].conference_scope.setPlainText(project.scope)
+        self.settings[1].url.setText(project.conference_url)
+        self.settings[1].audience.setText(project.audience)
+        self.settings[1].objective.setText(project.objective)
         self.slide_list.clear()
         self.slide_list.addItems([f"{s.page:02d}  Slide {s.page}" for s in project.slides])
         for i, slide in enumerate(project.slides):
@@ -436,9 +476,9 @@ class MainWindow(QMainWindow):
         self.setWindowModified(True)
         p = self.project
         changes = []
-        for name, value, title in (("title", self.talk_title.text(), "Title"), ("scope", self.scope.toPlainText(), "Audience topics"),
-                ("target_minutes", self.sender().value() if self.sender() in (self.minutes,) else p.target_minutes, "Talk length"), ("audience", self.audience.text(), "Audience"),
-                ("objective", self.objective.text(), "Talk objective"), ("conference_url", self.url.text().strip(), "Conference website")):
+        for name, value, title in (("title", self.settings[1].talk_title.text(), "Title"), ("scope", self.settings[1].conference_scope.toPlainText(), "Audience topics"),
+                ("target_minutes", self.sender().value() if self.sender() in (self.minutes,) else p.target_minutes, "Talk length"), ("audience", self.settings[1].audience.text(), "Audience"),
+                ("objective", self.settings[1].objective.text(), "Talk objective"), ("conference_url", self.settings[1].url.text().strip(), "Conference website")):
             if getattr(p, name) != value:
                 changes.append(title)
             setattr(p, name, value)
@@ -482,16 +522,6 @@ class MainWindow(QMainWindow):
         self.notes_toggle.setChecked(False)
         self.notes_toggle.setEnabled(bool(slide.notes.strip()))
         self.notes_toggle.setText("AI notes" if slide.notes.strip() else "No AI notes")
-        self.slide_budget.setValue(slide.budget_seconds)
-        self.slide_include.setChecked(slide.included)
-        source = "app" if self.project.setting_source("after") == "Application default" else "talk"
-        wording = self.slide_after.itemText(self.slide_after.findData(self.project.setting("after")))
-        self.slide_after_source.setText(f"After this slide\nFrom {source}: {wording}")
-        self.slide_after.setItemText(0, f"Use {source} setting")
-        self.slide_after.setCurrentIndex(self.slide_after.findData(slide.overrides.get("after")))
-        self.inherit_pause.setText(f"Use talk pause ({self.project.setting('pause_seconds'):g} s)")
-        self.inherit_pause.setChecked("pause_seconds" not in slide.overrides)
-        self.slide_pause.setValue(self.project.setting("pause_seconds", slide))
         self.loading = False
         with self.project.pass_cache():
             self.refresh_editor()
@@ -573,7 +603,7 @@ class MainWindow(QMainWindow):
             for action, control in self.control_actions:
                 action.setEnabled(False)
             for control in (self.play_button, self.continue_button, self.end_button, self.demo_button,
-                            self.previous_button, self.next_button, self.preview_button, self.fit_button, self.export_button):
+                            self.previous_button, self.next_button, self.preview_button, self.settings[1].fit_button, self.export_button):
                 control.setEnabled(False)
             return
         if self.workspace.currentWidget() in (self.editor, self.quick_page):
@@ -626,28 +656,10 @@ class MainWindow(QMainWindow):
     @ui_pass
     def refresh_dialogs(self):
         p = self.project
-        editable, authoring = self.editable, self.authoring
         for dialog in self.dialogs:
-            dialog.sync(editable)
-        self.codex_signin.setEnabled(editable and not self.codex_settings.get("signed_in", False))
-        self.signin_button.setVisible(p is not None and self.codex_signin.isEnabled())
-        self.codex_signout.setEnabled(editable and bool(self.codex_settings.get("signed_in")))
+            dialog.sync(self.editable, self.job, engine=self.settings[0].engine_state.text())
+        self.signin_button.setVisible(p is not None and self.settings[0].codex_signin.isEnabled())
         self.update_speech_controls()
-        if not p:
-            return
-        for widget in (self.url, self.scope, self.audience, self.objective, self.conference_button):
-            widget.setEnabled(p.mode != "Quick")
-        self.background_button.setText("Background: " + Path(p.background.file).name[:16] + "…" if p.background else "Add background track…")
-        for widget in (self.remove_background_button,):
-            widget.setEnabled(editable and p.background is not None)
-        self.sources.setText("Sources: " + " · ".join(
-            f'<a href="{html.escape(url, quote=True)}">{html.escape(url)}</a>' for url in p.sources) if p.sources else "")
-        ready = sum(p.ready(s) for s in p.included_slides)
-        self.timing_summary.setText(f"Target {clock(p.target_minutes*60)} · {clock(p.total_seconds)} prepared audio\n{ready}/{len(p.included_slides)} included slides have current audio. " +
-            ("Within requested tolerance." if p.within_target else
-             f"Difference: {p.total_seconds-p.target_minutes*60:+.1f} seconds (tolerance ±{p.tolerance_seconds:g}s)." if p.prepared
-             else "Start prepares missing text and audio automatically."))
-        self.fit_button.setEnabled(editable and all(p.text_ready(s) for s in p.included_slides))
 
     @ui_pass
     def refresh_slide_list(self):
@@ -689,10 +701,7 @@ class MainWindow(QMainWindow):
         p = self.project
         if not p:
             return
-        authoring = self.authoring
-        slide = p.slides[self.transport.index]
-        self.slide_pause.setEnabled(authoring and not self.inherit_pause.isChecked())
-        self.delivery_summary.setText(p.setting("voice", slide).label + "\n" + p.setting_source("voice", slide) + "\n" + ("Reference delivery" if p.setting("voice", slide).source == "Base" else p.setting("delivery.style", slide)))
+        self.inspector.refresh(p, p.slides[self.transport.index])
 
     @ui_pass
     def refresh_presenter(self):
@@ -801,17 +810,6 @@ class MainWindow(QMainWindow):
                 task.event({"type": "codex_settings", "account": f"Codex check unavailable: {error} Restart AutoTalk to retry."})
         self.start_job("Signing out of ChatGPT…" if sign_out else "Connecting to ChatGPT…" if interactive else "Checking existing ChatGPT sign-in…", connect)
 
-    def read_conference(self):
-        if not self.url.text().strip():
-            self.error("Enter a conference website URL, or type the scope directly below.")
-            return
-        def done(result):
-            self.project.sources = result["sources"]
-            self.scope.setPlainText(result["scope"])
-            self.project.save()
-            self.log_message("Review the extracted conference scope before writing the talk text.")
-        self.start_job("Reading conference scope…", lambda task: extract_scope(self.url.text().strip(), task, self.project.codex_model, self.project.codex_effort), done)
-
     def create_narration(self, rewrite=False):
         if self.check_source_pdf(force=True):
             return
@@ -857,7 +855,7 @@ class MainWindow(QMainWindow):
         self.live_autostart = False
         self.presentation = Presentation(self.transport, self.previous_action, self.next_action, self.end_action)
         screens = QApplication.screens()
-        screen = screens[min(self.screen.currentIndex(), len(screens)-1)]
+        screen = screens[min(self.settings[0].screen.currentIndex(), len(screens)-1)]
         self.presentation.setScreen(screen)
         self.presentation.setGeometry(screen.geometry())
         self.presentation.closed.connect(self.presentation_closed)
@@ -981,7 +979,6 @@ class MainWindow(QMainWindow):
         kind = value.get("type")
         if kind == "codex_settings":
             self.codex_settings.update(value)
-            self.connection.setText(value["account"])
             self.load_settings()
         elif kind in ("progress", "model_progress"):
             model = kind == "model_progress"
@@ -1034,21 +1031,6 @@ class MainWindow(QMainWindow):
         if ok and self.project:
             self.narration.insertPlainText("\n\n[" + language + "] ")
             self.narration.setFocus()
-
-    def slide_policy_changed(self):
-        if self.loading or not self.project:
-            return
-        slide = self.project.slides[self.transport.index]
-        if not self.slide_include.isChecked() and slide.included and len(self.project.included_slides) == 1:
-            self.slide_include.setChecked(True)
-            self.error("Include at least one slide.")
-            return
-        if slide.budget_seconds != self.slide_budget.value():
-            slide.budget_seconds = self.slide_budget.value()
-        slide.included = self.slide_include.isChecked()
-        self.project.set_setting("after", self.slide_after.currentData(), slide, self.slide_after.currentData() is None)
-        self.project.set_setting("pause_seconds", self.slide_pause.value(), slide, inherit=self.inherit_pause.isChecked())
-        self.configuration_changed()
 
     def regenerate_slide(self):
         if self.check_source_pdf(force=True):
@@ -1113,63 +1095,35 @@ class MainWindow(QMainWindow):
         if self.project:
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.project.root)))
 
-    def show_clip(self, *_):
-        if not self.project:
-            return
-        previous = self.loading
-        self.loading = True
-        clips = self.settings[2].slide.clips
-        index = self.clip_select.currentIndex()
-        self.remove_clip_button.setEnabled(0 <= index < len(clips))
-        self.clip_gain.setEnabled(0 <= index < len(clips))
-        self.clip_placement.setEnabled(0 <= index < len(clips))
-        if 0 <= index < len(clips):
-            self.clip_gain.setValue(clips[index].gain)
-            self.clip_placement.setCurrentIndex(self.clip_placement.findData(clips[index].placement))
-        self.loading = previous
-
-    def clip_changed(self, *_):
-        if not self.loading and self.project:
-            clips = self.settings[2].slide.clips
-            index = self.clip_select.currentIndex()
-            if 0 <= index < len(clips):
-                clips[index].gain = self.clip_gain.value()
-                clips[index].placement = self.clip_placement.currentData()
-                self.configuration_changed()
-
-    def add_clip(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Choose presentation audio", "", "Audio (*.wav *.mp3 *.flac *.ogg *.m4a *.mp4);;All files (*)")
-        if not path:
-            return
-        index = self.settings[2].slide_index
-        def done(clip):
-            self.project.slides[index].clips.append(clip)
-            self.settings[2].load_settings()
-        self.start_job("Importing audio clip…", partial(import_clip, self.project, Path(path)), done)
-
-    def remove_clip(self):
-        clips = self.settings[2].slide.clips
-        index = self.clip_select.currentIndex()
-        if 0 <= index < len(clips):
-            clips.pop(index)
-            self.settings[2].load_settings()
-            self.configuration_changed()
-
-    def add_background(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Choose background audio", "", "Audio (*.wav *.mp3 *.flac *.ogg *.m4a);;All files (*)")
-        if path:
-            def done(clip):
-                clip.gain = self.project.background_gain
-                clip.loop = self.project.background_loop
-                self.project.background = clip
-                self.transport.refresh_audio()
+    def record_voice(self, dialog):
+        try:
+            if self.recorder.source:
+                self.record_timer.stop()
+                path = self.recorder.stop(data_dir() / "recording.wav")
+                dialog.record_button.setText("Record my voice")
                 self.refresh()
-                self.save()
-            self.start_job("Importing background track…", partial(import_clip, self.project, Path(path), placement="background"), done)
+                dialog.set_voice(path)
+            else:
+                permission = QMicrophonePermission()
+                application = QApplication.instance()
+                status = application.checkPermission(permission)
+                if status == Qt.PermissionStatus.Undetermined:
+                    application.requestPermission(permission, dialog, lambda _: dialog.toggle_recording())
+                    return
+                if status == Qt.PermissionStatus.Denied:
+                    raise RuntimeError("Allow microphone access for AutoTalk in system privacy settings, or import a reference recording.")
+                self.transport.stop()
+                self.recorder.editor = dialog
+                self.recorder.start()
+                dialog.record_button.setText("Stop recording")
+                self.refresh()
+                self.record_timer.start(30000)
+        except (RuntimeError, OSError, ValueError, wave.Error) as error:
+            self.record_timer.stop()
+            dialog.record_button.setText("Record my voice")
+            self.refresh()
+            self.error(str(error))
 
-    def remove_background(self):
-        self.project.background = None
-        self.configuration_changed()
 
     def system_audio_settings(self):
         import shutil
@@ -1279,7 +1233,7 @@ class MainWindow(QMainWindow):
 
     def speech_preferences(self, save=False):
         for name, default in (("gpu_loading", "needed"), ("gpu_retention", "session")):
-            group = getattr(self, name)
+            group = getattr(self.settings[0], name)
             if save:
                 self.preferences.setValue(name, group.checkedButton().property("value"))
             else:
@@ -1294,35 +1248,15 @@ class MainWindow(QMainWindow):
         return speech_config(self.project, self.project.slides[self.transport.index]) if self.project else speech_config(self.settings[0].voice_context())
 
     def update_speech_controls(self):
-        owner = self.speech
-        state = owner.state
         try:
             config = self.selected_speech_config()
         except ValueError:
             config = None
-        ready = owner.matches(config) if config else False
-        descriptions = {"unloaded": "Not loaded", "loading": "Loading speech model…", "ready": "Ready on GPU",
-                        "generating": "Generating speech", "in_use": "Speech model in use", "unloading": "Unloading model…", "failed": "Speech engine stopped or failed"}
-        consequence = {"session": "Kept until AutoTalk closes.", "presentation": "Will unload at the next presentation end.",
-                       "idle": "Will unload after five idle minutes.", "operation": "Will unload after the next preparation or preview finishes."}
-        status = descriptions[state]
-        if state == "ready":
-            status += " · " + owner.config["model"]["repo"].rsplit("/", 1)[-1]
-            status += " · " + ("Unloading requested." if owner.release_requested else consequence[owner.retention])
-        self.engine_status.setText("Speech engine: " + descriptions[state].removesuffix("…") + "…")
-        self.engine_state.setText(status)
-        self.engine_model.setText((f"Selected slide {self.transport.index + 1}: " if self.project else "Application default: ") + config["model"]["repo"].rsplit("/", 1)[-1] if config else
-                                  "Open a talk and configure its voice to select a speech model.")
-        self.load_gpu_button.setText("Load selected model" if owner.process and not ready else "Load model now")
-        self.load_gpu_button.setEnabled(bool(config and not self.job and not owner.release_requested and state not in ("loading", "generating", "unloading") and not ready))
-        self.unload_gpu_button.setEnabled(bool(owner.process and not owner.guard.locked() and not owner.release_requested and state in ("ready", "failed")))
-        self.load_gpu_action.setEnabled(self.load_gpu_button.isEnabled())
-        self.unload_gpu_action.setEnabled(self.unload_gpu_button.isEnabled())
-        self.check_model_button.setEnabled(bool(config and not self.job and not self.transport.active and not self.transport.preview_path))
-        dirty = any(getattr(self, name).checkedButton().property("value") != self.preferences.value(name, default)
-                    for name, default in (("gpu_loading", "needed"), ("gpu_retention", "session")))
-        self.engine_policy_note.setText("Automatic settings have unsaved changes. Load/unload actions take effect immediately." if dirty else
-                                       "Automatic settings are saved. Load/unload actions take effect immediately.")
+        dialog = self.settings[0]
+        description = dialog.sync_engine(self.speech, config, self.job, self.preferences)
+        self.engine_status.setText("Speech engine: " + description.removesuffix("…") + "…")
+        self.load_gpu_action.setEnabled(dialog.load_gpu_button.isEnabled())
+        self.unload_gpu_action.setEnabled(dialog.unload_gpu_button.isEnabled())
 
     def load_gpu(self):
         if self.job:
@@ -1340,7 +1274,7 @@ class MainWindow(QMainWindow):
         self.start_job("Loading speech model…", load, preserve_playback=True)
 
     def check_model_updates(self):
-        if not self.check_model_button.isEnabled():
+        if not self.settings[0].check_model_button.isEnabled():
             return
         spec = self.selected_speech_config()["model"]
         def checked(latest):

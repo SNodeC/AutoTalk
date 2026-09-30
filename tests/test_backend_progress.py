@@ -104,7 +104,7 @@ def test_ui_stays_loading_after_full_counter_until_ready_or_cancel(loading_worke
         assert any('3.88 GiB' in text for _, text in seen)
         assert any('1 / 1 files' in text for _, text in seen)
         assert window.progress.maximum() == 1 and window.progress.value() == 0
-        assert not window.load_gpu_button.isEnabled()
+        assert not window.settings[0].load_gpu_button.isEnabled()
         if cancel:
             window.cancel()
         else:

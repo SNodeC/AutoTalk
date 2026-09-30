@@ -35,7 +35,7 @@ def test_single_editor_ownership(qtbot, project):
     assert not slide.pause.isVisible() and not slide.settings_after.isVisible()
     slide.reject()
     reveal_timing(w)
-    assert w.slide_pause.isVisible() and w.inherit_pause.isVisible()
+    assert w.inspector.slide_pause.isVisible() and w.inspector.inherit_pause.isVisible()
     assert not any(b.text() == 'Delivery' for b in w.editor.findChildren(QToolButton))
 
 
@@ -93,19 +93,19 @@ def test_inspector_source_pause_and_delivery_independence(qtbot, project, talk_o
     project.set_setting('delivery.instructions', 'Speak softly', project.slides[0])
     w = MainWindow(); qtbot.addWidget(w); w.defaults['after'] = 'demo'; w.adopt(project); w.show(); reveal_timing(w)
     source = 'talk' if talk_override else 'app'
-    assert w.slide_after.itemText(0) == f'Use {source} setting'
-    assert f'From {source}: ' + ('Wait for presenter' if talk_override else 'Pause for live demo') in w.slide_after_source.text()
-    assert not w.slide_pause.isEnabled()
-    w.inherit_pause.setChecked(False); w.slide_pause.setValue(0)
-    w.slide_after.setCurrentIndex(w.slide_after.findData('advance'))
+    assert w.inspector.slide_after.itemText(0) == f'Use {source} setting'
+    assert f'From {source}: ' + ('Wait for presenter' if talk_override else 'Pause for live demo') in w.inspector.slide_after_source.text()
+    assert not w.inspector.slide_pause.isEnabled()
+    w.inspector.inherit_pause.setChecked(False); w.inspector.slide_pause.setValue(0)
+    w.inspector.slide_after.setCurrentIndex(w.inspector.slide_after.findData('advance'))
     assert project.slides[0].overrides['delivery.instructions'] == 'Speak softly'
     w.save()
     loaded = Project.load(project.manifest); w.adopt(loaded)
-    assert loaded.slides[0].overrides['pause_seconds'] == 0 and w.slide_pause.isEnabled()
-    w.inherit_pause.setChecked(True); w.save()
+    assert loaded.slides[0].overrides['pause_seconds'] == 0 and w.inspector.slide_pause.isEnabled()
+    w.inspector.inherit_pause.setChecked(True); w.save()
     assert 'pause_seconds' not in Project.load(project.manifest).slides[0].overrides
-    assert w.slide_pause.value() == loaded.setting('pause_seconds')
-    assert not w.slide_pause.isEnabled()
+    assert w.inspector.slide_pause.value() == loaded.setting('pause_seconds')
+    assert not w.inspector.slide_pause.isEnabled()
     assert loaded.slides[0].overrides['delivery.instructions'] == 'Speak softly'
 
 
@@ -113,7 +113,7 @@ def test_readouts_recording_and_progress_position(qtbot, project):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     assert w.summary.text() == 'Audio not ready'
     target = clock(project.target_minutes*60)
-    assert w.timing_summary.text().count(target) == 1
+    assert w.settings[1].timing_summary.text().count(target) == 1
     w.record.setChecked(True)
     assert not w.record_status.isVisible()
     capture = SimpleNamespace(frames=17*RATE, ready=True)
@@ -139,17 +139,17 @@ def test_menu_focus_status_and_background(qtbot, project):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     assert not w.statusBar().currentMessage()
     action(w, 'Settings', 'Account…').trigger(); qtbot.wait(30)
-    assert w.codex_signin.hasFocus()
+    assert w.settings[0].codex_signin.hasFocus()
     w.settings[0].reject()
     menus = w.menuBar().actions()
     help_menu = next(a for a in menus if a.text() == 'Help').menu()
     assert 'Operation details' not in [a.text() for a in help_menu.actions()]
     assert action(w, 'View', 'Operation details')
-    parent = w.background_button.parentWidget()
-    assert w.remove_background_button.parentWidget() is parent
+    parent = w.settings[1].background_button.parentWidget()
+    assert w.settings[1].remove_background_button.parentWidget() is parent
     assert w.settings[1].background_gain.isAncestorOf(parent) is False
     assert parent.isAncestorOf(w.settings[1].background_gain)
-    assert w.settings[0].voice_model.text().count(w.engine_state.text()) == 0
+    assert w.settings[0].voice_model.text().count(w.settings[0].engine_state.text()) == 0
 
 
 def test_unchanged_values_preserve_text_audio_keys_and_settings(qtbot, project):
@@ -163,8 +163,8 @@ def test_unchanged_values_preserve_text_audio_keys_and_settings(qtbot, project):
     w.mode.setCurrentText(project.mode)
     w.language.setCurrentIndex(w.language.findData(project.active_version))
     w.record.setChecked(project.record_presentation)
-    w.slide_after.setCurrentIndex(w.slide_after.currentIndex())
-    w.slide_pause.setValue(w.slide_pause.value())
+    w.inspector.slide_after.setCurrentIndex(w.inspector.slide_after.currentIndex())
+    w.inspector.slide_pause.setValue(w.inspector.slide_pause.value())
     dialog = w.settings[2]; dialog.show_section('Voice & language')
     field = dialog.options.fields['delivery.instructions']; field.setText(field.text())
     dialog.accept()

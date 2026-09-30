@@ -1,0 +1,80 @@
+[
+  {
+    "slides": 20,
+    "refresh": {
+      "ms": 4.015,
+      "calls": {
+        "ready": 20,
+        "speech_key": 20,
+        "text_ready": 20,
+        "asset": 20
+      }
+    },
+    "keystroke": {
+      "ms": 0.344,
+      "calls": {
+        "ready": 1,
+        "speech_key": 1,
+        "text_ready": 1,
+        "asset": 1
+      }
+    },
+    "selection": {
+      "ms": 7.561,
+      "calls": {
+        "ready": 20,
+        "speech_key": 20,
+        "text_ready": 21,
+        "asset": 23
+      }
+    },
+    "aggregates": {
+      "ms": 3.646,
+      "calls": {
+        "ready": 20,
+        "speech_key": 20,
+        "text_ready": 20,
+        "asset": 19
+      }
+    }
+  },
+  {
+    "slides": 60,
+    "refresh": {
+      "ms": 10.235,
+      "calls": {
+        "ready": 60,
+        "speech_key": 60,
+        "text_ready": 60,
+        "asset": 60
+      }
+    },
+    "keystroke": {
+      "ms": 0.378,
+      "calls": {
+        "ready": 1,
+        "speech_key": 1,
+        "text_ready": 1,
+        "asset": 1
+      }
+    },
+    "selection": {
+      "ms": 13.326,
+      "calls": {
+        "ready": 60,
+        "speech_key": 60,
+        "text_ready": 61,
+        "asset": 63
+      }
+    },
+    "aggregates": {
+      "ms": 9.389,
+      "calls": {
+        "ready": 60,
+        "speech_key": 60,
+        "text_ready": 60,
+        "asset": 59
+      }
+    }
+  }
+]

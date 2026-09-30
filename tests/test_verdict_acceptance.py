@@ -21,22 +21,22 @@ from test_gpu_lifecycle import engine
 
 @pytest.mark.parametrize('source', ['CustomVoice', 'Base'])
 def test_conference_completion_restores_activity_without_erasing_capabilities(qtbot, project, monkeypatch, source):
-    from autotalk import app
+    from autotalk import settings
     release = threading.Event()
     project.voice = Voice(source=source)
     project.conference_url = 'https://conference.example'
-    monkeypatch.setattr(app, 'extract_scope', lambda *args: (
+    monkeypatch.setattr(settings, 'extract_scope', lambda *args: (
         release.wait(5), {'scope': 'Verified conference topics', 'sources': [project.conference_url]})[1])
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     qtbot.mouseClick(next(b for b in w.overview.findChildren(QPushButton) if b.text() == 'Talk settings…'), Qt.MouseButton.LeftButton)
     dialog = w.settings[1]
     try:
-        qtbot.mouseClick(w.conference_button, Qt.MouseButton.LeftButton)
+        qtbot.mouseClick(w.settings[1].conference_button, Qt.MouseButton.LeftButton)
         assert w.job is not None and not w.settings[1].tolerance.isEnabled()
         release.set()
         qtbot.waitUntil(lambda: w.job is None)
         assert dialog.isVisible()
-        assert w.scope.toPlainText() == 'Verified conference topics'
+        assert w.settings[1].conference_scope.toPlainText() == 'Verified conference topics'
         assert w.settings[1].tolerance.isEnabled() and w.mode.isEnabled()
         w.settings[1].tolerance.setFocus(); w.settings[1].tolerance.selectAll()
         qtbot.keyClicks(w.settings[1].tolerance, '23')
