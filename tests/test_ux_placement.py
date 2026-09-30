@@ -44,10 +44,10 @@ def test_p1_controls_are_visible_without_scroll_and_do_not_overlap(qtbot, projec
         for inherited in ('advance', 'pause', 'demo'):
             w.project.set_setting('after', inherited)
             w.show_slide(0)
-            option = QStyleOptionComboBox(); w.slide_after.initStyleOption(option)
-            field = w.slide_after.style().subControlRect(QStyle.CC_ComboBox, option, QStyle.SC_ComboBoxEditField, w.slide_after)
-            for item in range(w.slide_after.count()):
-                assert w.slide_after.fontMetrics().horizontalAdvance(w.slide_after.itemText(item)) <= field.width()
+            option = QStyleOptionComboBox(); w.inspector.slide_after.initStyleOption(option)
+            field = w.inspector.slide_after.style().subControlRect(QStyle.CC_ComboBox, option, QStyle.SC_ComboBoxEditField, w.inspector.slide_after)
+            for item in range(w.inspector.slide_after.count()):
+                assert w.inspector.slide_after.fontMetrics().horizontalAdvance(w.inspector.slide_after.itemText(item)) <= field.width()
         for control in (w.regenerate_button, w.slide_audio_button, w.preview_button):
             assert not control.geometry().intersects(w.narration.geometry())
     else:
@@ -68,18 +68,18 @@ def test_dialog_destinations_and_direct_voice_sources(qtbot, project):
     w.settings[1].reject()
     qtbot.mouseClick(w.presentation_button, Qt.LeftButton)
     w.settings[0].show_section("Application")
-    visible_inside(w.screen, w.settings[0])
-    visible_inside(w.audio_test_button, w.settings[0])
+    visible_inside(w.settings[0].screen, w.settings[0])
+    visible_inside(w.settings[0].audio_test_button, w.settings[0])
     w.settings[0].reject()
     w.settings[1].show_section("Presentation & recording")
     visible_inside(w.settings[1].options.fields['recording_source'], w.settings[1])
     assert w.record.parentWidget() is w.record_footer
     w.settings[1].reject()
     w.talk_action.trigger()
-    assert w.audience.isVisible() and w.objective.isVisible() and w.scope.isVisible()
+    assert w.settings[1].audience.isVisible() and w.settings[1].objective.isVisible() and w.settings[1].conference_scope.isVisible()
     w.settings[1].show_section("AI & speech engine")
     assert w.settings[1].codex_model.isVisible() and w.settings[1].codex_effort.isVisible()
-    assert not w.codex_signin.isVisible() and not w.settings[1].options.override.isVisible()
+    assert not w.settings[0].codex_signin.isVisible() and not w.settings[1].options.override.isVisible()
     w.settings[1].reject()
 
 
@@ -197,12 +197,12 @@ def test_delivery_preset_and_style_never_overwrite_sampling(qtbot, project, monk
 
 def test_cancel_restores_clips_display_and_project_settings(qtbot, project):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    w.screen.addItem('Second test display', 1)
-    w.settings[0].show_section('Application'); w.screen.setCurrentIndex(1)
+    w.settings[0].screen.addItem('Second test display', 1)
+    w.settings[0].show_section('Application'); w.settings[0].screen.setCurrentIndex(1)
     w.settings[0].reject()
     w.presentation_button.click(); w.settings[1].pause.setValue(2)
     w.settings[1].reject()
-    assert w.screen.currentIndex() == 0 and w.project.pause_seconds == .6
+    assert w.settings[0].screen.currentIndex() == 0 and w.project.pause_seconds == .6
     w.settings[2].show_section("Presentation & recording")
     w.project.slides[0].notes = 'Pending edit'
     w.save()  # Even handlers that persist eagerly are rolled back by Cancel.
@@ -214,10 +214,10 @@ def test_cancel_restores_clips_display_and_project_settings(qtbot, project):
 def test_engine_account_and_f5_use_their_single_authoritative_commands(qtbot, project, monkeypatch):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     w.engine_status.click()
-    assert w.engine_state.isVisible() and w.load_gpu_button.isVisible()
+    assert w.settings[0].engine_state.isVisible() and w.settings[0].load_gpu_button.isVisible()
     w.settings[0].reject()
     w.settings[0].show_section("Application")
-    assert w.codex_signin.isVisible() and w.codex_signout.isVisible()
+    assert w.settings[0].codex_signin.isVisible() and w.settings[0].codex_signout.isVisible()
     assert not w.settings[0].codex_model.isVisible()
     w.settings[0].reject()
     starts = []

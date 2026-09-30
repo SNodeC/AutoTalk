@@ -225,14 +225,14 @@ def test_desktop_workspaces_and_remembered_policy(qtbot,project):
     w.mode.setCurrentText('Realtime')
     assert w.workspace.currentWidget() is w.editor
     w.settings[0].show_section("AI & speech engine")
-    next(b for b in w.gpu_retention.buttons() if b.property('value') == 'idle').click()
+    next(b for b in w.settings[0].gpu_retention.buttons() if b.property('value') == 'idle').click()
     assert w.speech.retention == 'session'
     w.settings[0].accept()
     assert w.speech.retention=='idle'
     w2=MainWindow();qtbot.addWidget(w2)
-    assert w2.gpu_retention.checkedButton().property('value')=='idle'
+    assert w2.settings[0].gpu_retention.checkedButton().property('value')=='idle'
     w.settings[0].show_section("AI & speech engine")
-    next(b for b in w.gpu_retention.buttons() if b.property('value') == 'session').click()
+    next(b for b in w.settings[0].gpu_retention.buttons() if b.property('value') == 'session').click()
     w.settings[0].accept()
 
 

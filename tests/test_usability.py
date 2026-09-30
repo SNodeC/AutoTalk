@@ -29,7 +29,7 @@ def test_open_pdf_has_one_dialog_and_non_destructive_default_location(qtbot, sam
         assert w.project.manifest.is_file()
         assert w.start_button.text() == 'Prepare and start'
         assert 'Start reuses current audio' in w.status.text()
-        assert w.settings[1].isVisible() and w.minutes.isVisible() and w.audience.isVisible()
+        assert w.settings[1].isVisible() and w.minutes.isVisible() and w.settings[1].audience.isVisible()
         w.settings[1].accept()
     assert (projects / 'slides-AutoTalk/talk.autotalk.json').is_file()
 
@@ -284,7 +284,7 @@ def test_inapplicable_options_and_recording_browser_priorities(qtbot, project, m
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     assert not w.settings[1].options.use_preset_button.isEnabled()
     w.settings[1].show_section("Presentation & recording")
-    assert not w.remove_background_button.isEnabled() and w.settings[1].background_gain.isEnabled()
+    assert not w.settings[1].remove_background_button.isEnabled() and w.settings[1].background_gain.isEnabled()
     assert w.settings[1].background_gain.value() == 15 and w.settings[1].background_gain.suffix() == ' %'
     w.settings[1].accept()
     w.export_dialog.show_section()
@@ -292,7 +292,7 @@ def test_inapplicable_options_and_recording_browser_priorities(qtbot, project, m
     assert w.export_button.y() > w.recordings.y()
     w.export_dialog.accept()
     w.settings[1].show_section("Talk & preparation")
-    assert w.fit_button.isVisible()
+    assert w.settings[1].fit_button.isVisible()
     w.settings[1].reject()
     assert project.slides[0].source_text.splitlines()[0] in w.slide_list.item(0).text()
 
@@ -439,10 +439,10 @@ def test_saved_voice_preview_feedback_and_settings_have_one_owner(qtbot, project
     assert w.settings[1].buttons.button(QDialogButtonBox.Save).text().replace('&', '') == 'Save'
     w.settings[1].reject()
     w.settings[0].show_section("Application")
-    assert w.screen.isVisible() and w.audio_test_button.isVisible()
+    assert w.settings[0].screen.isVisible() and w.settings[0].audio_test_button.isVisible()
     w.settings[0].reject()
     w.settings[1].show_section("Presentation & recording")
-    assert w.record.isVisible() and not w.screen.isVisible() and not w.audio_test_button.isVisible()
+    assert w.record.isVisible() and not w.settings[0].screen.isVisible() and not w.settings[0].audio_test_button.isVisible()
     w.settings[1].reject()
 
 

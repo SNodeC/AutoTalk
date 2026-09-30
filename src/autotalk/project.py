@@ -9,6 +9,8 @@ import re
 import shutil
 import uuid
 import wave
+from contextlib import contextmanager
+from functools import wraps
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -212,6 +214,37 @@ class TalkVersion:
     slides: list[Slide] = field(default_factory=list)
 
 
+def pass_query(method):
+    @wraps(method)
+    def query(self, value, **kwargs):
+        memo = getattr(self, "_pass_memo", None)
+        if memo is None:
+            return method(self, value, **kwargs)
+        key = (method.__name__, id(value) if isinstance(value, Slide) else value, tuple(sorted(kwargs.items())))
+        if key not in memo:
+            try:
+                memo[key] = (True, method(self, value, **kwargs))
+            except ValueError as error:
+                memo[key] = (False, error.args)
+        valid, result = memo[key]
+        if not valid:
+            raise ValueError(*result)
+        return result
+    return query
+
+
+def mutates_project(method):
+    @wraps(method)
+    def mutate(self, *args, **kwargs):
+        memo = getattr(self, "_pass_memo", {})
+        memo.clear()
+        try:
+            return method(self, *args, **kwargs)
+        finally:
+            memo.clear()
+    return mutate
+
+
 @dataclass
 class Project:
     root: Path
@@ -231,6 +264,20 @@ class Project:
     overrides: dict = field(default_factory=dict)
     defaults: dict = field(default_factory=dict, repr=False, compare=False)
 
+    @contextmanager
+    def pass_cache(self):
+        if hasattr(self, "_pass_memo"):
+            yield self
+            return
+        self._pass_memo = {}
+        try:
+            yield self
+        finally:
+            del self._pass_memo
+
+    def __getstate__(self):
+        return {k: v for k, v in self.__dict__.items() if k != "_pass_memo"}
+
     def setting(self, name, slide=None):
         if slide is not None and name in slide.overrides:
             return slide.overrides[name]
@@ -242,6 +289,7 @@ class Project:
             return self.defaults[name]
         return copy.deepcopy(SETTING_DEFAULTS[name][0])
 
+    @mutates_project
     def set_setting(self, name, value, slide=None, inherit=False):
         if name not in SETTING_DEFAULTS or slide is not None and 2 not in SETTING_DEFAULTS[name][1]:
             raise ValueError("This setting is not available at this scope.")
@@ -260,10 +308,12 @@ class Project:
     def setting_source(self, name, slide=None):
         return "Slide override" if slide and name in slide.overrides else "Talk setting" if name in self.overrides or name == "language" and self.version.language else "Application default"
 
+    @mutates_project
     def set_narration(self, slide, text):
         slide.narration = text
         slide.narration_language = self.setting("language", slide)
 
+    @pass_query
     def text_ready(self, slide):
         return bool(slide.passages) and (all(p.language for p in slide.passages)
             or slide.narration_language == self.setting("language", slide))
@@ -338,6 +388,7 @@ class Project:
     def manifest(self):
         return self.root / "talk.autotalk.json"
 
+    @pass_query
     def asset(self, relative: str) -> Path:
         path = (self.root / relative).resolve()
         if not path.is_relative_to(self.root.resolve()):
@@ -347,6 +398,7 @@ class Project:
     def image(self, slide: Slide) -> Path:
         return self.asset(f"slides/{slide.page:04d}.png")
 
+    @pass_query
     def audio(self, slide: Slide) -> Path:
         return self.asset(slide.audio_file or self.audio_name(slide))
 
@@ -386,6 +438,7 @@ class Project:
     def pause_after(self, slide):
         return self.setting("pause_seconds", slide) if self.included_slides and 0 < slide.page < self.included_slides[-1].page else 0
 
+    @pass_query
     def speech_key(self, slide: Slide, *, instructions=None) -> str:
         passages = [asdict(p) for p in self.effective_passages(slide)]
         selected = self.setting("voice", slide)
@@ -399,6 +452,7 @@ class Project:
                       self.pause_after(slide)])
         return digest([key, "earliest"]) if self.speech_priority == "earliest" else key
 
+    @pass_query
     def ready(self, slide: Slide) -> bool:
         try:
             return bool(self.text_ready(slide) and slide.audio_key == self.speech_key(slide)
@@ -434,6 +488,7 @@ class Project:
         temporary.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         temporary.replace(self.manifest)
 
+    @mutates_project
     def select_language(self, language):
         if language not in LANGUAGES:
             raise ValueError("Unsupported language.")
@@ -449,6 +504,7 @@ class Project:
             self.active_version = key
         return self.active_version
 
+    @mutates_project
     def set_voice(self, source: Path, transcript: str = ""):
         duration = wav_duration(source)
         if not 3 <= duration <= 60:
@@ -558,6 +614,7 @@ class Project:
                         slide.duration = wav_duration(audio)
         return project
 
+    @mutates_project
     def validate(self):
         if not isinstance(self.target_minutes, (int, float)) or not math.isfinite(self.target_minutes) or not .1 <= self.target_minutes <= 240:
             raise ValueError("Project timing is outside supported bounds.")

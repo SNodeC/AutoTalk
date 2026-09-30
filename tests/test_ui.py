@@ -258,7 +258,7 @@ def test_cancel_settings_restores_project_and_manifest_after_eager_save(qtbot, p
     window.transport.select(1)
     window.settings[1].show_section("Talk & preparation")
     window.minutes.setValue(19)
-    window.scope.setPlainText('A different conference')
+    window.settings[1].conference_scope.setPlainText('A different conference')
     window.language.setCurrentText('German')
     window.save()  # Existing language/reference/worker handlers can save eagerly.
     window.settings[1].reject()
@@ -276,12 +276,12 @@ def test_preferences_cancel_restores_retention_and_sampling(qtbot, project):
     qtbot.addWidget(window)
     window.adopt(project)
     window.show()
-    original = window.gpu_retention.checkedButton().property("value")
+    original = window.settings[0].gpu_retention.checkedButton().property("value")
     window.settings[0].show_section("AI & speech engine")
-    next(b for b in window.gpu_retention.buttons() if b.property('value') == 'operation').click()
+    next(b for b in window.settings[0].gpu_retention.buttons() if b.property('value') == 'operation').click()
     assert window.speech.retention == original  # Draft policies do not act before Save.
     window.settings[0].reject()
-    assert window.gpu_retention.checkedButton().property("value") == original
+    assert window.settings[0].gpu_retention.checkedButton().property("value") == original
     assert window.speech.retention == original
     window.settings[1].show_section("AI & speech engine")
     window.settings[1].options.override.setChecked(True)
@@ -359,8 +359,8 @@ def test_minimum_editor_layout_keeps_inspector_controls_separate(qtbot, project)
     from PySide6.QtCore import QPoint
     window.settings[2].show_section("Presentation & recording")
     qtbot.wait(30)
-    gain_bottom = window.clip_gain.mapToGlobal(QPoint(0, window.clip_gain.height()))
-    placement_top = window.clip_placement.mapToGlobal(QPoint(0, 0))
+    gain_bottom = window.settings[2].clip_gain.mapToGlobal(QPoint(0, window.settings[2].clip_gain.height()))
+    placement_top = window.settings[2].clip_placement.mapToGlobal(QPoint(0, 0))
     assert placement_top.y() >= gain_bottom.y()
     assert window.image.height() >= 100
     assert window.narration.height() >= 100
