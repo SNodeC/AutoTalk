@@ -15,10 +15,10 @@ and PySide6 and follows the platform's appearance.
 platform. Windows and macOS implementations are available for development but
 still require native qualification. There is no stable release yet.
 
-![AutoTalk editor showing the DACHS 2026 slide deck, editable German narration and slide controls](docs/images/editor.png)
+![AutoTalk editor showing the DACHS 2026 slide deck, editable English narration and slide controls](docs/images/editor.png)
 
 *Linux editor with Volker Christian's DACHS 2026 presentation,
-“Kollaborative KI-gestützte Softwareentwicklung in der Lehre,” and example narration.*
+“Kollaborative KI-gestützte Softwareentwicklung in der Lehre,” and English narration in Realtime mode.*
 
 ## What you can do
 
@@ -42,9 +42,9 @@ Realtime is generated narration, not an audience conversation. Startup time
 includes any required model loading; slower synthesis can cause buffering.
 Target duration is approximate until audio has been generated and measured.
 
-![AutoTalk presenter view showing the current and next DACHS slides, narration and presentation controls](docs/images/presenter.png)
+![AutoTalk presenter view showing the current and next DACHS slides, Chinese narration and presentation controls](docs/images/presenter.png)
 
-*Presenter view: current and next slides, narration, timing and playback controls.*
+*Presenter view with Chinese narration: current and next slides, timing and playback controls.*
 
 ## Requirements and platform support
 
