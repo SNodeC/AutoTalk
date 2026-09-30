@@ -1,0 +1,22 @@
+Qt 6.10.2: ['Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure']
+Stopping capture through its public API
+
+Thread 1 "python" received signal SIGSEGV, Segmentation fault.
+0x00007fffeefdab81 in pw_thread_loop_stop () from /usr/lib/x86_64-linux-gnu/libpipewire-0.3.so.0
+#0  0x00007fffeefdab81 in pw_thread_loop_stop () at /usr/lib/x86_64-linux-gnu/libpipewire-0.3.so.0
+#1  0x00007ffff12b7373 in ??? () at <stock-PySide6>/Qt/lib/libQt6Multimedia.so.6
+#2  0x00007ffff12b2c1b in QtPipeWire::QPipeWireCapture::setActiveInternal(bool) () at <stock-PySide6>/Qt/lib/libQt6Multimedia.so.6
+#3  0x00007ffff123e6a0 in QPlatformSurfaceCapture::setActive(bool) () at <stock-PySide6>/Qt/lib/libQt6Multimedia.so.6
+#4  0x00007ffff139ae19 in ??? () at <stock-PySide6>/QtMultimedia.abi3.so
+#5  0x0000000001813543 in cfunction_vectorcall_NOARGS ()
+#6  0x0000000001819ca3 in _PyEval_EvalFrameDefault ()
+#7  0x0000000001873de0 in PyEval_EvalCode ()
+#8  0x00000000018b87d7 in run_mod ()
+#9  0x0000000001a30b45 in pyrun_file ()
+#10 0x0000000001a3038e in _PyRun_SimpleFileObject ()
+#11 0x0000000001a3018a in _PyRun_AnyFileObject ()
+#12 0x0000000001a30115 in pymain_run_file_obj ()
+#13 0x0000000001a3001d in pymain_run_file ()
+#14 0x0000000001ade4b1 in Py_RunMain.warm ()
+#15 0x000000000198da0f in pymain_main ()
+#16 0x000000000198d86c in main ()

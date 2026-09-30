@@ -1,0 +1,15 @@
+{
+  "capture_ready": true,
+  "platform": "wayland",
+  "demo_recorded_frames": 71476,
+  "slides_finished_recording_continues": true,
+  "capture_wall_seconds": 9.753519209043588,
+  "output": "/home/voc/projects/drafts/autotalk/AutoTalk/artifacts/stock-qt/live/session/talk/recordings/0247e261d27e4c9e90bbc4c5fa84b135/presentation.mp4",
+  "duration": 9.766667,
+  "video_streams": 1,
+  "audio_streams": 1,
+  "screen_track_seconds": 9.8,
+  "tone_audio_rms": 510.1469609487575,
+  "result_links_enabled": true,
+  "errors": []
+}

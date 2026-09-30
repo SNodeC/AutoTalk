@@ -1,0 +1,127 @@
+[
+  {
+    "file": "dist/autotalk/_internal/libQt6MultimediaWidgets.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6MultimediaWidgets.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6XcbQpa.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6XcbQpa.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6Network.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6Network.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6OpenGL.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6OpenGL.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6Gui.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6Gui.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6DBus.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6DBus.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6VirtualKeyboard.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6VirtualKeyboard.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6Svg.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6Svg.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6QuickControls2.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6QuickControls2.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6EglFSDeviceIntegration.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6EglFSDeviceIntegration.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6QmlWorkerScript.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6QmlWorkerScript.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6QmlMeta.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6QmlMeta.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6WlShellIntegration.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6WlShellIntegration.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6QmlModels.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6QmlModels.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6Widgets.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6Widgets.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6Multimedia.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6Multimedia.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6Qml.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6Qml.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6QuickTemplates2.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6QuickTemplates2.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6Xml.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6Xml.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6Core.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6Core.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6Pdf.so.6",
+    "source": "artifacts/open-tasks/venv-qt610/lib/python3.12/site-packages/PySide6/Qt/lib/libQt6Pdf.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6EglFsKmsSupport.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6EglFsKmsSupport.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6PrintSupport.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6PrintSupport.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6Quick.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6Quick.so.6",
+    "matches": true
+  },
+  {
+    "file": "dist/autotalk/_internal/libQt6WaylandClient.so.6",
+    "source": "/usr/lib/x86_64-linux-gnu/libQt6WaylandClient.so.6",
+    "matches": true
+  }
+]
