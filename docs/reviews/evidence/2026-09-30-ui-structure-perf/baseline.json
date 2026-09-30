@@ -1,0 +1,62 @@
+[
+  {
+    "slides": 20,
+    "refresh": {
+      "ms": 26.455,
+      "calls": {
+        "ready": 242,
+        "speech_key": 242,
+        "text_ready": 345,
+        "asset": 245
+      }
+    },
+    "keystroke": {
+      "ms": 11.274,
+      "calls": {
+        "ready": 87,
+        "speech_key": 87,
+        "text_ready": 190,
+        "asset": 79
+      }
+    },
+    "selection": {
+      "ms": 30.527,
+      "calls": {
+        "ready": 242,
+        "speech_key": 242,
+        "text_ready": 346,
+        "asset": 248
+      }
+    }
+  },
+  {
+    "slides": 60,
+    "refresh": {
+      "ms": 79.641,
+      "calls": {
+        "ready": 722,
+        "speech_key": 722,
+        "text_ready": 1025,
+        "asset": 725
+      }
+    },
+    "keystroke": {
+      "ms": 29.688,
+      "calls": {
+        "ready": 247,
+        "speech_key": 247,
+        "text_ready": 550,
+        "asset": 239
+      }
+    },
+    "selection": {
+      "ms": 82.981,
+      "calls": {
+        "ready": 722,
+        "speech_key": 722,
+        "text_ready": 1026,
+        "asset": 728
+      }
+    }
+  }
+]

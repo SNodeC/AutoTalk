@@ -3,7 +3,7 @@
 
 import argparse
 import copy
-from contextlib import closing
+from contextlib import closing, nullcontext
 from datetime import datetime
 import json
 import shutil
@@ -13,7 +13,7 @@ import html
 import sys
 import time
 import wave
-from functools import partial
+from functools import partial, wraps
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QSettings, Qt, QThread, QTimer, QUrl, Signal
@@ -32,6 +32,14 @@ from .media import RATE, export_prepared, export_recording, import_clip
 def clock(seconds):
     seconds = max(0, round(seconds))
     return f"{seconds//60}:{seconds%60:02d}"
+
+
+def ui_pass(method):
+    @wraps(method)
+    def update(self):
+        with self.project.pass_cache() if self.project else nullcontext():
+            return method(self)
+    return update
 
 
 class Job(QThread):
@@ -459,6 +467,7 @@ class MainWindow(QMainWindow):
         self.loading = False
         self.refresh()
 
+    @ui_pass
     def refresh(self):
         p = self.project
         live = bool(self.job and self.job_live)
@@ -606,6 +615,7 @@ class MainWindow(QMainWindow):
             action.setEnabled(control.isEnabled())
         self.update_timing()
 
+    @ui_pass
     def update_timing(self):
         if not hasattr(self, "play_time"):
             return
