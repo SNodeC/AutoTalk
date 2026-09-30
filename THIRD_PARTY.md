@@ -18,15 +18,14 @@ Redistribution must retain the applicable notices, including for modified Qt cod
 | PyTorch | BSD-style; [PyTorch](https://github.com/pytorch/pytorch/blob/main/LICENSE) |
 | NVIDIA runtime dependencies | NVIDIA's applicable redistribution terms; [CUDA](https://docs.nvidia.com/cuda/eula/index.html) |
 
-The native Qt 6.10.2 build includes the upstream Qt Multimedia fix
-[`1c6fb56a9686`](https://github.com/qt/qtmultimedia/commit/1c6fb56a9686ad012b35ecbee9a67cc6686b6099).
-The corresponding source archive, LGPL/GPL license texts, patch and build recipe
-are provided in the bundle's `qt-multimedia-source/` directory (license texts are
-inside the source archive). It remains a replaceable, dynamically linked library.
-Standard Qt 6.11.2 builds already include this fix.
-The native 6.10.2 patch also includes AutoTalk's portal-failure notification,
-selected-source filtering and capture-teardown corrections. Those additional
-corrections are not supplied to stock Qt wheels.
+Standard builds use unmodified Qt libraries. Linux `--system-qt` builds use
+matching installed modules; for Qt 6.10.2 only, the bundled Multimedia library is
+rebuilt with the approved local `qt-6.10.2-pipewire-cleanup.patch`. It guards loop
+cleanup after failed portal initialization. It does not include the previously
+removed callback-lifetime, cancellation-notification or source-filtering changes.
+The source archive (including upstream license texts), patch and build recipe
+are supplied in `qt-multimedia-source/`. System libraries are not modified.
+Qt remains dynamically linked and replaceable.
 
 The packaged prototype uses dynamically loaded Qt libraries. Speech dependencies
 and model weights are downloaded into the user's private application data

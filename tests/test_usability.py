@@ -198,20 +198,19 @@ def test_language_draft_accepts_manual_text_without_approval(qtbot, project, mon
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     original = project.active_version
     text = [s.narration for s in project.slides]
-    monkeypatch.setattr('autotalk.app.QInputDialog.getItem', lambda *a, **kw: ('German', True))
-    w.add_version()
+    w.language.setCurrentText('German')
     assert w.start_button.text() == 'Prepare and start'
-    assert 'Source text — waiting for German translation' in w.slide_info.text()
+    assert 'Needs German narration' in w.slide_info.text()
     assert 'German — German' not in w.language.currentText()
-    assert not any(s.text_ready for s in project.slides)
+    assert not any(project.text_ready(s) for s in project.slides)
     for index, slide in enumerate(project.slides):
         w.slide_list.setCurrentRow(index)
         w.narration.setPlainText(f'Dies ist die Erklärung für Folie {slide.page}.')
-        assert slide.text_ready
+        assert project.text_ready(slide)
         assert w.start_button.isEnabled()
     assert w.save()
     reopened = Project.load(project.manifest)
-    assert reopened.language == 'German' and all(s.text_ready for s in reopened.slides)
+    assert reopened.language == 'German' and all(reopened.text_ready(s) for s in reopened.slides)
     assert [s.narration for s in reopened.versions[original].slides] == text
 
 def test_previous_video_does_not_override_new_recording_intent(qtbot, project, tmp_path, monkeypatch):
@@ -223,8 +222,7 @@ def test_previous_video_does_not_override_new_recording_intent(qtbot, project, t
     assert 'Saved ' in w.saved_output.text() and 'Open video' in w.saved_output.text()
     w.settings[1].options.fields['recording_source'].setCurrentIndex(w.settings[1].options.fields['recording_source'].findData('screen'))
     assert 'Screen + system audio' in w.record.toolTip()
-    monkeypatch.setattr('autotalk.app.QInputDialog.getItem', lambda *a, **kw: ('German', True))
-    w.add_version()
+    w.language.setCurrentText('German')
     assert 'Will record when presentation starts' in w.record_status.text()
     video.unlink()
     w.update_timing()  # An externally removed video must not crash the UI timer.
@@ -327,13 +325,17 @@ def test_fullscreen_mouse_controls_and_finished_return(qtbot, project):
     assert w.transport.state == 'stopped'
 
 
-def test_enlargement_keeps_the_current_slide_inside_autotalk(qtbot, project, monkeypatch):
+@pytest.mark.parametrize("preview_name", ["image", "play_image", "next_image"])
+def test_enlargement_keeps_the_current_slide_inside_autotalk(qtbot, project, monkeypatch, preview_name):
     from PySide6.QtCore import QTimer
     from PySide6.QtWidgets import QApplication, QDialog
     from autotalk.app import SlideImage
     monkeypatch.setattr(app.QDesktopServices, 'openUrl', lambda url: pytest.fail('Unexpected external viewer'))
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    w.slide_list.setCurrentRow(1)
+    w.slide_list.setCurrentRow(0)
+    if preview_name != "image":
+        w.view_switch.setCurrentIndex(1)
+    preview = getattr(w, preview_name)
     viewed = []
     def inspect():
         dialog = QApplication.activeModalWidget()
@@ -343,14 +345,15 @@ def test_enlargement_keeps_the_current_slide_inside_autotalk(qtbot, project, mon
             dialog.accept()
     timer = QTimer(); timer.timeout.connect(inspect); timer.start(50)
     try:
-        button = next(b for b in w.findChildren(QPushButton) if b.text() == 'Enlarge slide…')
-        qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
+        assert not any(b.text() == "Enlarge slide…" for b in w.findChildren(QPushButton))
+        qtbot.mouseClick(preview, Qt.MouseButton.LeftButton)
     finally:
         timer.stop()
-    assert len(viewed) == 1 and viewed[0][0] == 'Slide 2'
-    assert viewed[0][1] == w.image.original.toImage()
-    assert viewed[0][2].width() > w.image.width() and viewed[0][2].height() > w.image.height()
-    assert w.transport.index == 1 and w.workspace.currentWidget() is w.editor
+    assert len(viewed) == 1 and viewed[0][0] == 'Slide preview'
+    assert viewed[0][1] == preview.original.toImage()
+    assert w.transport.index == 0
+    assert viewed[0][2].width() > preview.width() and viewed[0][2].height() > preview.height()
+    assert w.workspace.currentWidget() is (w.editor if preview_name == "image" else w.presenter)
 
 
 def test_automatic_recording_save_cannot_resume_finished_fullscreen(qtbot, project):
@@ -369,20 +372,20 @@ def test_automatic_recording_save_cannot_resume_finished_fullscreen(qtbot, proje
     assert w.presentation is None and w.workspace.currentWidget() is w.editor
 
 
-def test_translation_keeps_manually_replaced_slides(project, monkeypatch):
-    project.add_version('German', translate=True)
-    project.slides[0].narration = 'Meine eigene Erklärung.'
-    def translated(p, task, client, fit, pages):
+def test_new_language_generation_keeps_manually_authored_slides(project, monkeypatch):
+    project.select_language('German')
+    project.set_narration(project.slides[0], 'Meine eigene Erklärung.')
+    def generated(p, task, client, fit, pages):
         assert pages == [2]
         return {'title': 'Übersetzter Titel', 'slides': [{'page': 2, 'narration': 'Die zweite Folie.',
                  'notes': '', 'budget_seconds': 12}]}
     from contextlib import nullcontext
     monkeypatch.setattr(services, 'Codex', lambda task: nullcontext())
-    monkeypatch.setattr(services, 'narration_result', translated)
+    monkeypatch.setattr(services, 'narration_result', generated)
     result = services.narrate(project, Task(), pages=[2])
     assert result.slides[0].narration == 'Meine eigene Erklärung.'
     assert result.slides[1].narration == 'Die zweite Folie.'
-    assert all(s.text_ready for s in result.included_slides)
+    assert all(result.text_ready(s) for s in result.included_slides)
 
 
 def test_empty_window_has_one_top_aligned_start_and_no_talk_controls(qtbot, project):
@@ -456,3 +459,29 @@ def test_skipping_to_the_end_promotes_completion_not_replay(qtbot, project):
     assert w.start_button.isEnabled()
     w.end_button.click()
     assert w.workspace.currentWidget() is w.editor and w.transport.state == 'stopped'
+
+
+@pytest.mark.parametrize("page", [0, 1])
+def test_slide_narration_divider_resizes_without_changing_content(qtbot, project, page):
+    from PySide6.QtCore import QPoint
+    from PySide6.QtWidgets import QSplitter
+    from PySide6.QtTest import QTest
+    w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.resize(1280, 900); w.show()
+    w.view_switch.setCurrentIndex(page)
+    qtbot.wait(50)
+    workspace = w.presenter if page else w.editor
+    divider = next(s for s in workspace.findChildren(QSplitter) if s.orientation() == Qt.Orientation.Vertical)
+    text = w.presenter_narration if page else w.narration
+    image = w.play_image if page else w.image
+    previous = (image.height(), text.height(), text.toPlainText())
+    handle = divider.handle(1)
+    start = handle.rect().center()
+    QTest.mousePress(handle, Qt.MouseButton.LeftButton, pos=start)
+    QTest.mouseMove(handle, start + QPoint(0, 60), delay=50)
+    QTest.mouseRelease(handle, Qt.MouseButton.LeftButton, pos=start + QPoint(0, 60))
+    qtbot.wait(50)
+    assert image.height() > previous[0] and text.height() < previous[1]
+    assert text.toPlainText() == previous[2] and w.transport.index == 0
+    from pathlib import Path
+    evidence = Path("artifacts/slide-preview-review"); evidence.mkdir(parents=True, exist_ok=True)
+    w.grab().save(str(evidence / f"{'presenter' if page else 'editor'}-resized.png"))

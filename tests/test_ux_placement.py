@@ -161,15 +161,15 @@ def test_saved_voice_audition_does_not_select_or_invalidate_talk(qtbot, project,
     assert Project.load(project.manifest).voice == original
 
 
-def test_language_creation_is_explicit_and_switching_preserves_original(qtbot, project, monkeypatch):
+def test_language_selection_automatically_creates_and_preserves_original(qtbot, project, monkeypatch):
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
     original = copy.deepcopy(project.version)
-    assert w.language.findText('German') == -1
-    monkeypatch.setattr(app.QInputDialog, 'getItem', lambda *a, **kw: ('German', True))
-    w.language.setCurrentIndex(w.language.findData('add'))
+    assert w.language.findText('German') >= 0
+    w.language.setCurrentText('German')
     assert len(project.versions) == 2 and project.language == 'German'
     w.language.setCurrentIndex(w.language.findData('main'))
-    assert project.version == original
+    assert project.version.slides == original.slides
+    assert project.version.language == project.language == 'English'
     w.language.setCurrentIndex(w.language.findData('options'))
     assert w.settings[1].isVisible()
     assert w.settings[1].options.fields['language_policy'].isVisible()
@@ -269,15 +269,17 @@ def test_long_talk_and_voice_names_preserve_p1_workspace(qtbot, project):
         visible_inside(control, w)
 
 
-def test_first_manually_written_text_requires_explicit_language_creation(qtbot, project):
+def test_language_version_selector_has_one_meaning_before_and_after_writing(qtbot, project):
     for slide in project.slides:
         slide.narration = ''
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    assert w.language.findData('language:German') >= 0
+    assert w.language.currentData() == 'main'
+    choices = [w.language.itemData(i) for i in range(w.language.count())]
     w.narration.setPlainText('Words I wrote myself in English.')
     assert w.language.currentData() == 'main'
     assert w.language.findData('language:German') == -1
-    assert w.language.findData('add') >= 0
+    assert w.language.findData('German') >= 0
+    assert [w.language.itemData(i) for i in range(w.language.count())] == choices
     assert len(project.versions) == 1 and project.language == 'English'
 
 
@@ -285,8 +287,7 @@ def test_multiple_empty_versions_are_selected_without_relabelling(qtbot, project
     for slide in project.slides:
         slide.narration = ''
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    monkeypatch.setattr(app.QInputDialog, 'getItem', lambda *a, **kw: ('German', True))
-    w.language.setCurrentIndex(w.language.findData('add'))
+    w.language.setCurrentText('German')
     german = project.active_version
     assert w.language.currentData() == german
     w.language.setCurrentIndex(w.language.findData('main'))

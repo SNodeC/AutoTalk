@@ -10,7 +10,7 @@ from PySide6.QtCore import QSettings
 from autotalk import settings
 from autotalk.app import MainWindow
 from autotalk.project import Project, Voice
-from autotalk.services import narration_result, synthesize, speech_config
+from autotalk.services import apply_narration, narration_result, synthesize, speech_config
 from autotalk.runtime import Task, SpeechSession, speech_session
 from test_gpu_lifecycle import engine
 from conftest import make_audio
@@ -85,16 +85,18 @@ def test_slide_voice_language_and_writing_reach_generation(project, mode):
     requests = []
     class Speech:
         def generate(self, request, on_event=None): requests.append(request)
-    synthesize(project, Task(), session=Speech())
-    assert [request['speaker'] for request in requests] == ['Ryan', 'Aiden']
-    assert requests[1]['items'][0]['passages'][0]['language'] == 'German'
+    with pytest.raises(ValueError, match='Create narration'):
+        synthesize(project, Task(), session=Speech())
     class Narration:
         def generate(self, prompt, schema, images, **kwargs):
             data = json.loads(prompt.split('INPUT:\n')[1])
             assert data['slides'][1]['language'] == 'German'
             assert data['slides'][1]['style'] == 'Academic'
             return {'title': 'Talk', 'slides': [{'page': s.page, 'narration': 'Text', 'notes': '', 'budget_seconds': 1} for s in project.slides]}
-    narration_result(project, Task(), Narration())
+    apply_narration(project, narration_result(project, Task(), Narration()), Task())
+    synthesize(project, Task(), session=Speech())
+    assert [request['speaker'] for request in requests] == ['Ryan', 'Aiden']
+    assert requests[1]['items'][0]['passages'][0]['language'] == 'German'
 
 
 def test_voice_type_transitions_reuse_single_engine_without_deadlock(engine, project):

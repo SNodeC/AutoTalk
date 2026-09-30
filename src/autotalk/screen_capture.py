@@ -142,7 +142,8 @@ class ScreenCapture(Capture):
         self.frames_queue = queue.Queue(maxsize=3)
         self.workers = []
         self.microphone = project.capture_microphone
-        self.session, self.screen, self.sink = QMediaCaptureSession(), QScreenCapture(), QVideoSink()
+        self.session = QMediaCaptureSession()
+        self.screen, self.sink = QScreenCapture(self.session), QVideoSink(self.session)
         self.session.setScreenCapture(self.screen)
         self.session.setVideoSink(self.sink)
         self.sink.videoFrameChanged.connect(self.frame)
@@ -241,12 +242,15 @@ class ScreenCapture(Capture):
         pass  # The real clock and device streams continue during pauses.
 
     def close(self):
-        self.screen.stop()
         self.stopping.set()
+        self.screen.stop()
         for worker in self.workers:
             worker.join(timeout=3)
         if any(worker.is_alive() for worker in self.workers):
             raise RuntimeError("A recording device is not responding; the partial session is retained.")
+        self.session.setScreenCapture(None)
+        self.session.setVideoSink(None)
+        self.session.deleteLater()
         info = json.loads((self.root / "session.json").read_text())
         info.update(status="pending", error=self.error, duration=self.frames/RATE)
         (self.root / "session.json").write_text(json.dumps(info, indent=2))

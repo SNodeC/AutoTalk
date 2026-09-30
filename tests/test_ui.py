@@ -122,8 +122,7 @@ def test_user_can_change_language_and_edit_narration(qtbot, project, monkeypatch
     window.adopt(project)
     window.show()
     assert window.more_presentation.isEnabled()
-    monkeypatch.setattr('autotalk.app.QInputDialog.getItem', lambda *a, **kw: ('German', True))
-    window.add_version()
+    window.language.setCurrentText('German')
     assert project.language == "German"
     assert not window.more_presentation.isEnabled()
     window.workspace.setCurrentWidget(window.editor)
@@ -258,8 +257,7 @@ def test_cancel_settings_restores_project_and_manifest_after_eager_save(qtbot, p
     window.settings[1].show_section("Talk & preparation")
     window.minutes.setValue(19)
     window.scope.setPlainText('A different conference')
-    monkeypatch.setattr('autotalk.app.QInputDialog.getItem', lambda *a, **kw: ('German', True))
-    window.add_version()
+    window.language.setCurrentText('German')
     window.save()  # Existing language/reference/worker handlers can save eagerly.
     window.settings[1].reject()
     restored = Project.load(project.manifest)

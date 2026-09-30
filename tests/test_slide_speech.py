@@ -25,7 +25,7 @@ def test_one_slide_audio_accepts_only_selected_text_and_persists(project, local_
     services.prepare(project, Task(), pages=[1])
     reopened = Project.load(project.manifest)
     assert reopened.ready(reopened.slides[0])
-    assert reopened.slides[0].text_ready
+    assert reopened.text_ready(reopened.slides[0])
     assert reopened.slides[1] == other
     assert not reopened.prepared
 
@@ -129,7 +129,7 @@ def test_regeneration_replaces_only_completed_recording(project, local_speech, m
 
 def test_context_changes_keep_valid_audio_without_review(project, monkeypatch):
     make_audio(project)
-    for slide in project.slides: slide.narration_origin = 'generated'
+    for slide in project.slides: project.set_narration(slide, slide.narration)
     project.mode = 'Realtime'
     project.scope = 'Changed conference'
     project.codex_effort = 'high'
@@ -262,22 +262,22 @@ def test_selected_language_audio_does_not_change_original_version(project, local
     make_audio(project)
     original_version = project.active_version
     original = copy.deepcopy(project.slides)
-    translated_version = project.add_version('German', translate=True)
-    with pytest.raises(ValueError, match='translate'):
+    german_version = project.select_language('German')
+    with pytest.raises(ValueError, match='Create narration'):
         services.prepare(project, Task(), pages=[1])
-    project.slides[0].narration = 'Guten Tag.'
+    project.set_narration(project.slides[0], 'Guten Tag.')
     services.prepare(project, Task(), pages=[1])
     reopened = Project.load(project.manifest)
-    assert reopened.active_version == translated_version
+    assert reopened.active_version == german_version
     assert reopened.ready(reopened.slides[0]) and not reopened.ready(reopened.slides[1])
     reopened.active_version = original_version
     assert reopened.slides == original and reopened.prepared
 
 
-def test_slide_audio_disabled_until_translation_has_usable_narration(qtbot, project):
-    project.add_version('German', translate=True)
+def test_slide_audio_disabled_until_new_language_has_narration(qtbot, project):
+    project.select_language('German')
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
-    assert w.regenerate_button.text() == 'Translate slide text'
+    assert w.regenerate_button.text() == 'Create slide text'
     assert w.regenerate_button.isVisible() and w.regenerate_button.isEnabled()
     assert w.slide_audio_button.isVisible() and not w.slide_audio_button.isEnabled()
     w.narration.setPlainText('Guten Tag.')

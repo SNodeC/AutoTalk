@@ -47,7 +47,7 @@ def project(sample_pdf, tmp_path):
     p.voice = Voice()
     p.scope = "Software engineering and dependable desktop applications"
     for s in p.slides:
-        s.narration = f"This is the spoken explanation for slide {s.page}."
+        p.set_narration(s, f"This is the spoken explanation for slide {s.page}.")
     return p
 
 

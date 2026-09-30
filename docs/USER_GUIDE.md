@@ -74,8 +74,28 @@ The welcome page offers **Open PDF…** and **Open saved talk…**. After openin
 Use the **Editor / Presenter** tabs, or their **View** menu entries, to switch
 workspaces. This does not start presentation. Quick has a simplified workspace;
 choose Prepared or Realtime to edit slides. Drag pane dividers or use **View →
-Slide navigator / Slide inspector / Restore default layout**. **Enlarge slide…**
-opens a larger preview.
+Slide navigator / Slide inspector / Restore default layout**. In both Editor and
+Presenter, drag the horizontal divider up or down to resize the slide previews
+and narration. Click a slide preview to enlarge that slide; the Presenter’s
+**Up next** preview opens the next slide without advancing the presentation.
+**View → Enlarge slide…** also opens the current slide.
+
+The project keeps its own PDF copy. If the external source PDF changes, AutoTalk
+asks whether to reload when you open the talk, return to its window, or begin
+preparation/presentation. **Not now** keeps the saved slides and suppresses that
+same change notification for the current session. Missing or inaccessible
+originals never prevent opening or presenting the saved talk.
+
+**File → Reload PDF…** also works when the PDF has not changed: it re-reads the
+PDF and recreates all slide PNGs. For older projects or missing originals, choose
+the source PDF when prompted. Reloading preserves talk settings and language
+versions; confidently matched unchanged slides keep their narration and audio.
+Changed, new or ambiguously matched slides start without narration or audio.
+Existing audio still has to match the current delivery settings before reuse.
+The previous project is retained beside the talk in a folder named
+`<talk>-before-pdf-<date>-<time>-<identifier>`. Failed or cancelled preparation
+leaves the current talk intact. Reloading is unavailable during presentation or
+another operation. You can remove the backup manually once satisfied.
 
 Settings open in three distinct windows: **Application defaults**,
 **Talk settings — [title]**, and **Slide settings — [number]**. Each window has
@@ -128,10 +148,15 @@ Account, manual model, external system-audio and explicitly saved library operat
 are immediate. Stop a preparation or voice-recording operation started in Settings
 before closing it. Closing engine settings during playback does not stop presentation.
 
-Changing language does not translate existing words. Explicit passage markers and
-language versions remain available; slide language must respect the talk's language
-arrangement. Writing style affects later text generation; spoken delivery affects
-speech generation. Unchanged effective speech settings continue to reuse saved audio.
+Selecting a talk language restores that language's saved version or creates an
+empty version while preserving the current version. Changing an individual slide's
+language affects only that slide. **Start**, **Create talk text** or **Create slide
+text** generates missing narration from the slides and talk context before audio
+preparation. Other languages' narration is never used as translation input.
+Deliberate slide-language overrides remain in effect. Readiness follows the current target, including after **Use app**,
+**Use talk**, Cancel and reopening. Writing style affects later text generation;
+spoken delivery changes audio only. Unchanged synthesis inputs reuse current audio.
+Previously recorded audio remains available as **Play previous audio** when stale.
 
 **File → Recordings & export…** remains a separate task window; its settings link
 opens **Presentation & recording** for the talk.
@@ -185,7 +210,7 @@ Example: prepare a five-minute conference talk in German and listen to it before
    also save the talk.
 7. Choose the display and test the audio output. Enable recording if wanted.
 8. Choose **Prepare and start**. AutoTalk preserves existing narration, creates
-   missing or translated text, creates missing/current speech and starts fullscreen
+   missing narration, creates missing/current speech and starts fullscreen
    after every included slide is ready. Current saved audio is reused.
 
 There is no text-approval step. **Text ready** counts slides with usable narration;
@@ -234,7 +259,7 @@ existing words. **Create slide audio** requests a new performance; **Play audio*
 plays the existing file. Start reuses audio only when its words and speech settings
 still match. Explicit duration-fitting policies can revise text to meet its length.
 
-In all modes, Start fills missing/translation text without replacing other slides.
+In all modes, Start fills missing narration without replacing other slides.
 Realtime checks cached opening audio immediately while later preparation continues.
 
 The slide preview plays narration and its prepared pause. It does not mix imported
@@ -425,20 +450,30 @@ Changed vocal settings require preparing affected audio again.
 Supported spoken languages are English, German, French, Spanish, Italian,
 Portuguese, Russian, Chinese, Japanese and Korean.
 
-Before creating narration, choose its initial language in the main **Language** control.
-Once narration exists, that control lists existing versions. Selecting one switches
-versions without creating another. Choose **Add language version…** in that control
-or the **Talk** menu to create a translation draft while preserving the original.
+Choose the target language in the main **Language** selector or in
+**Talk settings → Voice & language → Narration language**. Both restore an existing
+version of that language, including its text and matching audio. If none exists,
+AutoTalk creates an empty version with the same slides and slide settings,
+preserving the original narration and audio. Switching back restores the previous version. No separate Add step or
+recreation checkbox is needed. All three preparation modes use these versions.
 
-1. Select the target language in the creation dialog.
-2. Use **Create talk text** to translate remaining drafts without presenting, or
-   **Translate slide text** for one slide. Start also translates missing drafts.
-3. Review the translated text, then create audio and listen.
+1. Select the desired language.
+2. Use **Create talk text** to generate missing narration without presenting, or
+   **Create slide text** for one slide. Codex uses the PDF and talk context, not
+   narration from another language. Start also generates missing narration.
+3. Review the new text, then create audio and listen.
 
-Until translated, copied source text is marked **Source text — waiting for … translation**.
-You can replace a slide's text manually with its translation; translation preserves
-slides you already replaced. Copied source words are not usable target-language narration until translated or replaced.
-Preparing audio alone does not translate words into another language.
+**Talk → Rewrite all talk text…** explicitly replaces the included slides' narration
+in the selected version after confirmation, including with Realtime selected.
+Stop any active preparation/presentation first. Other versions remain preserved;
+Start reuses valid text/audio and prepares only what is missing or outdated.
+
+Until narration exists in the selected language, the editor is empty and the slide
+shows **Needs [language] narration**. You can type your own text instead. Existing
+narration and matching audio return immediately when you select their language.
+An unfinished copied draft saved by an earlier build is also shown as missing when
+its authored language differs; those old words are not sent to Codex. Creating audio
+requires narration and does not generate or translate its words.
 
 For multiple languages within a slide, choose **Insert language passage…** beside
 the narration editor and select a language.
@@ -454,6 +489,16 @@ Under **Language → Language options…** (also in the Talk menu), choose:
 Text and generated audio are kept by language version. Voice references are stored
 by language, with a shared fallback reference for cross-language speech. Voice and
 delivery settings are talk-wide, so check their effects when revisiting another version.
+
+Projects now save the language in which narration was authored. Older projects are
+backed up before their first save in the new format. If an old project did not store
+its inherited narration language, its words remain stored but are not certified as
+current narration or sent as translation input. The editor shows missing narration;
+create fresh text from the slides.
+An older project already mislabelled with the wrong language cannot be detected
+reliably from its metadata: select the intended target and use **Talk → Rewrite all
+talk text…**. To retain the original, create another version first and run that
+rewrite in the new version. Review regenerated text before presenting.
 
 ## Slide settings and additional audio
 
@@ -767,7 +812,7 @@ speech GPU, unload/close that instance before attempting another model load.
 | **File** | Open PDF, Open saved talk, Open recent, Save, Save a copy, Open talk folder, Recordings & export, Export prepared talk, Quit. |
 | **Edit** | Undo/Redo, Cut/Copy/Paste/Select all, Find in slide text. Find searches the current narration, not the whole deck. |
 | **View** | Editor/Presenter, navigator/inspector visibility, restore layout, enlarge slide, Operation details. |
-| **Talk** | Talk settings, Voice & speech, Create talk text/audio, Rewrite all talk text, Fit duration, Add language version, Language options, Selected slide and Mode submenus. |
+| **Talk** | Talk settings, Voice & speech, Create talk text/audio, Rewrite all talk text, Fit duration, Language options, Selected slide and Mode submenus. |
 | **Presentation** | Start / Prepare and start, Continue, Pause, start selected, Restart, live demo, Previous/Next, End, Presentation settings, System audio settings. |
 | **Settings** | Application settings, Account, Speech engine, immediate model Load/Unload. |
 | **Help** | Getting started, Keyboard shortcuts, Operation details, About AutoTalk. |

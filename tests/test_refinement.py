@@ -28,7 +28,7 @@ def test_partial_revision_preserves_other_text_and_audio(project):
     events = []
     apply_narration(project, {'title': 'Revised', 'slides': [
         {'page': 1, 'narration': 'New introduction.', 'notes': '', 'budget_seconds': 2}]}, Task(event=events.append))
-    assert all(s.text_ready for s in project.included_slides)
+    assert all(project.text_ready(s) for s in project.included_slides)
     assert project.slides[1] == other and project.ready(other)
     assert not project.ready(project.slides[0])
     assert not Project.load(project.manifest).prepared
@@ -38,14 +38,15 @@ def test_manual_edit_only_invalidates_its_audio(project):
     make_audio(project)
     other = copy.deepcopy(project.slides[1])
     project.slides[0].narration += ' An important correction.'
-    assert all(s.text_ready for s in project.included_slides)
-    assert project.slides[0].narration_origin == 'manual'
+    assert all(project.text_ready(s) for s in project.included_slides)
+    assert project.slides[0].narration_language == project.language
     assert project.slides[1] == other
     assert not project.ready(project.slides[0])
     assert project.ready(project.slides[1])
 
 @pytest.mark.parametrize('version_number', [2, 3])
 def test_old_context_stamps_do_not_block_saved_audio(project, version_number):
+    project.language = 'English'  # v2/v3 stored the talk language explicitly.
     make_audio(project)
     old = json.loads(project.manifest.read_text())
     old['version'] = version_number
@@ -53,7 +54,7 @@ def test_old_context_stamps_do_not_block_saved_audio(project, version_number):
         version['narration_context'] = 'obsolete-version-stamp'
         for slide in version['slides']:
             slide['narration_context'] = 'obsolete-slide-stamp'
-            slide.pop('narration_origin')
+            slide.pop('narration_language')
     project.manifest.write_text(json.dumps(old))
     loaded = Project.load(project.manifest)
     assert loaded.prepared
@@ -64,17 +65,16 @@ def test_old_context_stamps_do_not_block_saved_audio(project, version_number):
     assert Project.load(loaded.manifest).prepared
     assert 'narration_context' not in loaded.manifest.read_text()
 
-def test_language_selection_creates_translation_and_preserves_original(qtbot,project, monkeypatch):
+def test_language_selection_starts_empty_and_preserves_original(qtbot,project, monkeypatch):
     make_audio(project)
     original = project.active_version
     texts = [s.narration for s in project.slides]
     w=MainWindow();qtbot.addWidget(w);w.adopt(project)
-    monkeypatch.setattr('autotalk.app.QInputDialog.getItem', lambda *a, **kw: ('German', True))
-    w.add_version()
+    w.language.setCurrentText('German')
     assert project.active_version != original
     assert project.language == project.version.name == 'German'
-    assert not all(s.text_ready for s in project.included_slides)
-    assert all(s.narration_origin == 'translation' for s in project.slides)
+    assert not all(project.text_ready(s) for s in project.included_slides)
+    assert all(not s.passages and not s.narration_language and not s.audio_file for s in project.slides)
     w.language.setCurrentText('English')
     assert project.active_version == original
     assert [s.narration for s in project.slides] == texts
@@ -120,7 +120,7 @@ def test_new_common_delivery_invalidates_previous_audio(project, monkeypatch):
         old.setattr(Project, 'directions', lambda self, slide: 'Professional')
         make_audio(project)
         paths = [project.audio(s) for s in project.slides]
-    assert all(s.text_ready for s in project.included_slides)
+    assert all(project.text_ready(s) for s in project.included_slides)
     assert not project.prepared
     assert all(p.exists() for p in paths)
     project.save()
@@ -348,9 +348,9 @@ def test_parallel_startup_preserves_original_failure(project, monkeypatch):
         services.workflow(project, Task())
 
 
-def test_realtime_planning_receives_translation_style_and_timing(project):
+def test_realtime_planning_receives_deck_style_and_timing(project):
     from autotalk.services import narration_result
-    project.add_version('German', translate=True)
+    project.select_language('German')
     project.mode = 'Realtime'
     project.set_setting("writing_style", 'Conversational')
     class Client:
@@ -360,9 +360,10 @@ def test_realtime_planning_receives_translation_style_and_timing(project):
             assert data['language'] == 'German'
             assert data['style'] == 'Conversational'
             assert data['transition_pause_seconds'] == project.pause_seconds
-            assert 'preserving its meaning' in data['translation_instruction']
+            assert 'translation_instruction' not in data
+            assert all(not s['current_narration'] and s['source_text'] for s in data['slides'])
             assert len(images) == len(project.slides)
-            return {'title': 'Translated', 'slides': [
+            return {'title': 'New narration', 'slides': [
                 {'page': s.page, 'narration': 'Willkommen.', 'notes': '', 'budget_seconds': 1}
                 for s in project.slides]}
     narration_result(project, Task(), Client(), opening=1)
@@ -470,7 +471,7 @@ def test_single_slide_generation_preserves_unset_timing_and_other_work(project):
         narrate(project, Task(), pages=[1])
     assert project.title == old_title
     assert project.slides[1] == second and project.ready(project.slides[1])
-    assert all(s.text_ready for s in project.included_slides) and not project.ready(project.slides[0])
+    assert all(project.text_ready(s) for s in project.included_slides) and not project.ready(project.slides[0])
 
 
 def test_excluded_slides_are_preserved_but_not_synthesized_or_exported(project, tmp_path):
@@ -589,11 +590,12 @@ def test_desktop_export_preserves_aspect_timing_and_microphone(project, tmp_path
 
 @pytest.mark.skipif(sys.platform != "linux", reason="Linux desktop capture")
 def test_stopping_before_desktop_permission_never_starts_capture(qtbot, project):
+    import shiboken6
     from autotalk.screen_capture import ScreenCapture
     capture = ScreenCapture(project)
     root = capture.close()
     qtbot.wait(20)
-    assert not capture.screen.isActive() and not capture.workers
+    assert not shiboken6.isValid(capture.screen) and not capture.workers
     assert json.loads((root/'session.json').read_text())['duration'] == 0
 
 
@@ -623,5 +625,5 @@ def test_excluding_final_slide_updates_pause_audio_key_and_language_copy(project
         def generate(self, request, on_event): requests.extend(request['items'])
     synthesize(project, Task(), session=Session())
     assert [item['pause'] for item in requests] == [0]
-    project.add_version('German', translate=True)
+    project.select_language('German')
     assert not project.slides[1].included and project.setting('after', project.slides[0]) == 'demo'

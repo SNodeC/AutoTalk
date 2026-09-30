@@ -24,7 +24,7 @@ if sys.argv[1:] == ["--system-qt"] and system == "Linux":
     if qt["QT_VERSION"] != binding_version:
         raise SystemExit(f"System Qt {qt['QT_VERSION']} requires matching PySide6; found {binding_version}.")
     if binding_version == "6.10.2":
-        # Backport Qt's callback-lifetime fix without changing the host's Qt ABI/style.
+        # Approved Qt 6.10.2 partial-initialization cleanup correction; bundle only.
         from autotalk.runtime import Task, download
         source = root / "build" / "qtmultimedia-6.10.2"
         archive = root / "build" / "qtmultimedia-6.10.2.tar.gz"
@@ -32,7 +32,7 @@ if sys.argv[1:] == ["--system-qt"] and system == "Linux":
                  "13affeeab2058beadde76b646b2a2c41b98f614fbb2a2ec40f54509bdc970ea8", Task())
         with tarfile.open(archive) as container:
             container.extractall(root / "build", filter="data")
-        subprocess.run(["patch", "--fuzz=0", "-p1", "-i", str(root / "packaging/qt-6.10.2-pipewire-lifetime.patch")], cwd=source, check=True)
+        subprocess.run(["patch", "--fuzz=0", "-p1", "-i", str(root / "packaging/qt-6.10.2-pipewire-cleanup.patch")], cwd=source, check=True)
         build = root / "build" / "qtmultimedia-fixed"
         subprocess.run(["cmake", "-S", str(source), "-B", str(build), "-G", "Ninja",
                         "-DCMAKE_BUILD_TYPE=RelWithDebInfo", "-DQT_BUILD_TESTS=OFF", "-DQT_BUILD_EXAMPLES=OFF",
@@ -67,7 +67,7 @@ shutil.copytree(root / "docs", documents / "docs", dirs_exist_ok=True)
 if multimedia:
     sources = documents / "qt-multimedia-source"
     sources.mkdir(exist_ok=True)
-    for item in (archive, root / "packaging/qt-6.10.2-pipewire-lifetime.patch", root / "tools/build.py"):
+    for item in (archive, root / "packaging/qt-6.10.2-pipewire-cleanup.patch", root / "tools/build.py"):
         shutil.copy2(item, sources / item.name)
 base = root / "dist" / f"AutoTalk-{version}-{system.lower()}-{machine}"
 if system == "Darwin":

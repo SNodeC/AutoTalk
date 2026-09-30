@@ -83,7 +83,7 @@ def test_system_qt_build_requires_matching_bindings(tmp_path, monkeypatch, qt_ve
         if command[0] == 'patch':
             if fail_patch:
                 raise subprocess.CalledProcessError(1, command)
-            assert Path(command[-1]).name == 'qt-6.10.2-pipewire-lifetime.patch'
+            assert Path(command[-1]).name == 'qt-6.10.2-pipewire-cleanup.patch'
             return
         if command[0] == 'cmake':
             if '--build' in command:

@@ -12,9 +12,9 @@ from autotalk.project import Project, digest
 def test_language_versions_roundtrip_without_losing_prepared_audio(project, tmp_path):
     make_audio(project)
     first = project.active_version
-    second = project.add_version("German")
-    project.slides[0].narration = "[German] Willkommen.\n\n[English] Welcome."
-    project.slides[1].narration = "Vielen Dank."
+    second = project.select_language("German")
+    project.set_narration(project.slides[0], "[German] Willkommen.\n\n[English] Welcome.")
+    project.set_narration(project.slides[1], "Vielen Dank.")
     make_audio(project)
     target = tmp_path / "portable"
     shutil.copytree(project.root, target)

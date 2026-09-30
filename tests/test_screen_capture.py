@@ -106,3 +106,14 @@ def test_capture_failure_closes_once_on_ui_thread_and_allows_retry(qtbot, projec
     assert not window.transport.capture.error
     window.stop_presentation()
     assert window.transport.capture is None
+
+
+def test_closed_capture_releases_qt_objects_without_garbage_collection(qtbot, project, monkeypatch):
+    import shiboken6
+    from PySide6.QtMultimedia import QScreenCapture
+    monkeypatch.setattr(QScreenCapture, 'start', lambda self: None)
+    capture = screen_capture.ScreenCapture(project)
+    objects = (capture.session, capture.screen, capture.sink)
+    capture.close()
+    qtbot.waitUntil(lambda: all(not shiboken6.isValid(obj) for obj in objects), timeout=1000)
+    assert capture.stopping.is_set()

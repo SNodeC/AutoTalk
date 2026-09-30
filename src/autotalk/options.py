@@ -192,7 +192,7 @@ class SettingsPanel(QWidget):
                 container, reset = self.inheritance[path]
                 applicable = scope in SETTING_DEFAULTS[path][1]
                 container.setVisible(applicable)
-                layout = container.parentWidget().layout()
+                layout = next((form for form in container.parentWidget().findChildren(QFormLayout) if form.indexOf(container) >= 0), None)
                 caption = layout.labelForField(container) if isinstance(layout, QFormLayout) else None
                 if caption:
                     caption.setVisible(applicable)

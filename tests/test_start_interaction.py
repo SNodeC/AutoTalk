@@ -17,7 +17,7 @@ from test_modes import local_speech
 
 
 @pytest.mark.parametrize('mode', ['Prepared', 'Quick', 'Realtime'])
-@pytest.mark.parametrize('content', ['empty', 'manual', 'partial', 'translation', 'saved'])
+@pytest.mark.parametrize('content', ['empty', 'manual', 'partial', 'new_language', 'saved'])
 def test_start_prepares_and_presents_without_review(qtbot, project, monkeypatch, local_speech, mode, content):
     project.mode = mode
     original_version = None
@@ -31,11 +31,11 @@ def test_start_prepares_and_presents_without_review(qtbot, project, monkeypatch,
     elif content == 'partial':
         make_audio(project)
         project.slides[1].narration = ''
-    elif content == 'translation':
+    elif content == 'new_language':
         original_version = project.active_version
-        project.add_version('German', translate=True)
-        project.slides[0].narration = 'Meine eigene Einleitung.'
-    existing = {s.page: copy.deepcopy(s) for s in project.slides if s.text_ready}
+        project.select_language('German')
+        project.set_narration(project.slides[0], 'Meine eigene Einleitung.')
+    existing = {s.page: copy.deepcopy(s) for s in project.slides if project.text_ready(s)}
     requested, started = [], []
     class Client:
         def __init__(self, task): pass
@@ -44,7 +44,7 @@ def test_start_prepares_and_presents_without_review(qtbot, project, monkeypatch,
         def generate(self, prompt, *args, **kwargs):
             pages = json.loads(prompt.split('INPUT:\n')[1])['requested_pages']
             requested.extend(pages)
-            return {'title': 'Test talk', 'slides': [{'page': p, 'narration': 'Neue Worte.' if content == 'translation' else 'Generated words.', 'notes': '', 'budget_seconds': 2} for p in pages]}
+            return {'title': 'Test talk', 'slides': [{'page': p, 'narration': 'Neue Worte.' if content == 'new_language' else 'Generated words.', 'notes': '', 'budget_seconds': 2} for p in pages]}
     monkeypatch.setattr(services, 'Codex', Client)
     monkeypatch.setattr(app.QMessageBox, 'question', lambda *a: pytest.fail('Start must not request text approval'))
     if content == 'saved':
@@ -62,7 +62,7 @@ def test_start_prepares_and_presents_without_review(qtbot, project, monkeypatch,
     assert len(started) == 1 and w.project.prepared
     if mode != 'Realtime': assert started == [True]
     # Realtime's opening request plans the whole deck; only missing pages are applied.
-    assert set(requested) == ({1, 2} if content == 'empty' or mode == 'Realtime' and content in ('partial', 'translation') else {2} if content in ('partial', 'translation') else set())
+    assert set(requested) == ({1, 2} if content == 'empty' or mode == 'Realtime' and content in ('partial', 'new_language') else {2} if content in ('partial', 'new_language') else set())
     for page, slide in existing.items():
         assert w.project.slides[page-1].narration == slide.narration
         if slide.audio_key:

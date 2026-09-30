@@ -10,11 +10,11 @@ class Request(dbus.service.Object):
  @dbus.service.signal('org.freedesktop.portal.Request',signature='ua{sv}')
  def Response(self,result,values):pass
 class Portal(dbus.service.Object):
- starts=0
+ starts=3 if sys.argv[1]=='remote-failure' else 0
  def reply(self,phase,values={}):
   path='/org/freedesktop/portal/desktop/request/test/'+phase
   request=Request(bus,path)
-  result=(1 if self.starts%5==1 else 0) if sys.argv[1]=='cycle' else int(sys.argv[1])
+  result=0 if sys.argv[1]=='remote-failure' else (1 if self.starts%5==1 else 0) if sys.argv[1]=='cycle' else int(sys.argv[1])
   def respond():request.Response(result if phase=='start' else 0,values);request.remove_from_connection();return False
   GLib.timeout_add(20,respond)
   return dbus.ObjectPath(path)
@@ -34,7 +34,7 @@ class Portal(dbus.service.Object):
  @dbus.service.method('org.freedesktop.portal.ScreenCast',in_signature='oa{sv}',out_signature='h')
  def OpenPipeWireRemote(self,session,options):
   assert 'AUTOTALK_PIPEWIRE_NODE' in os.environ
-  if sys.argv[1]=='cycle' and self.starts%5==4:
+  if sys.argv[1]=='remote-failure' or sys.argv[1]=='cycle' and self.starts%5==4:
    raise dbus.DBusException('Synthetic remote failure',name='org.freedesktop.portal.Error.Failed')
   with socket.socket(socket.AF_UNIX) as remote:
    remote.connect(os.environ['XDG_RUNTIME_DIR']+'/pipewire-0')

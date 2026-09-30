@@ -188,7 +188,7 @@ class Slide:
     budget_seconds: float = 0
     included: bool = True
     overrides: dict = field(default_factory=dict)
-    narration_origin: str = "manual"
+    narration_language: str = ""
     audio_key: str = ""
     audio_file: str = ""
     audio_sha256: str = ""
@@ -197,17 +197,12 @@ class Slide:
     clips: list[Clip] = field(default_factory=list)
 
     @property
-    def text_ready(self):
-        return bool(self.passages) and self.narration_origin != "translation"
-
-    @property
     def narration(self):
         return "\n\n".join((f"[{p.language}] " if p.language else "") + p.text for p in self.passages)
 
     @narration.setter
     def narration(self, text):
         self.passages = parse_passages(text)
-        self.narration_origin = "manual"
 
 
 @dataclass
@@ -228,6 +223,7 @@ class Project:
     audience: str = "General conference audience"
     objective: str = "Explain the key ideas and takeaways"
     pdf_hash: str = ""
+    source_pdf: str = ""
     versions: dict[str, TalkVersion] = field(default_factory=lambda: {"main": TalkVersion()})
     active_version: str = "main"
     recording_destination: str = ""
@@ -253,6 +249,8 @@ class Project:
             value = read_settings({name: value})[name]
         target = slide.overrides if slide is not None else self.overrides
         if name == "language" and slide is None:
+            if self.slides:
+                self.select_language(self.defaults.get("language", SETTING_DEFAULTS["language"][0]) if inherit else value)
             if self.version.name in ("", self.version.language) or not self.version.language and self.version.name == "English":
                 self.version.name = "" if inherit else value
             self.version.language = "" if inherit else value
@@ -261,6 +259,14 @@ class Project:
 
     def setting_source(self, name, slide=None):
         return "Slide override" if slide and name in slide.overrides else "Talk setting" if name in self.overrides or name == "language" and self.version.language else "Application default"
+
+    def set_narration(self, slide, text):
+        slide.narration = text
+        slide.narration_language = self.setting("language", slide)
+
+    def text_ready(self, slide):
+        return bool(slide.passages) and (all(p.language for p in slide.passages)
+            or slide.narration_language == self.setting("language", slide))
 
     @property
     def delivery(self):
@@ -292,8 +298,7 @@ class Project:
 
     @language.setter
     def language(self, value):
-        self.version.language = value
-        self.version.name = value
+        self.set_setting("language", value)
 
     def reference(self, language=None, slide=None):
         refs = self.setting("voice", slide).references
@@ -396,7 +401,7 @@ class Project:
 
     def ready(self, slide: Slide) -> bool:
         try:
-            return bool(slide.text_ready and slide.audio_key == self.speech_key(slide)
+            return bool(self.text_ready(slide) and slide.audio_key == self.speech_key(slide)
                         and slide.duration > 0 and self.audio(slide).is_file())
         except ValueError:
             return False
@@ -416,32 +421,33 @@ class Project:
     def save(self):
         self.root.mkdir(parents=True, exist_ok=True)
         # Preserve an older schema exactly once before its first replacement.
-        previous = json.loads(self.manifest.read_text(encoding="utf-8")).get("version") if self.manifest.exists() else 4
-        if previous < 4:
+        previous = json.loads(self.manifest.read_text(encoding="utf-8")).get("version") if self.manifest.exists() else 5
+        if previous < 5:
             backup = self.manifest.with_suffix(f".v{previous}-backup.json")
             if not backup.exists():
                 shutil.copy2(self.manifest, backup)
         data = asdict(self)
         data.pop("root")
         data.pop("defaults")
-        data["version"] = 4
+        data["version"] = 5
         temporary = self.manifest.with_suffix(".tmp")
         temporary.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         temporary.replace(self.manifest)
 
-    def add_version(self, language, translate=False):
+    def select_language(self, language):
         if language not in LANGUAGES:
             raise ValueError("Unsupported language.")
-        key = uuid.uuid4().hex[:12]
-        # Source text is an immutable extraction snapshot from the common PDF.
-        slides = [Slide(s.page, s.source_text, included=s.included, overrides=copy.deepcopy(s.overrides), budget_seconds=s.budget_seconds) for s in self.slides]
-        if translate:
-            for source, slide in zip(self.slides, slides):
-                slide.narration = source.narration
-                slide.narration_origin = "translation"
-        self.versions[key] = TalkVersion(language, language, slides=slides)
-        self.active_version = key
-        return key
+        if language != self.language:
+            # Preserve the departing version even if its language was inherited.
+            self.version.language = self.language
+            key = next((key for key, version in self.versions.items() if (version.language or self.defaults.get("language", SETTING_DEFAULTS["language"][0])) == language), None)
+            if key is None:
+                key = uuid.uuid4().hex[:12]
+                self.versions[key] = TalkVersion(language, language, slides=[
+                    Slide(s.page, s.source_text, included=s.included, budget_seconds=s.budget_seconds,
+                          overrides=copy.deepcopy(s.overrides), clips=copy.deepcopy(s.clips)) for s in self.slides])
+            self.active_version = key
+        return self.active_version
 
     def set_voice(self, source: Path, transcript: str = ""):
         duration = wav_duration(source)
@@ -462,7 +468,7 @@ class Project:
     def load(cls, manifest: Path):
         data = json.loads(manifest.read_text(encoding="utf-8"))
         version = data.pop("version", None)
-        if version not in (1, 2, 3, 4):
+        if version not in (1, 2, 3, 4, 5):
             raise ValueError("Unsupported AutoTalk project version.")
         root = manifest.resolve().parent
         legacy = None
@@ -491,7 +497,7 @@ class Project:
                 text = value.pop("narration")
                 value["overrides"] = {"after": value.pop("after", "advance"), "delivery.instructions": value.pop("directions", "")}
                 slide = Slide(**value)
-                slide.narration = text
+                project.set_narration(slide, text)
                 slide.audio_file = f"audio/{slide.page:04d}-{slide.audio_key}.wav" if slide.audio_key else ""
                 project.slides.append(slide)
                 old_key = digest(["qwen3-0.6b-base-v1", text.strip(), language,
@@ -513,6 +519,9 @@ class Project:
                 for s in value.pop("slides"):
                     s.pop("narration_context", None)
                     s["overrides"] = read_settings(s.get("overrides", {}))
+                    if version < 5:
+                        pending = s.pop("narration_origin", "manual") == "translation"
+                        s["narration_language"] = "" if pending else s["overrides"].get("language", value.get("language", ""))
                     if version < 4:
                         s["overrides"]["after"] = s.pop("after", "advance")
                         directions = s.pop("directions", "")
@@ -574,6 +583,8 @@ class Project:
             if not any(s.included for s in talk.slides):
                 raise ValueError("Include at least one slide in the presentation.")
             for slide in talk.slides:
+                if not isinstance(slide.narration_language, str) or slide.narration_language and slide.narration_language not in LANGUAGES:
+                    raise ValueError("Unsupported narration language.")
                 if any(2 not in SETTING_DEFAULTS[key][1] for key in slide.overrides):
                     raise ValueError("A talk-only setting cannot be overridden by a slide.")
                 if not isinstance(slide.included, bool) or self.setting("after", slide) not in ("advance", "pause", "demo"):

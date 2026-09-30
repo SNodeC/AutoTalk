@@ -22,7 +22,7 @@ from PySide6.QtPdf import QPdfDocument
 from shiboken6 import delete
 
 from .codex import NARRATION_SCHEMA, SCOPE_SCHEMA, Codex
-from .project import Project, Slide, file_hash, validate_narration, wav_duration
+from .project import Project, Slide, file_hash, parse_passages, validate_narration, wav_duration
 from .runtime import MODELS, data_dir, speech_backend, speech_command, speech_session
 
 
@@ -41,7 +41,7 @@ def import_pdf(pdf: Path, destination: Path, task):
             if not 1 <= doc.pageCount() <= 80:
                 raise ValueError("The prototype supports PDF decks with 1–80 pages.")
             (root / "slides").mkdir()
-            project = Project(root=root, title=pdf.stem, pdf_hash=file_hash(root / "slides.pdf"))
+            project = Project(root=root, title=pdf.stem, pdf_hash=file_hash(root / "slides.pdf"), source_pdf=str(pdf.resolve()))
             for i in range(doc.pageCount()):
                 task.check()
                 task.report(f"Reading slide {i+1} / {doc.pageCount()}…")
@@ -61,6 +61,62 @@ def import_pdf(pdf: Path, destination: Path, task):
             shutil.move(str(item), destination / item.name)
     project.root = destination.resolve()
     return project
+
+
+def reload_pdf(project, pdf, task):
+    """Stage a complete replacement; retain the previous project as a backup."""
+    root = project.root
+    backup = root.with_name(root.name + "-before-pdf-" + time.strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:6])
+    staging = tempfile.TemporaryDirectory(prefix=".autotalk-reload-", dir=root.parent)
+    try:
+        temporary = Path(staging.name)
+        fresh = import_pdf(pdf, temporary / "import", task)
+        signature = lambda p, s: (file_hash(p.image(s)), s.source_text)
+        new = [signature(fresh, s) for s in fresh.slides]
+        old = new if project.pdf_hash == fresh.pdf_hash else [
+            signature(project, s) if project.image(s).is_file() else None for s in project.slides]
+        matches = {i: i if old == new else old.index(key)
+                   for i, key in enumerate(new) if old == new or old.count(key) == new.count(key) == 1}
+        updated = copy.deepcopy(project)
+        updated.root = temporary / "replacement"
+        task.report("Backing up project assets before replacing the PDF…")
+        def copy_asset(source, destination):
+            task.check()
+            return shutil.copy2(source, destination)
+        shutil.copytree(root, updated.root, copy_function=copy_asset)
+        task.check()
+        shutil.rmtree(updated.root / "slides")
+        shutil.move(str(fresh.root / "slides"), updated.root / "slides")
+        shutil.copy2(fresh.root / "slides.pdf", updated.root / "slides.pdf")
+        updated.pdf_hash, updated.source_pdf = fresh.pdf_hash, str(pdf.resolve())
+        for version in updated.versions.values():
+            version.slides = [copy.deepcopy(version.slides[matches[i]] if i in matches else s)
+                              for i, s in enumerate(fresh.slides)]
+            for i, slide in enumerate(version.slides):
+                slide.page = i + 1
+            if not any(s.included for s in version.slides):
+                version.slides[0].included = True
+        updated.validate()
+        updated.save()
+        task.check()
+        return staging, updated, root, backup
+    except BaseException:
+        staging.cleanup()
+        raise
+
+
+def install_pdf_reload(staged):
+    """Commit on the GUI thread, after the cancellable worker has succeeded."""
+    staging, updated, root, backup = staged
+    with staging:
+        root.rename(backup)
+        try:
+            updated.root.rename(root)
+        except BaseException:
+            backup.rename(root)
+            raise
+        updated.root = root
+        return updated
 
 
 class WebText(HTMLParser):
@@ -139,12 +195,10 @@ def narration_result(project, task, client, fit=False, pages=None, outline=None,
             "fixed_clip_seconds": sum(c.seconds for s in project.included_slides for c in s.clips),
             "requested_pages": pages, "outline": ({"instruction": "Follow the complete plan already in this thread", "slides": [s for s in outline["slides"] if s["page"] in pages]} if outline else None),
             "slides": [{"page": s.page, "source_text": s.source_text,
-                        "current_narration": s.narration, "language": project.setting("language", s),
+                        "current_narration": s.narration if project.text_ready(s) else "", "language": project.setting("language", s),
                         "style": project.setting("writing_style", s), "pause_after_seconds": project.pause_after(s),
                         "measured_seconds": s.duration if project.ready(s) else None,
                         "requested_seconds": s.budget_seconds if not fit and len(pages) == 1 and s.budget_seconds > 0 else None} for s in project.slides if not outline or s.page in pages]}
-    if any(s.narration_origin == "translation" for s in project.slides):
-        data["translation_instruction"] = "Translate the source narration into the requested language, preserving its meaning and approved factual content."
     instruction = ("Revise the existing talk to fit the target using measured slide durations. Preserve correct content."
                    if fit else "Write a coherent conference talk for the requested pages, following the complete deck's structure.")
     if opening:
@@ -165,8 +219,15 @@ def apply_narration(project, result, task, fit=False):
     replacements = []
     for value in result["slides"]:
         slide = copy.deepcopy(project.slides[value["page"]-1])
-        slide.narration = value["narration"].strip()
-        slide.narration_origin = "generated"
+        text = value["narration"].strip()
+        # A model-added target-language marker must not create a permanent override.
+        if not project.text_ready(slide) or not any(p.language for p in slide.passages):
+            passages = parse_passages(text)
+            if not passages or any(p.language and p.language != project.setting("language", slide) for p in passages):
+                raise ValueError(f"Narration must contain text and permits only {project.setting('language', slide)} without new language overrides.")
+            text = "\n\n".join(p.text for p in passages)
+            text += "".join(f"\n\n[{p.language}] {p.text}" for p in slide.passages if p.language)
+        project.set_narration(slide, text)
         slide.notes = value["notes"]
         slide.budget_seconds = value["budget_seconds"]
         project.effective_passages(slide)
@@ -179,7 +240,7 @@ def apply_narration(project, result, task, fit=False):
     project.save()
     task.event({"type": "narration", "version": project.active_version, "title": project.title,
                 "slides": [copy.deepcopy(project.slides[v["page"]-1]) for v in result["slides"]]})
-    task.event({"type": "progress", "stage": "Narration", "completed": sum(s.text_ready for s in project.included_slides),
+    task.event({"type": "progress", "stage": "Narration", "completed": sum(project.text_ready(s) for s in project.included_slides),
                 "total": len(project.included_slides)})
     return project
 
@@ -241,7 +302,7 @@ def preview_text(project):
 
 def preview_path(project):
     sample = Slide(0)
-    sample.narration = preview_text(project)
+    project.set_narration(sample, preview_text(project))
     return data_dir() / "previews" / f"{project.speech_key(sample)}.wav"
 
 
@@ -250,13 +311,13 @@ def synthesize(project, task, preview=False, *, pages=None, session=None, force=
     selected = [s for s in project.slides if pages is None or s.page in pages]
     if preview:
         sample = Slide(0)
-        sample.narration = preview_text(project)
+        project.set_narration(sample, preview_text(project))
         selected = [sample]
     for slide in selected:
         if not preview and not slide.included:
             continue
-        if not slide.text_ready:
-            raise ValueError(f"Create or translate narration for slide {slide.page} before creating its audio.")
+        if not project.text_ready(slide):
+            raise ValueError(f"Create narration for slide {slide.page} before creating its audio.")
         if not preview and not force and project.ready(slide):
             continue
         voice = project.setting("voice", slide)
@@ -368,7 +429,7 @@ def workflow(project, task):
     if project.prepared:
         return project
     freeze_designed_voice(project, task)
-    missing = [s.page for s in project.included_slides if not s.text_ready]
+    missing = [s.page for s in project.included_slides if not project.text_ready(s)]
     needs_codex = missing or project.mode == "Quick" and project.quick_timing != "once"
     context = speech_session(task, speech_config(project, next((s for s in project.included_slides if not project.ready(s)), None)))
     with (Codex(task) if needs_codex else nullcontext()) as client, ThreadPoolExecutor(max_workers=2) as workers:
@@ -392,7 +453,7 @@ def workflow(project, task):
                                         pages=batches[i+1], outline=outline) if i+1 < len(batches) else None
                 # Current scripts before this batch may only need their audio resumed.
                 through = pages[-1] if pages else len(project.slides)
-                eligible = [s.page for s in project.slides[:through] if s.text_ready]
+                eligible = [s.page for s in project.slides[:through] if project.text_ready(s)]
                 synthesize(project, task, pages=eligible, session=session)
             synthesize(project, task, session=session)
             if project.mode == "Quick" and project.quick_timing != "once":

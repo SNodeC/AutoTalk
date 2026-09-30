@@ -148,7 +148,7 @@ class Mix:
                 parts = [pending.enter_context(AudioFile(p.asset(c.file), gain=c.gain)) for c in slide.clips if c.placement == "before"]
                 if ready:
                     parts.append(pending.enter_context(AudioFile(p.audio(slide))))
-                elif event and slide.text_ready and event["key"] == p.speech_key(slide):
+                elif event and p.text_ready(slide) and event["key"] == p.speech_key(slide):
                     parts.append(pending.enter_context(AudioFile(event["path"], frames=event["frames"], offset=event["offset"])))
                 if ready:
                     parts.extend(pending.enter_context(AudioFile(p.asset(c.file), gain=c.gain)) for c in slide.clips if c.placement == "after")

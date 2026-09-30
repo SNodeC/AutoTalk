@@ -168,7 +168,7 @@ class SettingsDialog(SectionDialog):
         self.before = None
         QDialog.done(self, result)
         w.load_settings()
-        w.refresh()
+        w.show_slide(w.transport.index) if w.project else w.refresh()
 
     def voice_context(self):
         # A synthesis request snapshot; never adopted as the UI's document.
@@ -432,9 +432,9 @@ def build_settings(w):
     form(timing).addRow("Preparation mode", w.settings_mode)
     language = w.add("Language", "Voice & language")
     w.settings_language = combo(LANGUAGES, lambda: w.edit_setting("language", w.settings_language.currentText()))
-    w.settings_language.setToolTip("Changing language keeps existing words. Create or translate text explicitly. A single-language version fixes its slides to the talk language.")
+    w.settings_language.setToolTip("Selecting a talk language restores its saved version or starts an empty version. Create talk text or Start generates missing narration from the slides and talk context, without translating another version. A slide language change affects only that slide.")
     form(language).addRow("Narration language", w.settings_language)
-    language.layout().addWidget(label("Choose how language versions and passages are organized. Add language version creates a separate version; selecting a version preserves the others."))
+    language.layout().addWidget(label("Talk language selection preserves separate versions automatically. Slide language overrides and explicit passages keep their own language."))
     buffer = column(margin=0)
     for name, destination in (("language_policy", language), ("buffer_seconds", buffer)):
         taken = w.options.form.takeRow(w.options.fields[name])

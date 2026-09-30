@@ -1,0 +1,25 @@
+Subject: Qt 6.10.2: tolerate an absent PipeWire loop during capture cleanup
+
+Local correction approved for AutoTalk's bundled library on 2026-09-29.
+This is not the upstream CoreEventListener lifetime fix.
+
+When OpenPipeWireRemote fails, the response handler still transitions to
+Streaming although open() never allocated m_threadLoop. stop() and destruction
+must tolerate this partially initialized state. All other teardown stays intact.
+Reproducer: tests/probes/qt_remote_failure.py (stock Qt exits with SIGSEGV).
+
+Copyright (C) 2025 The Qt Company Ltd.
+SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+--- a/src/multimedia/pipewire/qpipewire_screencapturehelper.cpp
++++ b/src/multimedia/pipewire/qpipewire_screencapturehelper.cpp
+@@ -779,7 +779,8 @@ void QPipeWireCaptureHelper::destroy()
+     m_state = Stopping;
+     destroyStream(false);
+ 
+-    pw_thread_loop_stop(m_threadLoop.get());
++    if (m_threadLoop)
++        pw_thread_loop_stop(m_threadLoop.get());
+ 
+     m_registry = {};
+     m_core = {};
