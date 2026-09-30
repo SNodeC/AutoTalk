@@ -77,8 +77,30 @@ C1 refresh complexity remains 115; splitting it is C3 work.
 C1 checkpoint: wheel **468 passed in 95.80 s**, native/Breeze **468 passed in
 119.83 s**. Exact driver:
 `.venv/bin/python docs/reviews/evidence/2026-09-30-ui-structure-perf/full-tests.py c1-repeat`.
-Production: +69/−2, net **+67** from base; tests: **+127**. Benchmark/evidence
+Production: +69/−2, net **+67** from base; tests: **+123**. Benchmark/evidence
 scripts and documentation are counted separately. This already exceeds the
 combined C1+C2 estimate of +60; the small explicit decorators and copy boundary
 are retained for correctness and readability rather than compressed to meet an
 estimate. Final combined accounting follows C2.
+
+## C2 — source PDF checks
+
+The in-memory signature contains source path, nanosecond mtime and size. It is
+recorded only after a successful hash, reset for another project and after reload
+installation, and never serialized. Activation/job-completion checks skip hashing
+an unchanged signature. The six generation entrances pass `force=True` and retain
+all existing guards and content-based prompt de-duplication. Missing/unreadable
+sources retain the previous non-blocking behavior.
+
+Focused command:
+`QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest -q tests/test_pdf_check_cost.py tests/test_pdf_reload.py`
+— **22 passed**. No implementation failure in this checkpoint.
+
+C2 production: +18/−8, net **+10**; tests **+75**. Cumulative production from base:
++87/−10, net **+77**, 17 over the combined +60 estimate. The added lines make the
+pass lifetime, exception and snapshot behavior explicit; C2 itself only adds ten
+net production lines. This retains readable boundaries rather than shortening
+error handling or introducing a broader cache architecture.
+
+C2 checkpoint: wheel **477 passed in 96.01 s**, native/Breeze **477 passed in
+120.17 s**. Driver: the same full-tests.py command with argument `c2`.

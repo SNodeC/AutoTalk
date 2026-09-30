@@ -104,6 +104,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.project = None
         self.source_notice = None
+        self.source_signature = None
         self.preferences = QSettings()
         self.defaults = read_settings(json.loads(self.preferences.value("setting_defaults", "{}")))
         self.speech = SpeechSession(Task(), {})
@@ -303,6 +304,8 @@ class MainWindow(QMainWindow):
         return True
 
     def adopt(self, project):
+        if not self.project or self.project.root != project.root:
+            self.source_signature = None
         selected = self.transport.index if self.project and self.project.root == project.root else 0
         self.project = project
         self.apply_defaults(project)
@@ -329,14 +332,20 @@ class MainWindow(QMainWindow):
         self.load_settings()
         QTimer.singleShot(0, self.check_source_pdf)
 
-    def check_source_pdf(self):
+    def check_source_pdf(self, *, force=False):
         p = self.project
         if (not p or not p.source_pdf or self.job or self.loading or self.close_requested
                 or self.presentation or self.transport.active or self.transport.preview_path
                 or self.recorder.source or QApplication.activeModalWidget()):
             return False
         try:
-            changed = file_hash(Path(p.source_pdf))
+            source = Path(p.source_pdf)
+            stat = source.stat()
+            signature = (p.source_pdf, stat.st_mtime_ns, stat.st_size)
+            if not force and signature == self.source_signature:
+                return False
+            changed = file_hash(source)
+            self.source_signature = signature
         except OSError:
             return False
         notice = (str(p.root), p.source_pdf, changed)
@@ -373,6 +382,7 @@ class MainWindow(QMainWindow):
         def installed(staged):
             try:
                 self.adopt(install_pdf_reload(staged))
+                self.source_signature = None
                 self.log_message(f"PDF reloaded. Previous talk saved in {staged[3]}")
             except OSError as error:
                 self.job.outcome = "failed"
@@ -679,7 +689,7 @@ class MainWindow(QMainWindow):
         self.start_job("Reading conference scope…", lambda task: extract_scope(self.url.text().strip(), task, self.project.codex_model, self.project.codex_effort), done)
 
     def create_narration(self, rewrite=False):
-        if self.check_source_pdf():
+        if self.check_source_pdf(force=True):
             return
         if not self.project:
             return
@@ -696,12 +706,12 @@ class MainWindow(QMainWindow):
         self.start_job("Writing talk text…", partial(narrate, copy.deepcopy(self.project), pages=pages), done)
 
     def prepare_talk(self):
-        if self.check_source_pdf():
+        if self.check_source_pdf(force=True):
             return
         self.start_job("Preparing talk audio…", partial(prepare, copy.deepcopy(self.project)), self.accept_result)
 
     def fit_duration(self):
-        if self.check_source_pdf():
+        if self.check_source_pdf(force=True):
             return
         if QMessageBox.question(self, "Fit duration", "AutoTalk will revise your talk text and regenerate audio, up to three times, using your Codex allowance. Continue?") != QMessageBox.StandardButton.Yes:
             return
@@ -774,7 +784,7 @@ class MainWindow(QMainWindow):
         self.configuration_changed()
 
     def start_mode(self):
-        if self.check_source_pdf():
+        if self.check_source_pdf(force=True):
             return
         if not self.project:
             return
@@ -914,7 +924,7 @@ class MainWindow(QMainWindow):
         self.show_slide(self.transport.index)
 
     def regenerate_slide(self):
-        if self.check_source_pdf():
+        if self.check_source_pdf(force=True):
             return
         if not self.project:
             return
@@ -927,7 +937,7 @@ class MainWindow(QMainWindow):
         self.start_job(f"Writing slide {page} text…", partial(narrate, copy.deepcopy(self.project), pages=[page]), ready)
 
     def prepare_slide(self):
-        if self.check_source_pdf():
+        if self.check_source_pdf(force=True):
             return
         if not self.project:
             return
