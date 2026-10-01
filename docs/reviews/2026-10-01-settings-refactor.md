@@ -245,3 +245,18 @@ No runtime dependencies changed.
   randomized replay compares the whole project after normalizing version IDs.
 - All source/test/doc whitespace checks pass. Evidence logs have trailing spaces
   stripped; messages and results are otherwise preserved.
+
+## Accounting correction after formatting (settings polish, commit 1)
+
+The earlier **+106** production figure was measured on compressed code. Applying
+normal spacing, one statement per line and a 120-character wrap to the six
+settings/inspector modules adds **376 formatting lines** without changing their
+ASTs. `settings_components.py` grows from 481 to 607 lines with the recorded
+formatter/options; the exact count differs from the steering example's 610.
+
+The corrected PR B figure against `c109626`, including `tools/bench_ui.py`, is
+**+1621 / −1139 = +482 production lines**. This **exceeds the +150 ceiling by
+332 lines**. The former claim that PR B was below that ceiling did not reflect
+its normally formatted size. These numbers include formatting only, not the
+subsequent functional polish fixes. See the
+[polish report](2026-10-01-settings-polish.md) for commands and AST evidence.

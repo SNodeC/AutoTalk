@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """One field builder and loader for schema rows and inspector inheritance."""
+
 from PySide6.QtWidgets import QWidget, QLineEdit, QPlainTextEdit, QCheckBox, QDoubleSpinBox, QHBoxLayout, QVBoxLayout
 from .ui import combo, button, label
 
@@ -38,8 +39,10 @@ class SettingField(QWidget):
 
     def make_editor(self, edit):
         spec = self.spec
+
         def changed(*_):
             edit(spec.key, self.read())
+
         if spec.kind == 'choice':
             widget = combo(spec.choices)
             widget.setMinimumContentsLength(0)
@@ -55,7 +58,7 @@ class SettingField(QWidget):
             widget = QDoubleSpinBox()
             widget.setRange(*spec.limits)
             widget.setSuffix(spec.unit)
-            widget.setSingleStep(.1 if spec.key == 'pause_seconds' else 5 if spec.key == 'background_gain' else 1)
+            widget.setSingleStep(0.1 if spec.key == 'pause_seconds' else 5 if spec.key == 'background_gain' else 1)
             self.read = lambda: widget.value() / spec.scale
             self.write = lambda value: widget.setValue(value * spec.scale)
             widget.valueChanged.connect(changed)
@@ -75,7 +78,7 @@ class SettingField(QWidget):
         blocked = self.editor.blockSignals(True)
         try:
             if self.read_only:
-                self.editor.setText(('On' if value else 'Off') if isinstance(value,bool) else str(value))
+                self.editor.setText(('On' if value else 'Off') if isinstance(value, bool) else str(value))
             elif self.write and self.read() != value:
                 self.write(value)
         finally:
