@@ -1,0 +1,7 @@
+src/autotalk/settings.py: AST identical; 357 -> 424 lines
+src/autotalk/settings_schema.py: AST identical; 92 -> 195 lines
+src/autotalk/settings_fields.py: AST identical; 82 -> 85 lines
+src/autotalk/settings_components.py: AST identical; 481 -> 607 lines
+src/autotalk/preferences.py: AST identical; 119 -> 179 lines
+src/autotalk/inspector.py: AST identical; 80 -> 97 lines
+PASS: all six module ASTs are identical (location attributes excluded).

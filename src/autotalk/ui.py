@@ -188,11 +188,19 @@ class SectionDialog(QDialog):
         self.cancel_job.hide()
         outer.addWidget(self.cancel_job)
         kinds = QDialogButtonBox.StandardButton
-        self.buttons = QDialogButtonBox(kinds.Close)
+        self.buttons = QDialogButtonBox()
+        self.set_buttons(kinds.Close)
         self.buttons.setContentsMargins(12, 0, 12, 0)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
         outer.addWidget(self.buttons)
+
+    def set_buttons(self, kinds):
+        self.buttons.setStandardButtons(kinds)
+        for control in self.buttons.buttons():
+            shortcut = control.shortcut()
+            control.setText(control.text().replace("&", ""))
+            control.setShortcut(shortcut)
 
     def add(self, title, page_name=""):
         name = page_name or title
@@ -416,7 +424,7 @@ def build(w):
     inspector_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
     inspector.layout().setSizeConstraint(QVBoxLayout.SizeConstraint.SetMinimumSize)
     inspector_scroll.setWidget(inspector)
-    inspector_scroll.setMinimumWidth(200)
+    inspector_scroll.setMinimumWidth(200 + inspector_scroll.verticalScrollBar().sizeHint().width())
     for pane in (navigation, center, inspector_scroll):
         w.editor.addWidget(pane)
     w.editor.setSizes([154, 644, 226])

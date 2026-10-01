@@ -7,6 +7,7 @@ recorder (read-only), refresh/request_refresh. Begin/finish callbacks own live
 state and persistence; signals route preferences, fitting and voice recording.
 Components see only the draft. apply_edit is shared by drafting and Save replay.
 """
+
 import copy
 from dataclasses import asdict
 
@@ -36,8 +37,15 @@ def apply_edit(project, scope, index, operation):
 
 
 def inheritance(project, key, scope, slide=None):
-    local = (key in project.defaults if scope == 0 else key in slide.overrides if scope == 2 else
-             key in project.overrides or key == 'language' and bool(project.version.language))
+    local = (
+        key in project.defaults
+        if scope == 0
+        else (
+            key in slide.overrides
+            if scope == 2
+            else key in project.overrides or key == 'language' and bool(project.version.language)
+        )
+    )
     if local:
         return 'set here', True
     if scope == 2 and project.setting_source(key) == 'Talk setting':
@@ -57,10 +65,10 @@ class ScopedSettingsDialog(SectionDialog):
         self.project = None
         self.operations, self.fields = [], {}
         self.loading, self.operation = False, None
-        self.buttons.setStandardButtons(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        self.set_buttons(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.hint = label('')
         self.hint.setContentsMargins(12, 0, 12, 0)
-        self.layout().insertWidget(self.layout().count()-1, self.hint)
+        self.layout().insertWidget(self.layout().count() - 1, self.hint)
         self.build_pages()
         self.order_focus()
         self.navigation.currentRowChanged.connect(self.page_changed)
@@ -69,6 +77,7 @@ class ScopedSettingsDialog(SectionDialog):
     def order_focus(self):
         # Derive keyboard order from the same layouts as the schema pages.
         widgets = []
+
         def collect(layout):
             for i in range(layout.count()):
                 item = layout.itemAt(i)
@@ -81,6 +90,7 @@ class ScopedSettingsDialog(SectionDialog):
                     collect(widget.layout())
                 elif item.layout():
                     collect(item.layout())
+
         collect(self.layout())
         for previous, following in zip(widgets, widgets[1:]):
             QWidget.setTabOrder(previous, following)
@@ -103,16 +113,24 @@ class ScopedSettingsDialog(SectionDialog):
     def add_field(self, spec, parent):
         field = SettingField(spec, self.scope, self.edit_setting)
         self.fields[spec.key] = field
-        caption = {'language': ('Default narration language', 'Language', 'Language of this slide'),
-                   'mode': ('Default mode', 'Mode', 'Mode')}.get(spec.key)
+        caption = {
+            'language': ('Default narration language', 'Language', 'Language of this slide'),
+            'mode': ('Default mode', 'Mode', 'Mode'),
+        }.get(spec.key)
         layout = self.field_layout(parent)
         layout.addRow(caption[self.scope] if caption else spec.label, field)
         return field
 
     @staticmethod
     def field_layout(parent):
-        return next((parent.layout().itemAt(i).layout() for i in range(parent.layout().count())
-                     if isinstance(parent.layout().itemAt(i).layout(), QFormLayout)), None) or form(parent)
+        return next(
+            (
+                parent.layout().itemAt(i).layout()
+                for i in range(parent.layout().count())
+                if isinstance(parent.layout().itemAt(i).layout(), QFormLayout)
+            ),
+            None,
+        ) or form(parent)
 
     def build_pages(self):
         for page in PAGES:
@@ -128,7 +146,12 @@ class ScopedSettingsDialog(SectionDialog):
                 self.conference = ConferencePanel(self)
                 section.layout().addWidget(self.conference)
                 section = self.add('Inherited settings', page)
-                section.layout().addWidget(label('Keep the currently inherited values with this talk so future changes to Talk defaults do not affect it.'))
+                section.layout().addWidget(
+                    label(
+                        'Keep the currently inherited values with this talk so future changes to Talk defaults '
+                        'do not affect it.'
+                    )
+                )
                 section.layout().addWidget(button('Keep these settings for this talk', self.pin))
             return
         sections = {}
@@ -164,7 +187,11 @@ class ScopedSettingsDialog(SectionDialog):
                 self.fit_button = button('Save and fit…', self.save_and_fit)
                 section.layout().addWidget(self.timing_summary)
                 section.layout().addWidget(self.fit_button)
-            section.layout().addWidget(button('Display & sound settings…', lambda: self.preferences_requested.emit('Display & sound', 'screen')))
+            section.layout().addWidget(
+                button(
+                    'Display && sound settings…', lambda: self.preferences_requested.emit('Display & sound', 'screen')
+                )
+            )
         elif page == 'Audio & recording' and self.scope:
             self.assets = AudioAssets(self)
             section = sections.get('Background audio') if self.scope == 1 else None
@@ -174,7 +201,11 @@ class ScopedSettingsDialog(SectionDialog):
             section = self.add('Speech model — Qwen', page)
             self.voice_model = label('')
             section.layout().addWidget(self.voice_model)
-            section.layout().addWidget(button('Speech engine settings…', lambda: self.preferences_requested.emit('Speech engine', 'engine_state')))
+            section.layout().addWidget(
+                button(
+                    'Speech engine settings…', lambda: self.preferences_requested.emit('Speech engine', 'engine_state')
+                )
+            )
             section.layout().addWidget(self.voice.synthesis_widget)
 
     def show_section(self, section=None, focus=None):
@@ -185,7 +216,15 @@ class ScopedSettingsDialog(SectionDialog):
             self.begin(self)
             self.operations = []
             self.existing_files = self.media_files()
-        self.setWindowTitle('Talk defaults' if self.scope == 0 else 'Talk settings — '+self.project.title if self.scope == 1 else f'Slide sound — slide {self.slide_index+1}')
+        self.setWindowTitle(
+            'Talk defaults'
+            if self.scope == 0
+            else (
+                'Talk settings — ' + self.project.title
+                if self.scope == 1
+                else f'Slide sound — slide {self.slide_index + 1}'
+            )
+        )
         self.load_settings()
         self.voice.refresh_library()
         self.presets.refresh_presets()
@@ -200,7 +239,11 @@ class ScopedSettingsDialog(SectionDialog):
         try:
             with self.project.pass_cache():
                 for key, field in self.fields.items():
-                    source, overridden = inheritance(self.project, key, self.scope, self.slide) if key in SETTING_DEFAULTS else ('', False)
+                    source, overridden = (
+                        inheritance(self.project, key, self.scope, self.slide)
+                        if key in SETTING_DEFAULTS
+                        else ('', False)
+                    )
                     field.load(self.setting_value(key), source, overridden)
                 self.voice.load(preserve_candidate)
                 if self.scope < 2:
@@ -233,13 +276,17 @@ class ScopedSettingsDialog(SectionDialog):
             self.edit_setting("recording_destination", path)
 
     def pin(self):
-        self.edit_many([(key, self.project.setting(key), False) for key, (_, scopes) in SETTING_DEFAULTS.items() if 1 in scopes])
+        self.edit_many(
+            [(key, self.project.setting(key), False) for key, (_, scopes) in SETTING_DEFAULTS.items() if 1 in scopes]
+        )
 
     def sync(self, editable, job=None):
         if not self.project:
             return
         self.buttons.setEnabled(True)
-        self.buttons.button(QDialogButtonBox.StandardButton.Save).setEnabled(not self.pending and not self.window.recorder.source)
+        self.buttons.button(QDialogButtonBox.StandardButton.Save).setEnabled(
+            not self.pending and not self.window.recorder.source
+        )
         self.cancel_job.setVisible(job is not None or bool(self.window.recorder.source))
         self.cancel_job.setText('Stop voice recording' if self.window.recorder.source else 'Cancel operation')
         if not self.isVisible():
@@ -249,14 +296,18 @@ class ScopedSettingsDialog(SectionDialog):
         self.voice.voice_audition.setVisible(page == 'Voice & language')
         if page == 'Voice & language':
             self.voice.sync(editable and not self.operation)
-        self.hint.setText('Save applies to talks and slides that inherit these values.' if self.scope == 0 else 'Save applies to this talk.' if self.scope == 1 else 'Save applies to this slide.')
+        self.hint.setText(
+            'Save applies to talks and slides that inherit these values.'
+            if self.scope == 0
+            else 'Save applies to this talk.' if self.scope == 1 else 'Save applies to this slide.'
+        )
         if page in ('Voice & language', 'Writing & delivery'):
-            self.hint.setText(self.hint.text()+' Library actions save to the shared library immediately.')
+            self.hint.setText(self.hint.text() + ' Library actions save to the shared library immediately.')
         self.sync_fields()
         if self.scope < 2:
             self.models.refresh_models()
-            self.models.connection.setText(self.window.codex_settings.get('account','Not signed in to ChatGPT.'))
-            self.voice_model.setText('Qwen3-TTS 1.7B — '+self.setting_value('voice').source)
+            self.models.connection.setText(self.window.codex_settings.get('account', 'Not signed in to ChatGPT.'))
+            self.voice_model.setText('Qwen3-TTS 1.7B — ' + self.setting_value('voice').source)
         if self.scope == 1:
             self.conference.load()
 
@@ -266,9 +317,16 @@ class ScopedSettingsDialog(SectionDialog):
             if key.startswith('delivery.') and key != 'delivery.sampling':
                 field.setEnabled(voice.source != 'Base')
         self.fields['delivery.attributes.age'].setEnabled(voice.source == 'VoiceDesign')
-        self.fields['delivery.attributes.accent'].setEnabled(voice.source != 'Base' and self.setting_value('language') == 'Chinese')
+        self.fields['delivery.attributes.accent'].setEnabled(
+            voice.source != 'Base' and self.setting_value('language') == 'Chinese'
+        )
         self.fields['language'].setEnabled(self.scope != 2 or self.setting_value('language_policy') != 'version')
-        for key, mode in [('quick_timing','Quick'),('realtime_script','Realtime'),('speech_priority','Realtime'),('buffer_seconds','Realtime')]:
+        for key, mode in [
+            ('quick_timing', 'Quick'),
+            ('realtime_script', 'Realtime'),
+            ('speech_priority', 'Realtime'),
+            ('buffer_seconds', 'Realtime'),
+        ]:
             if key in self.fields:
                 self.fields[key].setEnabled(self.setting_value('mode') == mode)
         if self.scope < 2:
@@ -278,21 +336,28 @@ class ScopedSettingsDialog(SectionDialog):
 
     def sync_timing(self):
         from .app import clock
+
         p = self.project
         with p.pass_cache():
             ready = sum(p.ready(s) for s in p.included_slides)
-            self.timing_summary.setText(f'Target {clock(p.target_minutes*60)} · Audio {clock(p.total_seconds)}\n{ready}/{len(p.included_slides)} included slides have current audio.')
+            self.timing_summary.setText(
+                f'Target {clock(p.target_minutes * 60)} · Audio {clock(p.total_seconds)}\n'
+                f'{ready}/{len(p.included_slides)} included slides have current audio.'
+            )
             self.fit_button.setEnabled(not self.pending and all(p.text_ready(s) for s in p.included_slides))
 
     def start_job(self, title, function, callback, *, project_returning=False):
         draft, existing = self.project, self.existing_files
+
         def delivered(result):
             if self.isVisible() and self.project is draft:
                 callback(result)
+
         job = self.window.start_job(title, function, delivered, save_before=False)
         if job:
             self.operation = job
             job.project_returning = project_returning
+
             def finished():
                 if self.operation is job:
                     self.operation = None
@@ -300,6 +365,7 @@ class ScopedSettingsDialog(SectionDialog):
                     self.clean_media(draft, existing)
                 if self.isVisible():
                     self.sync(True)
+
             job.finished.connect(finished)
             self.sync(False, job)
         return job
@@ -315,6 +381,7 @@ class ScopedSettingsDialog(SectionDialog):
             if isinstance(value, list):
                 return set().union(*(references(v) for v in value))
             return set()
+
         live = self.window.project
         protected = references(asdict(live)) if live and live.root == draft.root else set()
         for path in self.media_files(draft) - existing:

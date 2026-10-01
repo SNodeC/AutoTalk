@@ -192,7 +192,16 @@ class MainWindow(QMainWindow):
                 self.config.setValue("setting_defaults", json.dumps(self.defaults, default=lambda v: asdict(v)))
                 if self.project:
                     self.apply_defaults(self.project)
-        self.configuration_changed(apply, edited=dialog.slide_index+1 if dialog.scope == 2 else None)
+        before, modified = copy.deepcopy(self.project) if dialog.scope else None, self.isWindowModified()
+        try:
+            self.configuration_changed(apply, edited=dialog.slide_index+1 if dialog.scope == 2 else None)
+        except Exception as error:
+            if before is not None:
+                self.adopt(before)
+                dialog.generation = self.project_generation
+            self.setWindowModified(modified)
+            dialog.status.setText(f"Could not apply settings: {error}")
+            return False
         dialog.generation = self.project_generation
         return True if dialog.scope == 0 else self.save()
 
@@ -686,7 +695,6 @@ class MainWindow(QMainWindow):
         if not p:
             return
         editable, can_play = self.editable, self.can_play
-        slide = p.slides[self.transport.index]
         finished = self.transport.state == "finished"
         self.duration_label.setText(("Slides finished — recording continues" if self.transport.capture else "Presentation finished") if finished else f"{clock(p.total_seconds)} prepared  /  {clock(p.target_minutes*60)} target")
         self.slide_list.setEnabled(editable or can_play)

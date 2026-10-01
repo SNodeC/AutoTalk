@@ -1,0 +1,24 @@
+{
+  "wheel": {
+    "tests": "576 passed in 191.24s (0:03:11)",
+    "sinks": {
+      "physical_state_unchanged": true,
+      "count": 4
+    },
+    "sources": {
+      "physical_state_unchanged": true,
+      "count": 6
+    }
+  },
+  "native": {
+    "tests": "576 passed in 245.97s (0:04:05)",
+    "sinks": {
+      "physical_state_unchanged": true,
+      "count": 4
+    },
+    "sources": {
+      "physical_state_unchanged": true,
+      "count": 6
+    }
+  }
+}

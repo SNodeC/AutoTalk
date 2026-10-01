@@ -1,0 +1,322 @@
+[
+  {
+    "stack": "wheel",
+    "file": "inspector-light-940-scale1.png",
+    "difference_bbox": [
+      321,
+      190,
+      940,
+      572
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "timing-light-760-scale1.png",
+    "difference_bbox": [
+      401,
+      448,
+      550,
+      461
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "inspector-light-1100-scale1.png",
+    "difference_bbox": [
+      329,
+      190,
+      1090,
+      742
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "timing-light-920-scale1.png",
+    "difference_bbox": [
+      488,
+      539,
+      637,
+      552
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "inspector-dark-940-scale1.png",
+    "difference_bbox": [
+      321,
+      190,
+      940,
+      572
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "timing-dark-760-scale1.png",
+    "difference_bbox": [
+      401,
+      448,
+      550,
+      461
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "inspector-dark-1100-scale1.png",
+    "difference_bbox": [
+      329,
+      190,
+      1090,
+      742
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "timing-dark-920-scale1.png",
+    "difference_bbox": [
+      488,
+      539,
+      637,
+      552
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "inspector-light-940-scale1.5.png",
+    "difference_bbox": [
+      482,
+      285,
+      1410,
+      858
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "timing-light-760-scale1.5.png",
+    "difference_bbox": [
+      602,
+      673,
+      824,
+      692
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "inspector-light-1100-scale1.5.png",
+    "difference_bbox": [
+      494,
+      285,
+      1635,
+      1113
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "timing-light-920-scale1.5.png",
+    "difference_bbox": [
+      733,
+      810,
+      955,
+      829
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "inspector-dark-940-scale1.5.png",
+    "difference_bbox": [
+      482,
+      285,
+      1410,
+      858
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "timing-dark-760-scale1.5.png",
+    "difference_bbox": [
+      602,
+      673,
+      824,
+      692
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "inspector-dark-1100-scale1.5.png",
+    "difference_bbox": [
+      494,
+      285,
+      1635,
+      1113
+    ]
+  },
+  {
+    "stack": "wheel",
+    "file": "timing-dark-920-scale1.5.png",
+    "difference_bbox": [
+      733,
+      810,
+      955,
+      829
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "inspector-light-940-scale1.png",
+    "difference_bbox": [
+      327,
+      200,
+      934,
+      570
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "timing-light-760-scale1.png",
+    "difference_bbox": [
+      392,
+      445,
+      552,
+      458
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "inspector-light-1100-scale1.png",
+    "difference_bbox": [
+      330,
+      200,
+      1094,
+      740
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "timing-light-920-scale1.png",
+    "difference_bbox": [
+      482,
+      547,
+      643,
+      560
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "inspector-dark-940-scale1.png",
+    "difference_bbox": [
+      327,
+      200,
+      934,
+      570
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "timing-dark-760-scale1.png",
+    "difference_bbox": [
+      392,
+      445,
+      552,
+      458
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "inspector-dark-1100-scale1.png",
+    "difference_bbox": [
+      330,
+      200,
+      1094,
+      740
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "timing-dark-920-scale1.png",
+    "difference_bbox": [
+      482,
+      547,
+      643,
+      560
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "inspector-light-940-scale1.5.png",
+    "difference_bbox": [
+      491,
+      300,
+      1401,
+      855
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "timing-light-760-scale1.5.png",
+    "difference_bbox": [
+      588,
+      668,
+      828,
+      688
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "inspector-light-1100-scale1.5.png",
+    "difference_bbox": [
+      495,
+      300,
+      1641,
+      1110
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "timing-light-920-scale1.5.png",
+    "difference_bbox": [
+      724,
+      821,
+      964,
+      841
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "inspector-dark-940-scale1.5.png",
+    "difference_bbox": [
+      491,
+      300,
+      1401,
+      855
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "timing-dark-760-scale1.5.png",
+    "difference_bbox": [
+      588,
+      668,
+      828,
+      688
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "inspector-dark-1100-scale1.5.png",
+    "difference_bbox": [
+      495,
+      300,
+      1641,
+      1110
+    ]
+  },
+  {
+    "stack": "native",
+    "file": "timing-dark-920-scale1.5.png",
+    "difference_bbox": [
+      724,
+      821,
+      964,
+      841
+    ]
+  }
+]
