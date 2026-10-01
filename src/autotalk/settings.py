@@ -65,7 +65,7 @@ class ScopedSettingsDialog(SectionDialog):
         self.project = None
         self.operations, self.fields = [], {}
         self.loading, self.operation = False, None
-        self.buttons.setStandardButtons(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        self.set_buttons(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.hint = label('')
         self.hint.setContentsMargins(12, 0, 12, 0)
         self.layout().insertWidget(self.layout().count() - 1, self.hint)
@@ -189,7 +189,7 @@ class ScopedSettingsDialog(SectionDialog):
                 section.layout().addWidget(self.fit_button)
             section.layout().addWidget(
                 button(
-                    'Display & sound settings…', lambda: self.preferences_requested.emit('Display & sound', 'screen')
+                    'Display && sound settings…', lambda: self.preferences_requested.emit('Display & sound', 'screen')
                 )
             )
         elif page == 'Audio & recording' and self.scope:

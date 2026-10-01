@@ -1,0 +1,105 @@
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.0' (uid=1000 pid=3556154 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Activating service name='org.gtk.vfs.Daemon' requested by ':1.2' (uid=1000 pid=3556154 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Successfully activated service 'org.gtk.vfs.Daemon'
+dbus-daemon[3556178]: Activating service name='org.a11y.atspi.Registry' requested by ':1.1' (uid=1000 pid=3556154 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Activating service name='org.xfce.Xfconf' requested by ':1.2' (uid=1000 pid=3556154 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Successfully activated service 'org.xfce.Xfconf'
+dbus-daemon[3556178]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.7' (uid=1000 pid=3556291 comm="artifacts/open-tasks/venv-qt610/bin/python -m pyte" label="unconfined")
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.8' (uid=1000 pid=3556334 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.8' (uid=1000 pid=3556334 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+
+(/usr/libexec/xdg-desktop-portal:3556334): xdg-desktop-portal-WARNING **: 09:37:08.080: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.8' (uid=1000 pid=3556334 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.kde' requested by ':1.8' (uid=1000 pid=3556334 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.kde'
+xdp-kde-clipboard: Couldn't resolve QWaylandApplication - clipboard will not work
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.kwallet' requested by ':1.8' (uid=1000 pid=3556334 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+kf.wallet.ksecretd: Lacking a socket, pipe: 0 env: 0
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.kwallet'
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Activating service name='org.gtk.vfs.Metadata' requested by ':1.2' (uid=1000 pid=3556154 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3556152]: [session uid=1000 pid=3556152 pidfd=5] Successfully activated service 'org.gtk.vfs.Metadata'
+............FF.......................................................... [ 81%]
+................                                                         [100%]
+=================================== FAILURES ===================================
+__________ test_buttons_actions_and_tabs_have_no_accidental_mnemonics __________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f2722753200>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-417/test_buttons_actions_and_tabs_0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+
+    def test_buttons_actions_and_tabs_have_no_accidental_mnemonics(qtbot, project):
+        w = MainWindow()
+        qtbot.addWidget(w)
+        w.adopt(project)
+        w.show()
+        single_ampersand = re.compile(r'(?<!&)&(?!&)')
+        for surface in [w, *w.settings.values(), w.preferences]:
+            if surface is not w:
+                surface.show_section()
+            texts = [button.text() for button in surface.findChildren(QAbstractButton)]
+            texts += [action.text() for action in surface.findChildren(QAction)]
+            texts += [tab.tabText(i) for tab in surface.findChildren(QTabBar) for i in range(tab.count())]
+>           assert not [text for text in texts if single_ampersand.search(text)]
+E           AssertionError: assert not ['&Close', '&Save', '&Cancel', '&Save', '&Cancel', '&Save', ...]
+
+tests/test_settings_polish.py:95: AssertionError
+_____________ test_compact_inspector_caption_and_reset_fit[size0] ______________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f2722753a10>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-417/test_compact_inspector_caption0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+size = (940, 680)
+
+    @pytest.mark.parametrize('size', [(940, 680), (1100, 850)])
+    def test_compact_inspector_caption_and_reset_fit(qtbot, project, size):
+        w = MainWindow()
+        qtbot.addWidget(w)
+        w.adopt(project)
+        w.resize(*size)
+        w.show()
+        next(b for b in w.inspector.findChildren(QToolButton) if b.text() == 'Timing').setChecked(True)
+        w.editor.setSizes([154, size[0] - 354, 200])
+        qtbot.wait(50)
+        for field in (w.inspector.after_field, w.inspector.pause_field):
+            field.source.setText('from an unusually long inherited source')
+            qtbot.wait(20)
+            assert field.source.toolTip() == 'from an unusually long inherited source'
+            assert field.source.text() != field.source.toolTip()
+            for child in (field.source, field.reset, field.editor):
+                rect = child.rect()
+                assert field.rect().contains(child.mapTo(field, rect.topLeft()))
+                assert field.rect().contains(child.mapTo(field, rect.bottomRight()))
+            assert field.reset.mapTo(field, QPoint()).y() < field.editor.mapTo(field, QPoint()).y()
+            assert field.reset.width() >= field.reset.minimumSizeHint().width()
+            assert field.editor.width() == field.width()
+>       assert w.inspector.parentWidget().parentWidget().horizontalScrollBar().maximum() == 0
+E       assert 17 == 0
+E        +  where 17 = <built-in method maximum of PySide6.QtWidgets.QScrollBar object at 0x7f271adf70c0>()
+E        +    where <built-in method maximum of PySide6.QtWidgets.QScrollBar object at 0x7f271adf70c0> = <PySide6.QtWidgets.QScrollBar(0x34b0e1b0) at 0x7f271adf70c0>.maximum
+E        +      where <PySide6.QtWidgets.QScrollBar(0x34b0e1b0) at 0x7f271adf70c0> = <built-in method horizontalScrollBar of PySide6.QtWidgets.QScrollArea object at 0x7f271b340e40>()
+E        +        where <built-in method horizontalScrollBar of PySide6.QtWidgets.QScrollArea object at 0x7f271b340e40> = <PySide6.QtWidgets.QScrollArea(0x34b0dbd0) at 0x7f271b340e40>.horizontalScrollBar
+E        +          where <PySide6.QtWidgets.QScrollArea(0x34b0dbd0) at 0x7f271b340e40> = <built-in method parentWidget of PySide6.QtWidgets.QWidget object at 0x7f271adf6e00>()
+E        +            where <built-in method parentWidget of PySide6.QtWidgets.QWidget object at 0x7f271adf6e00> = <PySide6.QtWidgets.QWidget(0x47770270, name="qt_scrollarea_viewport") at 0x7f271adf6e00>.parentWidget
+E        +              where <PySide6.QtWidgets.QWidget(0x47770270, name="qt_scrollarea_viewport") at 0x7f271adf6e00> = <built-in method parentWidget of InspectorPanel object at 0x7f271b3216c0>()
+E        +                where <built-in method parentWidget of InspectorPanel object at 0x7f271b3216c0> = <autotalk.inspector.InspectorPanel(0x47743c70, name="chrome") at 0x7f271b3216c0>.parentWidget
+E        +                  where <autotalk.inspector.InspectorPanel(0x47743c70, name="chrome") at 0x7f271b3216c0> = <autotalk.app.MainWindow(0x44e70c90) at 0x7f272219aa00>.inspector
+
+tests/test_settings_polish.py:130: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_settings_polish.py::test_buttons_actions_and_tabs_have_no_accidental_mnemonics
+FAILED tests/test_settings_polish.py::test_compact_inspector_caption_and_reset_fit[size0]
+2 failed, 86 passed in 45.57s
+A connection to the bus can't be made
+
+(xfconfd:3556225): xfconfd-WARNING **: 09:37:53.840: Name org.xfce.Xfconf lost on the message dbus, exiting.
+The X11 connection broke (error 1). Did the X11 server die?
+The X11 connection broke (error 1). Did the X11 server die?
+KCrash: Application 'xdg-desktop-portal-kde' crashing... crashRecursionCounter = 2

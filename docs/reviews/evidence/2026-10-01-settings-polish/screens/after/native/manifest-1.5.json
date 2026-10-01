@@ -1,0 +1,70 @@
+[
+  {
+    "file": "inspector-light-940-scale1.5.png",
+    "size": [
+      940,
+      680
+    ],
+    "style": "breeze",
+    "inspector_width": 200
+  },
+  {
+    "file": "inspector-light-1100-scale1.5.png",
+    "size": [
+      1100,
+      850
+    ],
+    "style": "breeze",
+    "inspector_width": 221
+  },
+  {
+    "file": "timing-light-760-scale1.5.png",
+    "size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "timing-light-920-scale1.5.png",
+    "size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "inspector-dark-940-scale1.5.png",
+    "size": [
+      940,
+      680
+    ],
+    "style": "breeze",
+    "inspector_width": 200
+  },
+  {
+    "file": "inspector-dark-1100-scale1.5.png",
+    "size": [
+      1100,
+      850
+    ],
+    "style": "breeze",
+    "inspector_width": 221
+  },
+  {
+    "file": "timing-dark-760-scale1.5.png",
+    "size": [
+      760,
+      580
+    ],
+    "style": "breeze"
+  },
+  {
+    "file": "timing-dark-920-scale1.5.png",
+    "size": [
+      920,
+      760
+    ],
+    "style": "breeze"
+  }
+]

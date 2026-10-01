@@ -5,6 +5,7 @@ configuration_changed, transport (selection/previews), recorder (read-only),
 and refresh/request_refresh. Dialog navigation is an explicit signal.
 """
 
+from dataclasses import replace
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QCheckBox
 from .ui import label, button, column, number, disclosure
@@ -29,9 +30,8 @@ class InspectorPanel(QWidget):
         self.slide_include = QCheckBox("Include in presentation")
         self.slide_include.toggled.connect(self.include_changed)
         self.layout().addWidget(self.slide_include)
-        self.after_field = SettingField(SCHEMA['after'], 2, self.edit, compact=True)
+        self.after_field = SettingField(replace(SCHEMA['after'], label='After this slide'), 2, self.edit, compact=True)
         self.slide_after = self.after_field.editor
-        self.layout().addWidget(label('After this slide'))
         self.layout().addWidget(self.after_field)
         timing = column(margin=0)
         self.slide_budget = number(0, 14400, 0, self.budget_changed, " sec")
@@ -39,7 +39,6 @@ class InspectorPanel(QWidget):
         timing.layout().addWidget(self.slide_budget)
         self.pause_field = SettingField(SCHEMA['pause_seconds'], 2, self.edit, compact=True)
         self.slide_pause = self.pause_field.editor
-        timing.layout().addWidget(label('Pause after slide'))
         timing.layout().addWidget(self.pause_field)
         disclosure(self, "Timing", timing)
         self.layout().addWidget(button("Slide sound…", lambda: self.open_settings.emit("Voice & language")))

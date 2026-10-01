@@ -1,0 +1,97 @@
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.0' (uid=1000 pid=3566155 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Activating service name='org.gtk.vfs.Daemon' requested by ':1.2' (uid=1000 pid=3566155 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Successfully activated service 'org.gtk.vfs.Daemon'
+dbus-daemon[3566172]: Activating service name='org.a11y.atspi.Registry' requested by ':1.1' (uid=1000 pid=3566155 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Activating service name='org.xfce.Xfconf' requested by ':1.2' (uid=1000 pid=3566155 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3566172]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Successfully activated service 'org.xfce.Xfconf'
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.7' (uid=1000 pid=3566224 comm="artifacts/open-tasks/venv-qt610/bin/python -m pyte" label="unconfined")
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.8' (uid=1000 pid=3566257 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.8' (uid=1000 pid=3566257 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+
+(/usr/libexec/xdg-desktop-portal:3566257): xdg-desktop-portal-WARNING **: 09:47:13.934: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.8' (uid=1000 pid=3566257 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.kde' requested by ':1.8' (uid=1000 pid=3566257 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.kde'
+xdp-kde-clipboard: Couldn't resolve QWaylandApplication - clipboard will not work
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.kwallet' requested by ':1.8' (uid=1000 pid=3566257 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+kf.wallet.ksecretd: Lacking a socket, pipe: 0 env: 0
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.kwallet'
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Activating service name='org.gtk.vfs.Metadata' requested by ':1.2' (uid=1000 pid=3566155 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3566153]: [session uid=1000 pid=3566153 pidfd=5] Successfully activated service 'org.gtk.vfs.Metadata'
+........................................................................ [ 12%]
+........................................................................ [ 25%]
+........................................................................ [ 37%]
+........................................................................ [ 50%]
+........................................................................ [ 62%]
+........................................................................ [ 75%]
+........................
+(/usr/libexec/xdg-desktop-portal:3566257): xdg-desktop-portal-WARNING **: 09:50:20.430: Realtime error: Could not map tid 3569990 of pid 3566224: Process ids could not be found: 3569990
+................................................ [ 87%]
+........................................FF.............................. [100%]
+=================================== FAILURES ===================================
+_________ test_inspector_source_pause_and_delivery_independence[False] _________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7fe4c00b79b0>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-423/test_inspector_source_pause_an0/talk'), title='slides', target_m...{'voice': Voice(name='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference')})
+talk_override = False
+
+    @pytest.mark.parametrize('talk_override', [False, True])
+    def test_inspector_source_pause_and_delivery_independence(qtbot, project, talk_override):
+        project.defaults['after'] = 'demo'
+        if talk_override:
+            project.set_setting('after', 'pause')
+        project.set_setting('delivery.instructions', 'Speak softly', project.slides[0])
+        w = MainWindow(); qtbot.addWidget(w); w.defaults['after'] = 'demo'; w.adopt(project); w.show(); reveal_timing(w)
+        source = 'talk' if talk_override else 'app'
+>       assert w.inspector.after_field.source.text() == f'from {source}'
+E       AssertionError: assert 'from a…' == 'from app'
+E
+E         - from app
+E         ?       ^^
+E         + from a…
+E         ?       ^
+
+tests/test_ux_redundancy.py:98: AssertionError
+_________ test_inspector_source_pause_and_delivery_independence[True] __________
+
+qtbot = <pytestqt.qtbot.QtBot object at 0x7fe4d4f4b140>
+project = Project(root=PosixPath('/tmp/pytest-of-voc/pytest-423/test_inspector_source_pause_an1/talk'), title='slides', target_m...me='Ryan', source='CustomVoice', speaker='Ryan', description='', references={}, origin='reference'), 'after': 'pause'})
+talk_override = True
+
+    @pytest.mark.parametrize('talk_override', [False, True])
+    def test_inspector_source_pause_and_delivery_independence(qtbot, project, talk_override):
+        project.defaults['after'] = 'demo'
+        if talk_override:
+            project.set_setting('after', 'pause')
+        project.set_setting('delivery.instructions', 'Speak softly', project.slides[0])
+        w = MainWindow(); qtbot.addWidget(w); w.defaults['after'] = 'demo'; w.adopt(project); w.show(); reveal_timing(w)
+        source = 'talk' if talk_override else 'app'
+>       assert w.inspector.after_field.source.text() == f'from {source}'
+E       AssertionError: assert 'from t…' == 'from talk'
+E
+E         - from talk
+E         ?       ^^^
+E         + from t…
+E         ?       ^
+
+tests/test_ux_redundancy.py:98: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_ux_redundancy.py::test_inspector_source_pause_and_delivery_independence[False]
+FAILED tests/test_ux_redundancy.py::test_inspector_source_pause_and_delivery_independence[True]
+2 failed, 574 passed in 247.33s (0:04:07)
+A connection to the bus can't be made
+
+(xfconfd:3566195): xfconfd-WARNING **: 09:51:21.177: Name org.xfce.Xfconf lost on the message dbus, exiting.
+The X11 connection broke (error 1). Did the X11 server die?
+The X11 connection broke (error 1). Did the X11 server die?
+KCrash: Application 'xdg-desktop-portal-kde' crashing... crashRecursionCounter = 2

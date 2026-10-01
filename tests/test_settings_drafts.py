@@ -286,7 +286,7 @@ def test_failed_save_can_be_retried_without_a_stale_generation(qtbot,project,mon
 @pytest.mark.parametrize('scope,caption,page,focus',[
     (0,'Account settings…','Account','codex_signin'),(1,'Account settings…','Account','codex_signin'),
     (0,'Speech engine settings…','Speech engine','engine_state'),(1,'Speech engine settings…','Speech engine','engine_state'),
-    (0,'Display & sound settings…','Display & sound','screen'),(1,'Display & sound settings…','Display & sound','screen')])
+    (0,'Display && sound settings…','Display & sound','screen'),(1,'Display && sound settings…','Display & sound','screen')])
 def test_scoped_links_open_preferences_not_another_transaction(qtbot,project,scope,caption,page,focus):
     from PySide6.QtWidgets import QApplication,QPushButton
     w=MainWindow();qtbot.addWidget(w);w.adopt(project);w.show()

@@ -1,8 +1,18 @@
 # SPDX-License-Identifier: MIT
 """One field builder and loader for schema rows and inspector inheritance."""
 
-from PySide6.QtWidgets import QWidget, QLineEdit, QPlainTextEdit, QCheckBox, QDoubleSpinBox, QHBoxLayout, QVBoxLayout
-from .ui import combo, button, label
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QWidget,
+    QLineEdit,
+    QPlainTextEdit,
+    QCheckBox,
+    QDoubleSpinBox,
+    QHBoxLayout,
+    QVBoxLayout,
+    QSizePolicy,
+)
+from .ui import combo, button, label, ElidedLabel
 
 
 class SettingField(QWidget):
@@ -20,20 +30,29 @@ class SettingField(QWidget):
         editor.setProperty('setting_key', spec.key)
         editor.setProperty('setting_scope', scope)
         editor.setProperty('value_editor', not self.read_only)
-        self.source = label('')
+        self.source = ElidedLabel() if compact else label('')
         self.source.setWordWrap(False)
         self.reset = button('Reset', lambda: edit(spec.key, None, True))
         self.reset.setToolTip('Remove this override and inherit the parent value')
         box = QVBoxLayout(self) if compact else QHBoxLayout(self)
         box.setContentsMargins(0, 0, 0, 0)
-        box.addWidget(editor, 1)
         if compact:
+            box.setSpacing(10)
             tail = QHBoxLayout()
+            tail.setSpacing(5)
+            title = label(spec.label)
+            title.setWordWrap(False)
+            tail.addWidget(title)
+            self.source.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+            self.source.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             box.addLayout(tail)
         else:
             tail = box
-        tail.addWidget(self.source)
+            box.addWidget(editor, 1)
+        tail.addWidget(self.source, 1 if compact else 0)
         tail.addWidget(self.reset)
+        if compact:
+            box.addWidget(editor)
         self.source.setVisible(not spec.metadata)
         self.reset.setVisible(not spec.metadata)
 

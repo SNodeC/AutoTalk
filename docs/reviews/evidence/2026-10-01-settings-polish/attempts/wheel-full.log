@@ -1,0 +1,39 @@
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.0' (uid=1000 pid=3555139 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Activating service name='org.gtk.vfs.Daemon' requested by ':1.2' (uid=1000 pid=3555139 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Successfully activated service 'org.gtk.vfs.Daemon'
+dbus-daemon[3555155]: Activating service name='org.a11y.atspi.Registry' requested by ':1.1' (uid=1000 pid=3555139 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Activating service name='org.xfce.Xfconf' requested by ':1.2' (uid=1000 pid=3555139 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3555155]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Successfully activated service 'org.xfce.Xfconf'
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.7' (uid=1000 pid=3555211 comm=".venv/bin/python -m pytest -q tests/test_settings_" label="unconfined")
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.8' (uid=1000 pid=3555254 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.8' (uid=1000 pid=3555254 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+
+(/usr/libexec/xdg-desktop-portal:3555254): xdg-desktop-portal-WARNING **: 09:36:33.295: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.8' (uid=1000 pid=3555254 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.kde' requested by ':1.8' (uid=1000 pid=3555254 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.kde'
+xdp-kde-clipboard: Couldn't resolve QWaylandApplication - clipboard will not work
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.kwallet' requested by ':1.8' (uid=1000 pid=3555254 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+qt.qpa.services: Failed to register with host portal QDBusError("org.freedesktop.portal.Error.Failed", "Could not register app ID: Connection already associated with an application ID")
+kf.wallet.ksecretd: Lacking a socket, pipe: 0 env: 0
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.kwallet'
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Activating service name='org.gtk.vfs.Metadata' requested by ':1.2' (uid=1000 pid=3555139 comm="xfwm4 --compositor=off" label="unconfined")
+dbus-daemon[3555137]: [session uid=1000 pid=3555137 pidfd=5] Successfully activated service 'org.gtk.vfs.Metadata'
+........................................................................ [ 81%]
+................                                                         [100%]
+88 passed in 33.29s
+A connection to the bus can't be made
+
+(xfconfd:3555174): xfconfd-WARNING **: 09:37:06.842: Name org.xfce.Xfconf lost on the message dbus, exiting.
+The X11 connection broke (error 1). Did the X11 server die?
+The X11 connection broke (error 1). Did the X11 server die?
+KCrash: Application 'xdg-desktop-portal-kde' crashing... crashRecursionCounter = 2

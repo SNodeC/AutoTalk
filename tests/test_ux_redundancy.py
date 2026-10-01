@@ -4,6 +4,7 @@ import copy
 from types import SimpleNamespace
 
 import pytest
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QComboBox, QToolButton
 
 from autotalk.app import MainWindow, clock
@@ -95,7 +96,10 @@ def test_inspector_source_pause_and_delivery_independence(qtbot, project, talk_o
     project.set_setting('delivery.instructions', 'Speak softly', project.slides[0])
     w = MainWindow(); qtbot.addWidget(w); w.defaults['after'] = 'demo'; w.adopt(project); w.show(); reveal_timing(w)
     source = 'talk' if talk_override else 'app'
-    assert w.inspector.after_field.source.text() == f'from {source}'
+    caption = w.inspector.after_field.source
+    assert caption.toolTip() == f'from {source}'
+    assert caption.text() == caption.fontMetrics().elidedText(
+        caption.toolTip(), Qt.TextElideMode.ElideRight, caption.width())
     assert w.inspector.slide_after.currentText() == ('Wait for presenter' if talk_override else 'Pause for live demo')
     assert w.inspector.slide_pause.isEnabled()
     w.inspector.slide_pause.setValue(0)
