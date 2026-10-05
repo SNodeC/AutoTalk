@@ -1,5 +1,9 @@
 # QScreenCapture::stop() crashes in pw_thread_loop_stop after OpenPipeWireRemote fails
 
+Filed as [QTBUG-151052](https://qt-project.atlassian.net/browse/QTBUG-151052).
+The [C++ follow-up](../qtbug-151052-cpp/README.md) supplies a wrapper-free
+reproducer and newer-Qt test results. The original report below is retained.
+
 Suggested project/component: Qt / Multimedia
 
 Affected versions verified: Qt 6.10.2 and 6.11.2

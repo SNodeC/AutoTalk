@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.21)
+project(qtbug151052 LANGUAGES CXX)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui DBus Multimedia)
+add_executable(qtbug151052 main.cpp)
+target_compile_features(qtbug151052 PRIVATE cxx_std_17)
+target_link_libraries(qtbug151052 PRIVATE Qt6::Core Qt6::Gui Qt6::DBus Qt6::Multimedia)

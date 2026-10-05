@@ -1,0 +1,44 @@
+
+Qt Multimedia:
+  Quick/QML support ...................... no
+  Spatial Audio .......................... no
+  Spatial Audio (Quick3D) ................ no
+  Low level Audio Backend:
+    ALSA (experimental) .................. no
+    PulseAudio ........................... yes
+    PipeWire ............................. yes
+    QNX io-audio (<qnx-8.0) .............. no
+    QNX io-snd (>=qnx-8.0) ............... no
+    CoreAudio ............................ no
+    AAudio (Android) ..................... no
+    OHAudio (HarmonyOS) .................. no
+    Web Assembly ......................... no
+    WASAPI (Windows Audio Session API) ... no
+  Plugin:
+    QtMM GStreamer plugin ................ no
+    GStreamer plugin features:
+      GStreamer-specific Qt API .......... no
+    FFmpeg ............................... yes
+    FFmpeg plugin features:
+      PipeWire screen capture ............ yes
+    MMRenderer ........................... no
+    AVFoundation ......................... no
+    Native Android backend (deprecated) .. no
+    Native Windows backend (deprecated) .. no
+    Native Darwin (AVFoundation) backend . no
+    Native HarmonyOS backend ............. no
+    Web Assembly ......................... no
+  Hardware acceleration and features:
+    Video for Linux ...................... yes
+    VAAPI support ........................ no
+    Linux DMA buffer support ............. yes
+    VideoToolbox ......................... no
+SBOM:
+  Generate SBOM .......................... yes
+  Generate SPDX v2.3 ..................... yes
+  Generate SPDX v2.3 JSON ................ yes (skipped if dependencies are missing)
+  Verify   SPDX v2.3 JSON ................ yes (skipped if dependencies are missing)
+  Generate CycloneDX v1.6 ................ no (skipped if dependencies are missing)
+  Verify   CycloneDX v1.6 ................ yes (skipped if dependencies are missing)
+  SBOM Python interpreter ................ Not found
+  Generate source SPDX SBOM .............. no

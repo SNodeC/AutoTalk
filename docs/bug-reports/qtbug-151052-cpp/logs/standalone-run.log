@@ -1,0 +1,104 @@
+Qt 6.12.0: C++ public-API cleanup probe
+qt.multimedia.ffmpeg: Using Qt multimedia with FFmpeg version 9.0.1 LGPL version 2.1 or later
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 1: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 2: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 3: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 4: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 5: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 6: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 7: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 8: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 9: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 10: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 11: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 12: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 13: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 14: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 15: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 16: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 17: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 18: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 19: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+QObject::killTimer: Timers cannot be stopped from another thread
+QObject::startTimer: Timers cannot be started from another thread
+Cycle 20: Failed to open pipewire remote for org.freedesktop.portal.ScreenCast. Error: name=org.freedesktop.portal.Error.Failed, message=Synthetic remote failure
+Stopping capture through its public API
+20 failed-initialization/cleanup cycles passed
+ready
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
+Injecting OpenPipeWireRemote failure
