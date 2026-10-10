@@ -1,0 +1,23 @@
+# Build specifics only; identity lives in SNodeC/.github/catalog.yml.
+ci:
+  profile: python
+  python_version: '3.12'
+  pip: .[dev]
+  native_build:
+  - python
+  - tools/build.py
+  smoke:
+    Linux:
+    - dist/autotalk/autotalk
+    - --smoke-test
+    Windows:
+    - dist/autotalk/autotalk.exe
+    - --smoke-test
+    macOS:
+    - dist/AutoTalk.app/Contents/MacOS/autotalk
+    - --smoke-test
+  artifact_globs:
+  - dist/AutoTalk-*.tar.gz
+  - dist/AutoTalk-*.zip
+  - dist/AutoTalk-*.dmg
+  - dist/AutoTalk-*.sha256
