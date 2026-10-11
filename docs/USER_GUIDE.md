@@ -22,7 +22,7 @@ You can review both before presenting, or let AutoTalk prepare and present autom
 - [Voices and voice samples](#voices-and-voice-samples)
 - [Delivery and speaking style](#delivery-and-speaking-style)
 - [Languages and versions](#languages-and-versions)
-- [Slide sound and additional audio](#slide-settings-and-additional-audio)
+- [Slide sound and additional audio](#slide-sound-and-additional-audio)
 - [Present, pause, continue and give a live demo](#present-pause-continue-and-give-a-live-demo)
 - [Record a presentation or export a video](#record-a-presentation-or-export-a-video)
 - [Manage the speech model and GPU](#manage-the-speech-model-and-gpu)
