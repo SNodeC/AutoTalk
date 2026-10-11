@@ -71,7 +71,7 @@ are sent to Codex. Voice references and speech synthesis remain local.
 ## Get started
 
 Until a stable release is published, run from source or use a development artifact
-from a successful [native build](https://github.com/SNodeC/AutoTalk/actions/workflows/native-builds.yml).
+from a successful, manually started [CI run](https://github.com/SNodeC/AutoTalk/actions/workflows/ci.yml).
 GitHub artifact downloads require sign-in; these builds are not qualified releases.
 
 For a source installation on Linux or macOS, use **Python 3.12–3.14**:
@@ -105,6 +105,7 @@ Projects are saved in an `autotalk` subfolder beside the imported PDF. Use
 - [Building and testing](docs/BUILDING.md): source setup, native packages, Qt dependencies and architecture.
 - [Roadmap](docs/ROADMAP.md): planned work and remaining qualification.
 - [Verification record](docs/VERIFICATION.md): dated engineering checks and limitations.
+- [Reviews and bug reports](docs/reviews/README.md): dated review notes, evidence and investigations.
 - [Issue tracker](https://github.com/SNodeC/AutoTalk/issues): report problems with the OS,
   AutoTalk/Qt versions, reproduction steps and relevant operation logs.
 

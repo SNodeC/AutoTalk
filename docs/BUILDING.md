@@ -68,9 +68,7 @@ The repository-root `./autotalk` launcher prefers `dist/autotalk/autotalk` when
 present, otherwise `.venv/bin/autotalk`. Use the explicit virtual-environment
 executable while developing to avoid launching an older bundle accidentally.
 
-The [native-build workflow](../.github/workflows/native-builds.yml) runs tests,
-packages the application and performs a packaged startup check on each target OS.
-Its downloadable artifacts are development builds, not signed, qualified releases.
+The [CI workflow](../.github/workflows/ci.yml) is started manually, runs tests, packages the application and performs a packaged startup check on each target OS. Download artifacts from a successful [CI run](https://github.com/SNodeC/AutoTalk/actions/workflows/ci.yml); they are development builds, not signed, qualified releases.
 
 Optional signing hooks:
 
