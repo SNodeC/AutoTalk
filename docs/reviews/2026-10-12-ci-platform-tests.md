@@ -130,8 +130,9 @@ transport. No additional state or abstraction was introduced.
 
 All **15 PDF-reload tests pass** (4.62 seconds), including the two new cases that
 failed before the fix: handles released before installation and playable audio
-after installation failure. The final full local suite and shared cross-platform
-CI are running; merge is contingent on their results.
+after installation failure. The final full local suite passes: **577 passed, 1 skipped**, 148.64 seconds,
+including all 15 audio-device cases against the private stereo sink. The skip
+requires PipeWire; this server is PulseAudio. All three hosted platform jobs now pass; exact results appear below.
 
 ## Accounting against main
 
@@ -141,3 +142,33 @@ CI are running; merge is contingent on their results.
 - Reproduction helper under review evidence: **+48** lines; no runtime dependency.
 - Shared CI workflow/build manifest: unchanged.
 - Production growth: **+2 lines**, explicitly approved before implementation.
+
+## Final attempts and environment limits
+
+- The first approved-fix run (`38240512151`) found the new report was not
+  reachable from README. Added its link to `docs/reviews/README.md`; no CI rule
+  was bypassed. Run `38240707142` checks the corrected index.
+- A supplemental run with the old native Qt 6.10.2 environment aborted before
+  the first test could initialize QApplication. A `QT_DEBUG_PLUGINS=1` probe
+  confirmed the available system plugins now use Qt 6.11.0 and are incompatible
+  with that old runtime. No native test pass is claimed and no libraries were
+  changed. The pinned Qt 6.11.2 wheel is the locally verified and CI-tested stack.
+
+## Approved-fix hosted results
+
+All three platform jobs in [run 38240512151](https://github.com/SNodeC/AutoTalk/actions/runs/38240512151)
+passed their tests, native packaging and packaged-application smoke checks at
+`bf4f20e`:
+
+| Stack | Passed | Skipped | Audio cases deselected | Test time |
+| --- | ---: | ---: | ---: | ---: |
+| Ubuntu 24.04 / Qt 6.11.2 | 563 | 0 | 15 | 168.06 s |
+| Windows 2025 / Qt 6.11.2 | 530 | 33 | 15 | 226.03 s |
+| macOS 15 / Qt 6.11.2 | 553 | 10 | 15 | 134.31 s |
+
+The documentation index was corrected in `15fc35f`; its hygiene job passes in
+[run 38240707142](https://github.com/SNodeC/AutoTalk/actions/runs/38240707142).
+The application and test trees are identical between these two revisions.
+The Windows PDF-reload regression and media-reference cleanup checks now pass.
+The full local wheel suite (577 passed / 1 PipeWire-specific skip) additionally
+covers the 15 audio integration cases omitted by the shared hosted workflow.
