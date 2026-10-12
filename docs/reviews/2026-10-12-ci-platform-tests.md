@@ -157,6 +157,6 @@ The two newly added regression cases intentionally fail before the fix.
 - Production (`src`): **+1 / −1, net 0** (portable cleanup path comparison).
 - Tests (`tests`): **+71 / −12, net +59**, including the two pre-fix regressions.
 - Test configuration (`pyproject.toml`): **+2**, named tests and stack diagnostics.
-- Reproduction helper under review evidence: **+49** lines; no runtime dependency.
+- Reproduction helper under review evidence: **+48** lines; no runtime dependency.
 - Shared CI workflow/build manifest: unchanged.
 - Proposed, unapplied reload correction: **+2 production lines**, pending approval.
