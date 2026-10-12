@@ -422,11 +422,13 @@ class MainWindow(QMainWindow):
                 "Changed or new slides need new text and audio. A backup of this talk will be kept.") != QMessageBox.StandardButton.Yes:
             return
         def installed(staged):
+            self.transport.close()
             try:
                 self.adopt(install_pdf_reload(staged))
                 self.source_signature = None
                 self.log_message(f"PDF reloaded. Previous talk saved in {staged[3]}")
             except OSError as error:
+                self.transport.refresh_audio()
                 self.job.outcome = "failed"
                 self.error(f"Could not replace the PDF: {error}")
         self.start_job("Reloading PDF…", partial(reload_pdf, copy.deepcopy(self.project), pdf), installed)

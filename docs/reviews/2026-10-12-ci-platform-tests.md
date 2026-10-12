@@ -56,8 +56,7 @@ Branch: `codex/ci-platform-tests`.
     refuses to rename the project directory until they are closed. The new
     regression covers handle release before installation and usable audio after
     installation failure. The proposed fix reuses `transport.close()` and
-    `refresh_audio()`; its two additional production lines require the owner's
-    requested approval before implementation.
+    `refresh_audio()`; its two additional production lines were explicitly approved by the owner.
 
 ## Verification so far
 
@@ -117,46 +116,28 @@ audio-initialization stall (rerun with full access), and an intermediate cleanup
 edit referencing an unimported `Path` (caught locally and replaced with the
 existing import-side `as_posix()` convention before commit).
 
-## Remaining approval and verification
+## Approved reload fix and final verification
 
 The test-only font setup resolved every Windows layout failure without changing
-application geometry or weakening assertions. The only remaining Windows
-failures are the three existing GUI PDF-reload tests. Linux and macOS completed
-tests, native packaging and smoke checks successfully.
+application geometry or weakening assertions. The three remaining Windows
+failures were the existing GUI PDF-reload tests.
 
-The owner requires explicit approval before net production growth. Approval for
-the following **two-line addition** was requested asynchronously and has not yet
-arrived. It is not applied to production:
+The owner approved the two-line production addition and requested push/merge.
+The install callback now closes the existing transport before replacing the
+project directory. If installation raises OSError, it refreshes the old project's
+audio before displaying the error. Successful adoption already reconstructs the
+transport. No additional state or abstraction was introduced.
 
-```diff
- def installed(staged):
-+    self.transport.close()
-     try:
-         self.adopt(install_pdf_reload(staged))
-         ...
-     except OSError as error:
-+        self.transport.refresh_audio()
-         self.job.outcome = "failed"
-         self.error(f"Could not replace the PDF: {error}")
-```
-
-The regression tests are committed to preserve the independently reproduced
-failure and cover both installation success and failure recovery. They remain
-red until the approved fix is implemented. After approval: apply the two lines,
-run both new cases plus the full isolated-audio suite, and dispatch the shared
-three-platform CI again. This branch must not be merged as a completed CI fix
-until that verification succeeds.
-
-The latest local portability rerun passed 548 cases outside the PDF-reload file
-(15 audio cases deselected), plus all 13 existing PDF-reload cases separately.
-The two newly added regression cases intentionally fail before the fix.
-
+All **15 PDF-reload tests pass** (4.62 seconds), including the two new cases that
+failed before the fix: handles released before installation and playable audio
+after installation failure. The final full local suite and shared cross-platform
+CI are running; merge is contingent on their results.
 
 ## Accounting against main
 
-- Production (`src`): **+1 / −1, net 0** (portable cleanup path comparison).
+- Production (`src`): **+3 / −1, net +2** (portable cleanup and approved reload lifetime fix).
 - Tests (`tests`): **+71 / −12, net +59**, including the two pre-fix regressions.
 - Test configuration (`pyproject.toml`): **+2**, named tests and stack diagnostics.
 - Reproduction helper under review evidence: **+48** lines; no runtime dependency.
 - Shared CI workflow/build manifest: unchanged.
-- Proposed, unapplied reload correction: **+2 production lines**, pending approval.
+- Production growth: **+2 lines**, explicitly approved before implementation.
