@@ -204,3 +204,29 @@ def test_live_reload_dialog_and_updated_editor(talk, qtbot):
     assert w.project.slides[0].source_text.strip() == 'Updated opening'
     assert w.image.original.toImage().convertToFormat(QImage.Format.Format_ARGB32) == QImage(str(w.project.image(w.project.slides[0])))
     w.grab().save(str(evidence / 'reloaded-editor.png'))
+
+
+@pytest.mark.parametrize('fail_install', [False, True])
+def test_reload_releases_audio_handles_and_recovers_after_install_failure(talk, qtbot, monkeypatch, fail_install):
+    from autotalk import app
+    w = MainWindow(); qtbot.addWidget(w); w.adopt(talk)
+    streams = [part.stream for parts in w.transport.mix.parts for part in parts]
+    assert streams and all(not stream.closed for stream in streams)
+    before = talk.manifest.read_bytes()
+    errors = []
+    monkeypatch.setattr(w, 'error', errors.append)
+    def install(staged):
+        assert all(stream.closed for stream in streams)
+        if fail_install:
+            staged[0].cleanup()
+            raise OSError('simulated install failure')
+        return install_pdf_reload(staged)
+    monkeypatch.setattr(app, 'install_pdf_reload', install)
+    w.reload_source_pdf(confirm=False)
+    qtbot.waitUntil(lambda: w.job is None, timeout=10000)
+    assert bool(errors) == fail_install
+    assert w.project.prepared
+    if fail_install:
+        assert talk.manifest.read_bytes() == before
+    assert all(not part.stream.closed for parts in w.transport.mix.parts for part in parts)
+    assert w.transport.mix.read(0, 0, 10).shape == (10, 2)
