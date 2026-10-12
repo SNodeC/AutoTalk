@@ -11,9 +11,10 @@ Narration is written through **Codex app-server** using your ChatGPT sign-in.
 **Qwen3-TTS 1.7B** generates speech locally. The interface is built with Python
 and PySide6 and follows the platform's appearance.
 
-**Status:** development prototype, version 0.3. Linux is the primary tested
-platform. Windows and macOS implementations are available for development but
-still require native qualification. There is no stable release yet.
+**Status:** first public release, **v0.1**. Linux is the primary platform tested
+on real hardware. Linux, Windows and macOS pass automated tests, package builds
+and startup checks. End-to-end Windows/macOS speech and recording workflows
+still require native hardware qualification.
 
 ![AutoTalk editor showing the DACHS 2026 slide deck, editable English narration and slide controls](docs/images/editor.png)
 
@@ -51,8 +52,8 @@ Target duration is approximate until audio has been generated and measured.
 | Platform | Speech backend | Validation status |
 | --- | --- | --- |
 | Linux x86_64 with NVIDIA GPU | vLLM-Omni streaming | Tested locally on an RTX 2000 Ada laptop with 8 GB VRAM |
-| Windows 11 x64 with NVIDIA GPU | Qwen / PyTorch CUDA | Native testing pending |
-| macOS 14+ on Apple Silicon | MLX Audio / Metal | Native testing pending |
+| Windows 11 x64 with NVIDIA GPU | Qwen / PyTorch CUDA | CI tests and package startup pass; hardware workflows pending |
+| macOS 14+ on Apple Silicon | MLX Audio / Metal | CI tests and package startup pass; hardware workflows pending |
 
 Speech generation requires a supported GPU and compatible operating-system
 drivers. CPU/NPU inference and Intel Macs are outside the current prototype.
@@ -70,9 +71,10 @@ are sent to Codex. Voice references and speech synthesis remain local.
 
 ## Get started
 
-Until a stable release is published, run from source or use a development artifact
-from a successful, manually started [CI run](https://github.com/SNodeC/AutoTalk/actions/workflows/ci.yml).
-GitHub artifact downloads require sign-in; these builds are not qualified releases.
+Download the package for your platform from the
+[v0.1 release](https://github.com/SNodeC/AutoTalk/releases/tag/v0.1), or run from source.
+Release assets include SHA-256 checksums. This initial release has the platform
+qualification limits described above.
 
 For a source installation on Linux or macOS, use **Python 3.12–3.14**:
 

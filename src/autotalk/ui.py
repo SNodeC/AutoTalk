@@ -610,7 +610,7 @@ def build(w):
     w.statusBar().addPermanentWidget(w.engine_status)
     command("Help", "Getting started…", lambda: QMessageBox.information(w, "Getting started", "Open a PDF, choose duration and language, then prepare text/audio or start. Voice & speech selects the voice; Talk settings supplies audience and conference context. The main checkbox enables recording; Presentation settings configures it. Preferences selects display and sound. Talk defaults supplies inherited values. Scoped settings edit a draft: Save applies changes; Cancel discards them. File → Recordings & export finds saved results. Appearance follows the system."))
     command("Help", "Keyboard shortcuts…", lambda: QMessageBox.information(w, "Keyboard shortcuts", "Ctrl+N: Open PDF · Ctrl+O: Open saved talk · Ctrl+S: Save\nCtrl+T: Talk settings (audience and preparation) · Ctrl+,: Preferences\nF5: Start / Prepare and start · Shift+F5: Start selected · F6: Continue\nCtrl+PgUp / Ctrl+PgDn: Previous / next slide in the current view\nFullscreen: Space pauses/resumes, arrows change slides, Esc returns."))
-    command("Help", "About AutoTalk…", lambda: QMessageBox.about(w, "About AutoTalk", "AutoTalk 0.3\nPDF-to-talk preparation and presentation.\nCodex narration · Qwen3-TTS local speech\nPrepared, Quick and Realtime. System style and palette."))
+    command("Help", "About AutoTalk…", lambda: QMessageBox.about(w, "About AutoTalk", "AutoTalk 0.1\nPDF-to-talk preparation and presentation.\nCodex narration · Qwen3-TTS local speech\nPrepared, Quick and Realtime. System style and palette."))
 
     for key, control in (("target_minutes", w.minutes), ("mode", w.mode), ("language", w.language), ("record_presentation", w.record)):
         control.setProperty("setting_key", key)
