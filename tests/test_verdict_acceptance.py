@@ -155,7 +155,8 @@ def test_real_sigint_runs_cleanup_and_reaps_speech_child(project, engine, tmp_pa
     project.save()
     pid_file = tmp_path / 'speech.pid'
     probe = tmp_path / 'interrupt.py'
-    probe.write_text('''import sys
+    probe.write_text('''import sys,signal
+signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT})
 from pathlib import Path
 from PySide6.QtCore import QTimer
 from autotalk import app, runtime

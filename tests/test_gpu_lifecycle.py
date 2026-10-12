@@ -25,6 +25,7 @@ from pathlib import Path
 config=json.loads(sys.stdin.readline())
 delay=Path(__file__).with_name('delay')
 if delay.exists(): time.sleep(float(delay.read_text()))
+while Path(__file__).with_name('hold').exists(): time.sleep(.02)
 print(json.dumps({'type':'ready'}),flush=True)
 for line in sys.stdin:
     request=json.loads(line)
@@ -156,7 +157,8 @@ def test_saved_preferences_and_cancel_do_not_undo_manual_load(engine, project, q
 
 @pytest.mark.parametrize('loading', ['needed', pytest.param('start', marks=pytest.mark.audio_device)])
 def test_prepared_playback_does_not_wait_for_or_require_a_model(engine, project, qtbot, loading):
-    engine.with_name('delay').write_text('0.4')
+    hold = engine.with_name('hold')
+    hold.touch()
     make_audio(project, seconds=3)
     w = MainWindow(); qtbot.addWidget(w, before_close_func=lambda widget: finish_job(widget, qtbot)); w.adopt(project); w.show()
     save_policy(w, 'session', loading)
@@ -168,6 +170,7 @@ def test_prepared_playback_does_not_wait_for_or_require_a_model(engine, project,
         assert w.job is not None
         qtbot.waitUntil(lambda: w.transport.position > .08)
         assert w.job is not None  # The prepared audio advances before model readiness.
+        hold.unlink()
         qtbot.waitUntil(lambda: w.job is None)
         assert w.speech.state == 'ready' and w.transport.playing
         w.unload_gpu_action.trigger()
