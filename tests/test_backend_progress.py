@@ -85,6 +85,7 @@ for line in sys.stdin:
     monkeypatch.setattr(runtime, 'ensure_speech', lambda task: Path(sys.executable))
     monkeypatch.setattr(runtime, 'worker_path', lambda: script)
     monkeypatch.setattr(runtime, 'speech_backend', lambda: 'vllm')
+    monkeypatch.setattr(services, 'speech_backend', lambda: 'vllm')
     return script
 
 

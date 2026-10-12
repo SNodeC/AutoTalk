@@ -111,9 +111,18 @@ def test_capture_failure_closes_once_on_ui_thread_and_allows_retry(qtbot, projec
 def test_closed_capture_releases_qt_objects_without_garbage_collection(qtbot, project, monkeypatch):
     import shiboken6
     from PySide6.QtMultimedia import QScreenCapture
+    # Exercise real QObject cleanup, not unsupported native capture or hardware.
+    monkeypatch.setattr(screen_capture.sys, 'platform', 'linux')
     monkeypatch.setattr(QScreenCapture, 'start', lambda self: None)
     capture = screen_capture.ScreenCapture(project)
     objects = (capture.session, capture.screen, capture.sink)
     capture.close()
     qtbot.waitUntil(lambda: all(not shiboken6.isValid(obj) for obj in objects), timeout=1000)
     assert capture.stopping.is_set()
+
+
+@pytest.mark.parametrize('platform', ['darwin', 'win32'])
+def test_desktop_capture_rejects_unsupported_platform(project, monkeypatch, platform):
+    monkeypatch.setattr(screen_capture.sys, 'platform', platform)
+    with pytest.raises(RuntimeError, match='Desktop audio recording currently requires Linux'):
+        screen_capture.ScreenCapture(project)
