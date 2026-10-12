@@ -4,10 +4,19 @@ import wave
 import pytest
 from PySide6.QtCore import QRectF, QSettings
 from PySide6.QtGui import QColor, QFont, QPainter, QPdfWriter
+from PySide6.QtWidgets import QMessageBox
 
 from autotalk.project import Voice, file_hash, wav_duration
 from autotalk.runtime import Task
 from autotalk.services import import_pdf
+
+
+@pytest.fixture(autouse=True)
+def unexpected_warning(monkeypatch):
+    """An unhandled error must fail a test, never wait for a human in CI."""
+    def warning(parent, title, text, *args, **kwargs):
+        pytest.fail(f"Unexpected {title} warning: {text}")
+    monkeypatch.setattr(QMessageBox, "warning", warning)
 
 
 @pytest.fixture(autouse=True)
