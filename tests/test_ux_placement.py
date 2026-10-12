@@ -105,7 +105,7 @@ def test_language_arrangement_choices_fit_native_field(qtbot, project, scope, si
         field = combo.style().subControlRect(QStyle.CC_ComboBox, option, QStyle.SC_ComboBoxEditField, combo)
         assert combo.fontMetrics().horizontalAdvance(combo.currentText()) <= field.width()
         assert (dialog.width(), dialog.height()) == size
-        assert scroll.horizontalScrollBar().maximum() == 0
+        assert scroll.horizontalScrollBar().maximum() == 0, (combo.font().toString(), combo.fontInfo().family())
         visible_inside(combo, dialog)
     dialog.reject()
 

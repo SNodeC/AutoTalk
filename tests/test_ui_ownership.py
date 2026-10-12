@@ -18,7 +18,7 @@ ALLOWED = {'project', 'edit_setting', 'codex_settings', 'error', 'log_message',
 
 def test_component_controller_allowlist():
     for name in ('settings', 'settings_components', 'settings_fields', 'options', 'inspector', 'preferences'):
-        tree = ast.parse(Path(f'src/autotalk/{name}.py').read_text())
+        tree = ast.parse(Path(f'src/autotalk/{name}.py').read_text(encoding="utf-8"))
         for function in (n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)):
             aliases = {'window'} if name != 'options' else set()
             def controller(node):
@@ -50,8 +50,8 @@ def test_each_component_owns_widgets_and_builders(qtbot, project):
                  'clip_placement', 'codex_signin', 'engine_state', 'background_button'):
         assert not hasattr(w, name), name
     assert w.inspector.slide_after.window() is w
-    assert all('takeRow(' not in p.read_text() for p in Path('src').rglob('*.py'))
-    tree = ast.parse(Path('src/autotalk/ui.py').read_text())
+    assert all('takeRow(' not in p.read_text(encoding="utf-8") for p in Path('src').rglob('*.py'))
+    tree = ast.parse(Path('src/autotalk/ui.py').read_text(encoding="utf-8"))
     for node in ast.walk(tree):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == 'add':
             assert 'settings' not in ast.unparse(node.func.value)
@@ -79,7 +79,7 @@ def test_cancel_restores_clip_gain_and_placement(qtbot, project):
 
 def test_tab_order_matches_base(qtbot):
     import json
-    expected = json.loads(Path('docs/reviews/evidence/2026-10-01-settings-refactor/settings-tab-order.json').read_text())
+    expected = json.loads(Path('docs/reviews/evidence/2026-10-01-settings-refactor/settings-tab-order.json').read_text(encoding="utf-8"))
     w = MainWindow(); qtbot.addWidget(w)
     for scope, dialog in w.settings.items():
         assert tab_order(dialog) == expected[str(scope)]

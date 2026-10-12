@@ -203,6 +203,7 @@ def test_quick_autostart_respects_timing_policy(qtbot, project, monkeypatch, pol
     qtbot.addWidget(window)
     project.mode, project.quick_timing = "Quick", policy
     window.adopt(project)
+    window.transport.timer.stop()  # This checks autostart policy, not audio output.
     def prepared(p,task):
         make_audio(p)
         return p

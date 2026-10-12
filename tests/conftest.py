@@ -40,10 +40,10 @@ def sample_pdf(tmp_path, qapp):
             writer.newPage()
         painter.fillRect(0, 0, writer.width(), writer.height(), QColor("#102239"))
         painter.setPen(QColor("#ed9a4c"))
-        painter.setFont(QFont("sans-serif", 28))
+        painter.setFont(QFont(qapp.font().family(), 28))
         painter.drawText(QRectF(65, 80, 640, 120), title)
         painter.setPen(QColor("white"))
-        painter.setFont(QFont("sans-serif", 17))
+        painter.setFont(QFont(qapp.font().family(), 17))
         painter.drawText(QRectF(65, 240, 620, 500), 0x1000, body)
     painter.end()
     del writer
