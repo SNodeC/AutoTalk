@@ -136,4 +136,4 @@ def test_compact_inspector_caption_and_reset_fit(qtbot, project, size):
         title = next(child for child in field.findChildren(QLabel) if child is not field.source)
         assert not title.wordWrap()
         assert title.width() >= title.fontMetrics().horizontalAdvance(title.text())
-    assert w.inspector.parentWidget().parentWidget().horizontalScrollBar().maximum() == 0
+    assert w.inspector.parentWidget().parentWidget().horizontalScrollBar().maximum() == 0, w.inspector.font().toString()

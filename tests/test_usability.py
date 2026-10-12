@@ -304,6 +304,7 @@ def test_fullscreen_mouse_controls_and_finished_return(qtbot, project):
     from PySide6.QtCore import QPoint
     make_audio(project, seconds=10)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.show()
+    w.transport.timer.stop()  # Exercise controls independently of the system audio output.
     w.start_button.click()
     fullscreen = w.presentation
     assert fullscreen is not None
@@ -359,6 +360,7 @@ def test_enlargement_keeps_the_current_slide_inside_autotalk(qtbot, project, mon
     assert w.workspace.currentWidget() is (w.editor if preview_name == "image" else w.presenter)
 
 
+@pytest.mark.audio_device
 def test_automatic_recording_save_cannot_resume_finished_fullscreen(qtbot, project):
     make_audio(project, seconds=.2)
     project.record_presentation = True

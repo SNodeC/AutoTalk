@@ -105,7 +105,7 @@ def test_language_arrangement_choices_fit_native_field(qtbot, project, scope, si
         field = combo.style().subControlRect(QStyle.CC_ComboBox, option, QStyle.SC_ComboBoxEditField, combo)
         assert combo.fontMetrics().horizontalAdvance(combo.currentText()) <= field.width()
         assert (dialog.width(), dialog.height()) == size
-        assert scroll.horizontalScrollBar().maximum() == 0
+        assert scroll.horizontalScrollBar().maximum() == 0, (combo.font().toString(), combo.fontInfo().family())
         visible_inside(combo, dialog)
     dialog.reject()
 
@@ -298,6 +298,7 @@ def test_multiple_empty_versions_are_selected_without_relabelling(qtbot, project
 def test_minimum_presenter_preserves_both_slide_previews_and_controls(qtbot, project, state):
     make_audio(project)
     w = MainWindow(); qtbot.addWidget(w); w.adopt(project); w.resize(940, 680); w.show()
+    w.transport.timer.stop()  # This test measures layout, not PCM consumption.
     w.view_switch.setCurrentIndex(1)
     if state in ('playing', 'paused'):
         w.transport.play()

@@ -71,3 +71,4 @@ Dated review records describe the revisions and qualification scope they inspect
 ## Bug reports
 
 - [Qt PipeWire null-loop investigation](../bug-reports/qt-pipewire-null-loop/REPORT.md)
+- [CI platform failures and verification — 12 October 2026](2026-10-12-ci-platform-tests.md)

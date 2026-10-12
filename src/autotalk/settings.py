@@ -385,7 +385,7 @@ class ScopedSettingsDialog(SectionDialog):
         live = self.window.project
         protected = references(asdict(live)) if live and live.root == draft.root else set()
         for path in self.media_files(draft) - existing:
-            if str(path.relative_to(draft.root)) not in protected:
+            if path.relative_to(draft.root).as_posix() not in protected:
                 path.unlink(missing_ok=True)
 
     def done(self, result):

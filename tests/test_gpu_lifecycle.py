@@ -25,6 +25,7 @@ from pathlib import Path
 config=json.loads(sys.stdin.readline())
 delay=Path(__file__).with_name('delay')
 if delay.exists(): time.sleep(float(delay.read_text()))
+while Path(__file__).with_name('hold').exists(): time.sleep(.02)
 print(json.dumps({'type':'ready'}),flush=True)
 for line in sys.stdin:
     request=json.loads(line)
@@ -154,9 +155,10 @@ def test_saved_preferences_and_cancel_do_not_undo_manual_load(engine, project, q
     assert w.config.value('gpu_loading') == 'start' and w.speech.retention == 'operation'
 
 
-@pytest.mark.parametrize('loading', ['needed', 'start'])
+@pytest.mark.parametrize('loading', ['needed', pytest.param('start', marks=pytest.mark.audio_device)])
 def test_prepared_playback_does_not_wait_for_or_require_a_model(engine, project, qtbot, loading):
-    engine.with_name('delay').write_text('0.4')
+    hold = engine.with_name('hold')
+    hold.touch()
     make_audio(project, seconds=3)
     w = MainWindow(); qtbot.addWidget(w, before_close_func=lambda widget: finish_job(widget, qtbot)); w.adopt(project); w.show()
     save_policy(w, 'session', loading)
@@ -168,6 +170,7 @@ def test_prepared_playback_does_not_wait_for_or_require_a_model(engine, project,
         assert w.job is not None
         qtbot.waitUntil(lambda: w.transport.position > .08)
         assert w.job is not None  # The prepared audio advances before model readiness.
+        hold.unlink()
         qtbot.waitUntil(lambda: w.job is None)
         assert w.speech.state == 'ready' and w.transport.playing
         w.unload_gpu_action.trigger()
@@ -194,6 +197,7 @@ def test_pausing_and_leaving_fullscreen_are_not_presentation_end(engine, project
 
 
 @pytest.mark.parametrize('recording', [False, True])
+@pytest.mark.audio_device
 def test_natural_completion_unloads_once_even_with_automatic_export(engine, project, qtbot, recording):
     make_audio(project, seconds=.15); project.record_presentation = recording
     w = MainWindow(); qtbot.addWidget(w, before_close_func=lambda widget: finish_job(widget, qtbot)); w.adopt(project); w.show()
@@ -205,6 +209,7 @@ def test_natural_completion_unloads_once_even_with_automatic_export(engine, proj
     w.stop_presentation()
 
 
+@pytest.mark.audio_device
 def test_audio_preview_completion_keeps_presentation_policy_model(engine, project, qtbot):
     make_audio(project, seconds=.1)
     w = MainWindow(); qtbot.addWidget(w, before_close_func=lambda widget: finish_job(widget, qtbot)); w.adopt(project); w.show()
@@ -271,6 +276,7 @@ def test_changing_policy_during_work_waits_for_the_safe_boundary(engine, project
     assert w.speech.process is None
 
 
+@pytest.mark.audio_device
 def test_load_failure_does_not_stop_prepared_playback_and_retry_works(engine, project, qtbot, monkeypatch):
     make_audio(project, seconds=3)
     w = MainWindow(); qtbot.addWidget(w, before_close_func=lambda widget: finish_job(widget, qtbot)); w.adopt(project); w.show()
@@ -296,6 +302,7 @@ def test_saving_end_policy_without_a_running_presentation_does_not_unload(engine
     load(w, qtbot)
 
 
+@pytest.mark.audio_device
 def test_slow_gpu_teardown_keeps_prepared_audio_and_controls_responsive(engine, project, qtbot):
     # A deliberately slow child exit represents model/server cleanup, not synthesis.
     engine.write_text(engine.read_text().replace("print(json.dumps({'type':'ready'}),flush=True)",

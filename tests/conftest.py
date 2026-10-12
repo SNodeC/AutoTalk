@@ -1,13 +1,30 @@
 # SPDX-License-Identifier: MIT
+import os
+import sys
 import wave
+from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QRectF, QSettings
-from PySide6.QtGui import QColor, QFont, QPainter, QPdfWriter
+from PySide6.QtGui import QColor, QFont, QFontDatabase, QPainter, QPdfWriter
+from PySide6.QtWidgets import QMessageBox
 
 from autotalk.project import Voice, file_hash, wav_duration
 from autotalk.runtime import Task
 from autotalk.services import import_pdf
+
+
+# Windows offscreen uses FreeType, which does not discover the system font directory.
+if sys.platform == "win32" and os.environ.get("QT_QPA_PLATFORM", "").split(":")[0] == "offscreen":
+    os.environ.setdefault("QT_QPA_FONTDIR", str(Path(os.environ["WINDIR"]) / "Fonts"))
+
+
+@pytest.fixture(autouse=True)
+def unexpected_warning(monkeypatch):
+    """An unhandled error must fail a test, never wait for a human in CI."""
+    def warning(parent, title, text, *args, **kwargs):
+        pytest.fail(f"Unexpected {title} warning: {text}")
+    monkeypatch.setattr(QMessageBox, "warning", warning)
 
 
 @pytest.fixture(autouse=True)
@@ -20,6 +37,7 @@ def isolated_preferences(tmp_path):
 
 @pytest.fixture
 def sample_pdf(tmp_path, qapp):
+    assert QFontDatabase.families(), "Qt needs installed fonts for PDF and layout tests"
     path = tmp_path / "slides.pdf"
     writer = QPdfWriter(str(path))
     writer.setResolution(96)
@@ -31,10 +49,10 @@ def sample_pdf(tmp_path, qapp):
             writer.newPage()
         painter.fillRect(0, 0, writer.width(), writer.height(), QColor("#102239"))
         painter.setPen(QColor("#ed9a4c"))
-        painter.setFont(QFont("sans-serif", 28))
+        painter.setFont(QFont(qapp.font().family(), 28))
         painter.drawText(QRectF(65, 80, 640, 120), title)
         painter.setPen(QColor("white"))
-        painter.setFont(QFont("sans-serif", 17))
+        painter.setFont(QFont(qapp.font().family(), 17))
         painter.drawText(QRectF(65, 240, 620, 500), 0x1000, body)
     painter.end()
     del writer
