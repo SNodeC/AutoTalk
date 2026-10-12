@@ -5,8 +5,8 @@ Dated review records describe the revisions and qualification scope they inspect
 ## 2026-09-27
 
 - [Independent Claude review brief — 27 September 2026](2026-09-27-claude-review-brief.md)
-- [2026-09-27-claude-review-consolidation.md](2026-09-27-claude-review-consolidation.md)
-- [2026-09-27-claude-review-followup.md](2026-09-27-claude-review-followup.md)
+- [Claude review consolidation and agreed findings](2026-09-27-claude-review-consolidation.md)
+- [Claude review follow-up and evidence requests](2026-09-27-claude-review-followup.md)
 - [Claude review provenance and evidence](2026-09-27-claude-review-method.md)
 - [AutoTalk — Independent Whole-Application Review (Final)](2026-09-27-claude-verdict.md)
 - [Claude verdict implementation and evidence](2026-09-27-verdict-implementation.md)
