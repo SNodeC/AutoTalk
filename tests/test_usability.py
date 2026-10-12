@@ -359,6 +359,7 @@ def test_enlargement_keeps_the_current_slide_inside_autotalk(qtbot, project, mon
     assert w.workspace.currentWidget() is (w.editor if preview_name == "image" else w.presenter)
 
 
+@pytest.mark.audio_device
 def test_automatic_recording_save_cannot_resume_finished_fullscreen(qtbot, project):
     make_audio(project, seconds=.2)
     project.record_presentation = True
