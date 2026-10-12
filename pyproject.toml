@@ -24,4 +24,6 @@ packages = ["src/autotalk"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-v"
+faulthandler_timeout = 30
 markers = ["audio_device: requires an available physical or virtual system audio output"]

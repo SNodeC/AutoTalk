@@ -85,6 +85,7 @@ for line in sys.stdin:
     monkeypatch.setattr(runtime, 'ensure_speech', lambda task: Path(sys.executable))
     monkeypatch.setattr(runtime, 'worker_path', lambda: script)
     monkeypatch.setattr(runtime, 'speech_backend', lambda: 'vllm')
+    monkeypatch.setattr(services, 'speech_backend', lambda: 'vllm')
     return script
 
 
@@ -98,6 +99,7 @@ def test_ui_stays_loading_after_full_counter_until_ready_or_cancel(loading_worke
             seen.append((value, window.progress.text()))
     window.job_event = event
     try:
+        assert window.selected_speech_config()["backend"] == "vllm"
         window.load_gpu()
         qtbot.waitUntil(lambda: 'Checking speech service' in window.progress.text())
         assert window.speech.state == 'loading'

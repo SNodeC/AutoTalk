@@ -108,6 +108,7 @@ def test_capture_failure_closes_once_on_ui_thread_and_allows_retry(qtbot, projec
     assert window.transport.capture is None
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="Linux desktop capture")
 def test_closed_capture_releases_qt_objects_without_garbage_collection(qtbot, project, monkeypatch):
     import shiboken6
     from PySide6.QtMultimedia import QScreenCapture
