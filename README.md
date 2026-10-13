@@ -103,6 +103,8 @@ Projects are saved in an `autotalk` subfolder beside the imported PDF. Use
 
 ## Documentation and development
 
+Manual CI tests and packages AutoTalk on Linux, Windows and macOS through reusable verification. See the organization [workflow graph](https://github.com/SNodeC/.github/blob/main/docs/workflow-graph.md#page-overview) for triggers and artifact boundaries.
+
 - [User guide](docs/USER_GUIDE.md): preparation, voices, settings, presentation and recording.
 - [Building and testing](docs/BUILDING.md): source setup, native packages, Qt dependencies and architecture.
 - [Roadmap](docs/ROADMAP.md): planned work and remaining qualification.
