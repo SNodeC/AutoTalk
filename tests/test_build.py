@@ -32,11 +32,12 @@ def test_package_collects_local_filesystem_backend(tmp_path, monkeypatch, native
         runpy.run_path(str(spec), init_globals={"SPECPATH": str(spec.parent), "Analysis": analyse})
 
 
+@pytest.mark.parametrize("machine", ["x86_64", "aarch64"])
 @pytest.mark.parametrize("qt_version,binding_version,fail_patch", [
     ("6.10.2", "6.10.2", False), ("6.10.2", "6.10.2", True),
     ("6.11.2", "6.10.2", False), ("6.11.2", "6.11.2", False)])
 @pytest.mark.skipif(sys.platform != "linux", reason="System Qt collection is a Linux build option")
-def test_system_qt_build_requires_matching_bindings(tmp_path, monkeypatch, qt_version, binding_version, fail_patch):
+def test_system_qt_build_requires_matching_bindings(tmp_path, monkeypatch, qt_version, binding_version, fail_patch, machine):
     import platform
     import PySide6
     import tarfile
@@ -47,7 +48,7 @@ def test_system_qt_build_requires_matching_bindings(tmp_path, monkeypatch, qt_ve
     shutil.copy2(Path(__file__).parents[1] / "tools/build.py", script)
     (tmp_path / "pyproject.toml").write_text('[project]\nversion="0.3.0"\n')
     monkeypatch.setattr(platform, "system", lambda: "Linux")
-    monkeypatch.setattr(platform, "machine", lambda: "x86_64")
+    monkeypatch.setattr(platform, "machine", lambda: machine)
     monkeypatch.setattr(PySide6, "__version__", binding_version)
     bindings = tmp_path / "wheel/PySide6"
     (bindings / "Qt/lib").mkdir(parents=True)
@@ -116,3 +117,40 @@ def test_system_qt_build_requires_matching_bindings(tmp_path, monkeypatch, qt_ve
         assert (staged / "plugins").resolve() == installed / "plugins"
         assert (staged / "translations").resolve() == installed / "translations"
         assert not (tmp_path / "dist").exists()  # Collection starts before replacing any bundle.
+
+
+@pytest.mark.parametrize("machine", ["x86_64", "aarch64"])
+def test_linux_native_archive_and_checksum(tmp_path, monkeypatch, machine):
+    import hashlib
+    import platform
+    import tarfile
+
+    root = Path(__file__).parents[1]
+    script = tmp_path / "tools/build.py"
+    script.parent.mkdir()
+    shutil.copy2(root / "tools/build.py", script)
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion="0.1.0"\n')
+    for name in ("README.md", "LICENSE", "THIRD_PARTY.md", "docs"):
+        source = root / name
+        if source.is_dir():
+            shutil.copytree(source, tmp_path / name)
+        else:
+            shutil.copy2(source, tmp_path / name)
+    monkeypatch.setattr(platform, "system", lambda: "Linux")
+    monkeypatch.setattr(platform, "machine", lambda: machine)
+    monkeypatch.setattr(sys, "argv", [str(script)])
+
+    def collect(command, **kwargs):
+        assert command[1:3] == ["-m", "PyInstaller"]
+        bundle = tmp_path / "dist/autotalk"
+        bundle.mkdir(parents=True)
+        (bundle / "autotalk").write_bytes(b"native application")
+
+    monkeypatch.setattr(subprocess, "run", collect)
+    runpy.run_path(str(script), run_name="__main__")
+    archive = tmp_path / "dist" / f"AutoTalk-0.1.0-linux-{machine}.tar.gz"
+    assert archive.with_name(archive.name + ".sha256").read_text() == (
+        hashlib.sha256(archive.read_bytes()).hexdigest() + "  " + archive.name + "\n")
+    with tarfile.open(archive) as package:
+        assert package.extractfile("autotalk/autotalk").read() == b"native application"
+        assert package.extractfile("autotalk/LICENSE").read() == (root / "LICENSE").read_bytes()

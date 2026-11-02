@@ -12,8 +12,9 @@ Narration is written through **Codex app-server** using your ChatGPT sign-in.
 and PySide6 and follows the platform's appearance.
 
 **Status:** first public release, **v0.1**. Linux is the primary platform tested
-on real hardware. Linux, Windows and macOS pass automated tests, package builds
-and startup checks. End-to-end Windows/macOS speech and recording workflows
+on real hardware. Linux x86_64, Windows and macOS pass automated tests, package builds
+and startup checks. Linux ARM64 is integrated but awaits native package and DGX Spark
+hardware qualification. End-to-end Windows/macOS speech and recording workflows
 still require native hardware qualification.
 
 ![AutoTalk editor showing the DACHS 2026 slide deck, editable English narration and slide controls](docs/images/editor.png)
@@ -52,6 +53,7 @@ Target duration is approximate until audio has been generated and measured.
 | Platform | Speech backend | Validation status |
 | --- | --- | --- |
 | Linux x86_64 with NVIDIA GPU | vLLM-Omni streaming | Tested locally on an RTX 2000 Ada laptop with 8 GB VRAM |
+| Linux ARM64 with NVIDIA GPU (DGX Spark target) | vLLM-Omni streaming | Tool downloads and ARM64 dependency resolution verified; native GPU workflows pending |
 | Windows 11 x64 with NVIDIA GPU | Qwen / PyTorch CUDA | CI tests and package startup pass; hardware workflows pending |
 | macOS 14+ on Apple Silicon | MLX Audio / Metal | CI tests and package startup pass; hardware workflows pending |
 

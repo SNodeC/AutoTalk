@@ -25,15 +25,18 @@ UV_VERSION = "0.12.19"
 CODEX_VERSION = "0.157.0"
 # Pinned upstream release asset hashes; selection never depends on a latest URL.
 BINARIES = {
-    "Linux": ("x86_64", "x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "tar.gz",
-              "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8",
-              "db3fe3adaa35c50edfb68a988a117782fe3492960fb63d7003eb6748ccc0657b"),
-    "Windows": ("AMD64", "x86_64-pc-windows-msvc", "x86_64-pc-windows-msvc.exe", "zip",
-                "6dbb02d79e419522f1c500f0adb1cddcff0cda7d59b0d66ea7f5e3b4a1b2f5f0",
-                "6c74e2019583cc16e55f79161ef795c8ff712709ad9ed832b3a5b87a7eacdef6"),
-    "Darwin": ("arm64", "aarch64-apple-darwin", "aarch64-apple-darwin", "tar.gz",
-               "a9a8df1eedeb192f2e47e40e2faabfb387db4b850209118786d42f89dde3e0ba",
-               "0f1522362bf8c8bbb58bf2fa8a3c600a0b723f1d4e3405ab831afeda32438909"),
+    ("Linux", "x86_64"): ("x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "tar.gz",
+                          "23bf5552d220e0842b65c862097b2ebaeba0064b74eda5e565e77fd25969d8c8",
+                          "db3fe3adaa35c50edfb68a988a117782fe3492960fb63d7003eb6748ccc0657b"),
+    ("Linux", "aarch64"): ("aarch64-unknown-linux-gnu", "aarch64-unknown-linux-musl", "tar.gz",
+                          "0804e9b164c64b6914182d5920c08551958a095986f10a3731056df701126436",
+                          "e6fbe2798e941b833f7e3bc34010f7443240ac4a149ce1876f32cbfa0ba7d25f"),
+    ("Windows", "amd64"): ("x86_64-pc-windows-msvc", "x86_64-pc-windows-msvc.exe", "zip",
+                          "6dbb02d79e419522f1c500f0adb1cddcff0cda7d59b0d66ea7f5e3b4a1b2f5f0",
+                          "6c74e2019583cc16e55f79161ef795c8ff712709ad9ed832b3a5b87a7eacdef6"),
+    ("Darwin", "arm64"): ("aarch64-apple-darwin", "aarch64-apple-darwin", "tar.gz",
+                          "a9a8df1eedeb192f2e47e40e2faabfb387db4b850209118786d42f89dde3e0ba",
+                          "0f1522362bf8c8bbb58bf2fa8a3c600a0b723f1d4e3405ab831afeda32438909"),
 }
 MODELS = json.loads(Path(__file__).with_name("models.json").read_text())
 _spawn_lock = threading.Lock()
@@ -255,7 +258,7 @@ def install_binary(name, url, checksum, member, task):
 
 
 def ensure_uv(task):
-    _, uv, _, archive, checksum, _ = binary_platform()
+    uv, _, archive, checksum, _ = binary_platform()
     suffix = ".exe" if platform.system() == "Windows" else ""
     return install_binary(f"uv-{UV_VERSION}{suffix}",
                           f"https://github.com/astral-sh/uv/releases/download/{UV_VERSION}/uv-{uv}.{archive}",
@@ -263,10 +266,9 @@ def ensure_uv(task):
 
 
 def binary_platform():
-    target = BINARIES.get(platform.system())
-    machine = platform.machine().lower()
-    if target is None or machine != target[0].lower():
-        raise RuntimeError("AutoTalk supports Linux x86_64, Windows x64, and Apple Silicon macOS.")
+    target = BINARIES.get((platform.system(), platform.machine().lower()))
+    if target is None:
+        raise RuntimeError("AutoTalk supports Linux x86_64/aarch64, Windows x64, and Apple Silicon macOS.")
     return target
 
 
@@ -275,7 +277,7 @@ def ensure_codex(task, *, install=True):
     existing = shutil.which("codex")
     if existing:
         return Path(existing)
-    _, _, codex, archive, _, checksum = binary_platform()
+    _, codex, archive, _, checksum = binary_platform()
     suffix = ".exe" if platform.system() == "Windows" else ""
     name = f"codex-{CODEX_VERSION}{suffix}"
     if not install:

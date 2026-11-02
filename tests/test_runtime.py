@@ -46,13 +46,14 @@ def test_verified_zip_extracts_only_named_executable(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("system,machine,member", [
     ("Linux", "x86_64", "x86_64-unknown-linux-musl"),
+    ("Linux", "aarch64", "aarch64-unknown-linux-musl"),
     ("Windows", "AMD64", "x86_64-pc-windows-msvc.exe"),
     ("Darwin", "arm64", "aarch64-apple-darwin"),
 ])
 def test_binary_manifests_select_native_platform(monkeypatch, system, machine, member):
     monkeypatch.setattr(runtime.platform, "system", lambda: system)
     monkeypatch.setattr(runtime.platform, "machine", lambda: machine)
-    assert runtime.binary_platform()[2] == member
+    assert runtime.binary_platform()[1] == member
 
 
 def test_intel_mac_is_rejected_before_download(monkeypatch):
@@ -73,3 +74,52 @@ def test_passive_codex_resolution_never_downloads_and_reuses_private_install(tmp
     assert runtime.ensure_codex(runtime.Task(), install=False) == cached
     monkeypatch.setattr(runtime.shutil, 'which', lambda _: str(tmp_path / 'system-codex'))
     assert runtime.ensure_codex(runtime.Task(), install=False) == tmp_path / 'system-codex'
+
+
+@pytest.mark.parametrize("system,machine,uv_target,codex_target,backend", [
+    ("Linux", "x86_64", "x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "vllm"),
+    ("Linux", "aarch64", "aarch64-unknown-linux-gnu", "aarch64-unknown-linux-musl", "vllm"),
+    ("Windows", "AMD64", "x86_64-pc-windows-msvc", "x86_64-pc-windows-msvc.exe", "torch"),
+    ("Darwin", "arm64", "aarch64-apple-darwin", "aarch64-apple-darwin", "mlx"),
+])
+def test_native_tool_setup_and_speech_backend(monkeypatch, tmp_path, system, machine,
+                                            uv_target, codex_target, backend):
+    import io
+    import re
+    import tarfile
+
+    monkeypatch.setenv("AUTOTALK_DATA_DIR", str(tmp_path))
+    monkeypatch.setattr(runtime.platform, "system", lambda: system)
+    monkeypatch.setattr(runtime.platform, "machine", lambda: machine)
+    monkeypatch.setattr(runtime.shutil, "which", lambda _: None)
+    suffix = ".exe" if system == "Windows" else ""
+    extension = "zip" if system == "Windows" else "tar.gz"
+    expected = [(f"uv-{uv_target}.{extension}", "uv" + suffix),
+                (f"codex-{codex_target}.{extension}", "codex-" + codex_target)]
+    downloads = []
+
+    def download(url, destination, checksum, task):
+        filename, member = expected[len(downloads)]
+        assert url.endswith("/" + filename)
+        assert re.fullmatch("[0-9a-f]{64}", checksum)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if extension == "zip":
+            with zipfile.ZipFile(destination, "w") as archive:
+                archive.writestr("nested/" + member, member.encode())
+        else:
+            with tarfile.open(destination, "w:gz") as archive:
+                entry = tarfile.TarInfo("nested/" + member)
+                entry.size = len(member.encode())
+                archive.addfile(entry, io.BytesIO(member.encode()))
+        downloads.append(url)
+        return destination
+
+    monkeypatch.setattr(runtime, "download", download)
+    uv = runtime.ensure_uv(runtime.Task())
+    codex = runtime.ensure_codex(runtime.Task())
+    assert uv.read_bytes() == ("uv" + suffix).encode()
+    assert codex.read_bytes() == ("codex-" + codex_target).encode()
+    assert runtime.speech_backend() == backend
+    assert runtime.ensure_uv(runtime.Task()) == uv
+    assert runtime.ensure_codex(runtime.Task()) == codex
+    assert len(downloads) == 2

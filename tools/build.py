@@ -10,12 +10,13 @@ import tarfile
 import tomllib
 from pathlib import Path
 
+from autotalk.runtime import binary_platform
+
 root = Path(__file__).resolve().parents[1]
 version = tomllib.loads((root / "pyproject.toml").read_text())["project"]["version"]
 system = platform.system()
 machine = platform.machine().lower()
-if (system, machine) not in (("Linux", "x86_64"), ("Windows", "amd64"), ("Darwin", "arm64")):
-    raise SystemExit("Build on Linux x86_64, Windows x64, or Apple Silicon macOS.")
+binary_platform()
 build_env = os.environ.copy()
 multimedia = None
 if sys.argv[1:] == ["--system-qt"] and system == "Linux":

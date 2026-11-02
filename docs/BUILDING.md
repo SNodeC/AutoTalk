@@ -60,15 +60,28 @@ assuming a passing CI run validates every device or desktop configuration.
 The build produces an application directory and an archive with a SHA-256 file
 under `dist/`, including AutoTalk's MIT `LICENSE` and third-party notices.
 Python wheels and source distributions also include the license.
-Supported build targets are Linux x86_64, Windows x64 and macOS
-Apple Silicon. The executable is `autotalk`, `autotalk.exe`, or the executable
+Build targets are Linux x86_64 and aarch64, Windows x64 and macOS
+Apple Silicon. Linux aarch64 is experimental until native packaging and DGX Spark
+speech workflows are qualified. The executable is `autotalk`, `autotalk.exe`, or the executable
 inside `AutoTalk.app`. Keep the bundled files together.
+
+Linux ARM64 uses the same source installation, automatic private-runtime setup,
+Linux speech requirements, and native build command as Linux x86_64. Platform
+selection uses both the OS and CPU architecture; ARM64 tool downloads have their
+own pinned checksums. The Linux speech backend remains vLLM-Omni, including its
+existing streaming configuration and model lifecycle. No alternate service or
+manual runtime installation is required by the port.
+
+The pinned Linux speech dependencies resolve for Python 3.12.14 on aarch64 without
+changing the requirements file. This checks package metadata, not GPU execution:
+DGX Spark still needs fresh-install, GB10 kernel, streaming, playback, recording,
+and export qualification. See the [ARM64 verification report](reviews/2026-11-02-linux-arm64.md).
 
 The repository-root `./autotalk` launcher prefers `dist/autotalk/autotalk` when
 present, otherwise `.venv/bin/autotalk`. Use the explicit virtual-environment
 executable while developing to avoid launching an older bundle accidentally.
 
-The [CI workflow](../.github/workflows/test-and-package.yml) is started manually, runs tests, packages the application and performs a packaged startup check on each target OS. Download artifacts from a successful [CI run](https://github.com/SNodeC/AutoTalk/actions/workflows/test-and-package.yml); they are development builds, not signed, qualified releases.
+The [CI workflow](../.github/workflows/test-and-package.yml) is started manually, runs tests, packages the application and performs a packaged startup check on Linux x86_64, Windows x64 and Apple Silicon macOS. Its shared organization workflow currently has a fixed three-runner matrix; ARM64 Linux is not yet exercised in CI. Download artifacts from a successful [CI run](https://github.com/SNodeC/AutoTalk/actions/workflows/test-and-package.yml); they are development builds, not signed, qualified releases.
 
 Optional signing hooks:
 
