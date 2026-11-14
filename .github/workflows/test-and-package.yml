@@ -1,7 +1,0 @@
-name: Test and package AutoTalk
-# Test and package native applications for Linux, Windows and macOS.
-on: [workflow_dispatch]
-permissions: { contents: read }
-jobs:
-  snodec:
-    uses: SNodeC/.github/.github/workflows/verify-project.yml@main
