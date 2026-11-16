@@ -1174,3 +1174,36 @@ matched their expected source files; all 17 mapped Qt libraries came from the
 bundle. The previous executable was retained under artifacts/start-interaction-fix.
 No user talk or running application was modified. Build evidence and checksums are
 in artifacts/start-interaction-fix/package-result.json and bundle-audit.log.
+
+
+## Batched narration — 2026-11-16
+
+Prepared/Quick Start and Create talk text share a plan-and-batch path with 10-slide
+batches. Planning supplies all images once; subsequent batch turns send no images.
+Each validated batch is saved before publication, with one next batch prefetched.
+Resume uses existing text readiness. Single-slide, Realtime-ahead and fit behavior
+remain unchanged. Fit batching and 150-page planning/context size remain follow-ups.
+
+Shortened Phase A: N10 planning 119.57 s, batches 50.02/60.08/70.54 s, first save
+120.79 s; N15 planning 118.22 s, batches 94.90/104.02/133.56 s, first save 118.96 s.
+N25 was interrupted at the owner's request; no streaming-parser trial was run.
+The 93-slide planning input contained 12.83 MB of PNGs (roughly 157–160k tokens).
+
+Exactly one final German 93-slide narration run completed: first save **125.94 s**,
+total **743.69 s**, saved counts **1/11/21/31/41/51/61/71/81/91/93**. All ten batch
+turns sent zero images. Batch wall times were **52.34, 60.39, 69.76, 71.44, 78.29,
+68.63, 79.02, 64.91, 61.33, 11.45 s**; the final batch contained two slides.
+Compared with historical German narration at 580.73 s, total time increased 28.1%;
+durable narration became available earlier. Raw latency was not flat and output
+length varied; this single run does not establish a causal latency improvement.
+Both reviewed borders (11→12 and 81→82) were coherent. Budgets retained the plan,
+but its 5,400 s allocation plus 55.2 s pauses exceeded the target, an existing
+aggregate-budget limitation. No speech timing or 150-slide real run is claimed.
+
+Ruff F checks passed; host/offscreen pytest: **584 passed, 15 audio-device tests
+deselected in 114.61 s**. UI coverage checks that only saved batches advance Text
+ready. Failure, invalid-batch and cancellation tests retain finished batches and
+resume missing pages only. Production changes: **+78/−54 (net +24)**; tests:
+**+124/−1 (net +123)**. The project copy was deleted. No packaged rebuild or push.
+Full numbers and two-border excerpts: [summary](../artifacts/narration-batches/summary.md)
+and [raw results](../artifacts/narration-batches/results.json).

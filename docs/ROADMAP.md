@@ -722,3 +722,14 @@ verification record are not measurements of the current 1.7B runtime.
   documents system and application audio controls.
 - [Qt audio output](https://doc.qt.io/qt-6/qaudiooutput.html)
   documents device selection and the system-default output.
+
+## Open follow-ups after 0.4.0
+
+- The planning turn still sends every slide image: the measured 93-slide deck
+  supplied 12.83 MB and approximately 160k input tokens. At 150 slides this is
+  approximately 20 MB / 260k tokens; input size remains a scalability risk.
+- Duration-fit revisions still request the whole deck; batching them is follow-up
+  work.
+- Planning can omit pause time from its budget: one measured plan allocated
+  5,400 seconds of narration plus 55.2 seconds of pauses against a 5,400-second
+  target. Reconcile pause and narration budgets.

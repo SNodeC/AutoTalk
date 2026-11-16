@@ -173,7 +173,6 @@ class Codex:
         deadline = time.monotonic() + 1200
         answers = []
         received = 0
-        self.task.report("Codex is preparing the talk…")
         self.task.event({"type": "model_progress", "stage": "Codex: awaiting response"})
         try:
             while True:

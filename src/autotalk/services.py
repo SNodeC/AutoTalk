@@ -23,10 +23,11 @@ from shiboken6 import delete
 
 from .codex import NARRATION_SCHEMA, SCOPE_SCHEMA, Codex
 from .project import Project, Slide, file_hash, parse_passages, validate_narration, wav_duration
-from .runtime import MODELS, data_dir, speech_backend, speech_command, speech_session
+from .runtime import MODELS, Cancelled, data_dir, speech_backend, speech_command, speech_session
 
 
 MAX_PDF_PAGES = 150
+NARRATION_BATCH_PAGES = 10
 
 
 def import_pdf(pdf: Path, destination: Path, task):
@@ -208,8 +209,11 @@ def narration_result(project, task, client, fit=False, pages=None, outline=None,
         instruction = f"Plan this complete talk. Write FINAL natural spoken narration for slide {opening}; use one concise outline sentence per remaining slide (about 10–15 words); retain the key point, narrative connection and allocated time for every slide. Leave notes empty unless a specific factual uncertainty or missing context needs attention; do not repeat shared caveats."
     prompt = instruction + " Allocate uneven time according to substance, including introduction and conclusion. Account for fixed clips and pauses. Write natural spoken language, not Markdown or stage directions. Preserve explicit [Language] paragraph markers for intentionally mixed passages; otherwise use each slide’s requested language and style. Never invent unsupported facts. Notes are for factual uncertainty or missing context. Use images and extracted text together. Return the requested pages in order, with time budgets in seconds. Respect requested_seconds when supplied for a single slide.\nINPUT:\n" + json.dumps(data, ensure_ascii=False)
     started = time.monotonic()
-    task.report("Planning the complete deck while loading speech…" if opening else "Codex is creating narration…")
-    result = client.generate(prompt, NARRATION_SCHEMA, [project.image(project.slides[p-1]) for p in pages],
+    task.report("Planning the complete deck…" if opening else
+                f"Writing slides {pages[0]}–{pages[-1]} of {len(project.slides)}…" if outline and project.mode in ("Prepared", "Quick") else
+                "Codex is creating narration…")
+    result = client.generate(prompt, NARRATION_SCHEMA,
+                             [] if outline and project.mode in ("Prepared", "Quick") else [project.image(project.slides[p-1]) for p in pages],
                              model=project.codex_model,
                              effort=project.codex_effort)
     validate_narration(result, len(pages), pages)
@@ -248,11 +252,46 @@ def apply_narration(project, result, task, fit=False):
     return project
 
 
+def narration_batches(project, task, client, pages, workers, preserve_title=False):
+    """Save before yielding to speech; only the next request may run ahead."""
+    ahead = project.mode == "Realtime" and project.realtime_script == "ahead"
+    batched = project.mode in ("Prepared", "Quick") and len(pages) > NARRATION_BATCH_PAGES
+    try:
+        outline = narration_result(project, task, client, opening=pages[0]) if pages and (ahead or batched) else None
+        size = 1 if ahead else NARRATION_BATCH_PAGES
+        batches = ([[pages[0]]] + [pages[i:i+size] for i in range(1, len(pages), size)]) if outline else [pages]
+        future = None
+        for i, batch in enumerate(batches):
+            task.check()
+            if batch:
+                result = (future.result() if future else
+                          {"title": outline["title"], "slides": [s for s in outline["slides"] if s["page"] in batch]} if outline else
+                          narration_result(project, task, client, pages=batch))
+                apply_narration(project, result, task, fit=preserve_title or i > 0)
+            task.check()
+            future = workers.submit(narration_result, copy.deepcopy(project), task, client,
+                                    pages=batches[i+1], outline=outline) if i+1 < len(batches) else None
+            yield batch
+    except Exception as error:
+        if batched:
+            saved = sum(project.text_ready(slide) for slide in project.included_slides)
+            message = f"{error}\n{saved} of {len(project.included_slides)} slides have saved narration. Rerun to continue with the remaining slides."
+            raise (Cancelled if isinstance(error, Cancelled) else RuntimeError)(message) from error
+        else:
+            raise
+
+
 def narrate(project, task, fit=False, pages=None):
-    with Codex(task) as client:
-        result = narration_result(project, task, client, fit, pages=pages)
-    task.check()
-    return apply_narration(project, result, task, fit or pages is not None)
+    selected = pages if pages is not None else [s.page for s in project.included_slides]
+    with Codex(task) as client, ThreadPoolExecutor(max_workers=1) as workers:
+        if not fit and len(selected) > 1 and project.mode in ("Prepared", "Quick"):
+            for _ in narration_batches(project, task, client, selected, workers, preserve_title=pages is not None):
+                pass
+        else:
+            result = narration_result(project, task, client, fit, pages=pages)
+            task.check()
+            apply_narration(project, result, task, fit or pages is not None)
+    return project
 
 
 def speech_config(project, slide=None):
@@ -429,52 +468,38 @@ def prepare(project, task, fit=False, *, pages=None, force=False):
 
 def workflow(project, task):
     """Write ahead while the one speech owner loads and then synthesizes."""
-    if project.prepared:
-        return project
-    freeze_designed_voice(project, task)
-    missing = [s.page for s in project.included_slides if not project.text_ready(s)]
-    needs_codex = missing or project.mode == "Quick" and project.quick_timing != "once"
-    context = speech_session(task, speech_config(project, next((s for s in project.included_slides if not project.ready(s)), None)))
-    with (Codex(task) if needs_codex else nullcontext()) as client, ThreadPoolExecutor(max_workers=2) as workers:
-        loading = workers.submit(context.__enter__)
-        try:
-            ahead = project.mode == "Realtime" and project.realtime_script == "ahead"
-            outline = None
-            if missing and ahead:
-                outline = narration_result(project, task, client, opening=missing[0])
-            batches = [[page] for page in missing] if ahead else ([missing] if missing else [])
-            if batches:
-                first = ({"title": outline["title"], "slides": [s for s in outline["slides"] if s["page"] in batches[0]]}
-                         if outline else narration_result(project, task, client, pages=batches[0]))
-                apply_narration(project, first, task)
-            session = loading.result()
-            future = None
-            for i, pages in enumerate(batches or [[]]):
-                if future:
-                    apply_narration(project, future.result(), task)
-                future = workers.submit(narration_result, copy.deepcopy(project), task, client,
-                                        pages=batches[i+1], outline=outline) if i+1 < len(batches) else None
-                # Current scripts before this batch may only need their audio resumed.
-                through = pages[-1] if pages else len(project.slides)
-                eligible = [s.page for s in project.slides[:through] if project.text_ready(s)]
-                synthesize(project, task, pages=eligible, session=session)
-            synthesize(project, task, session=session)
-            if project.mode == "Quick" and project.quick_timing != "once":
-                for attempt in range(3):
-                    if project.within_target:
-                        break
-                    task.report(f"Fitting duration: revision {attempt+1}/3…")
-                    apply_narration(project, narration_result(project, task, client, fit=True), task, fit=True)
-                    synthesize(project, task, session=session)
-        except BaseException:
-            failure = sys.exc_info()
-            task.cancelled.set()
+    if not project.prepared:
+        freeze_designed_voice(project, task)
+        missing = [s.page for s in project.included_slides if not project.text_ready(s)]
+        needs_codex = missing or project.mode == "Quick" and project.quick_timing != "once"
+        context = speech_session(task, speech_config(project, next((s for s in project.included_slides if not project.ready(s)), None)))
+        with (Codex(task) if needs_codex else nullcontext()) as client, ThreadPoolExecutor(max_workers=2) as workers:
+            loading = workers.submit(context.__enter__)
             try:
-                loading.result()
+                session = None
+                for pages in narration_batches(project, task, client, missing, workers):
+                    if session is None:
+                        session = loading.result()
+                    through = pages[-1] if pages else len(project.slides)
+                    eligible = [s.page for s in project.slides[:through] if project.text_ready(s)]
+                    synthesize(project, task, pages=eligible, session=session)
+                synthesize(project, task, session=session)
+                if project.mode == "Quick" and project.quick_timing != "once":
+                    for attempt in range(3):
+                        if project.within_target:
+                            break
+                        task.report(f"Fitting duration: revision {attempt+1}/3…")
+                        apply_narration(project, narration_result(project, task, client, fit=True), task, fit=True)
+                        synthesize(project, task, session=session)
             except BaseException:
-                pass  # Preserve the initiating failure if loading also fails.
-            context.__exit__(*failure)
-            raise
-        else:
-            context.__exit__(None, None, None)
+                failure = sys.exc_info()
+                task.cancelled.set()
+                try:
+                    loading.result()
+                except BaseException:
+                    pass  # Preserve the initiating failure if loading also fails.
+                context.__exit__(*failure)
+                raise
+            else:
+                context.__exit__(None, None, None)
     return project
