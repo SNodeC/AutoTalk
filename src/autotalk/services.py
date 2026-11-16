@@ -26,6 +26,9 @@ from .project import Project, Slide, file_hash, parse_passages, validate_narrati
 from .runtime import MODELS, data_dir, speech_backend, speech_command, speech_session
 
 
+MAX_PDF_PAGES = 150
+
+
 def import_pdf(pdf: Path, destination: Path, task):
     if destination.exists() and any(destination.iterdir()):
         raise ValueError("Choose a new or empty project directory.")
@@ -38,8 +41,8 @@ def import_pdf(pdf: Path, destination: Path, task):
         try:
             if doc.load(str(root / "slides.pdf")) != QPdfDocument.Error.None_:
                 raise ValueError("Could not open this PDF. Use an unencrypted, valid PDF slide deck.")
-            if not 1 <= doc.pageCount() <= 80:
-                raise ValueError("The prototype supports PDF decks with 1–80 pages.")
+            if not 1 <= doc.pageCount() <= MAX_PDF_PAGES:
+                raise ValueError(f"AutoTalk supports PDF decks with 1–{MAX_PDF_PAGES} pages.")
             (root / "slides").mkdir()
             project = Project(root=root, title=pdf.stem, pdf_hash=file_hash(root / "slides.pdf"), source_pdf=str(pdf.resolve()))
             for i in range(doc.pageCount()):

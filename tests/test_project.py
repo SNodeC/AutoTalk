@@ -76,7 +76,7 @@ def test_pdf_is_released_before_staging_move_or_cleanup(sample_pdf, tmp_path, mo
             super().__init__()
             documents.append(self)  # Keep Python references, as exception tracebacks can.
         def pageCount(self):
-            return 81 if outcome == 'page_limit' else super().pageCount()
+            return services.MAX_PDF_PAGES + 1 if outcome == 'page_limit' else super().pageCount()
         def render(self, *args):
             return QImage() if outcome == 'render_error' else super().render(*args)
     class Temporary(original_temporary):

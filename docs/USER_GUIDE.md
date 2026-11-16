@@ -172,7 +172,7 @@ is no independent theme picker. File dialogs retain normal directory navigation.
 ## Open, save and reopen a talk
 
 1. Choose **Open PDF…** and select the slide deck. The current importer accepts
-   unencrypted PDFs containing 1–80 slides.
+   unencrypted PDFs containing 1–150 slides.
 2. AutoTalk creates a project inside an **`autotalk` folder beside the PDF**, using
    the PDF name. For example, `/slides/demo.pdf` creates
    `/slides/autotalk/demo-AutoTalk/`. Further imports use `demo-AutoTalk-2`, and so on.
