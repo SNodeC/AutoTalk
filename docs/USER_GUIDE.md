@@ -159,6 +159,10 @@ empty version while preserving the current version. Changing an individual slide
 language affects only that slide. **Start**, **Create talk text** or **Create slide
 text** generates missing narration from the slides and talk context before audio
 preparation. Other languages' narration is never used as translation input.
+In Prepared and Quick, requests for more than 10 missing slides plan the deck first,
+then save and display the opening slide and batches of up to 10 slides. The text-ready
+counter counts saved narration. After cancellation or failure, rerun to continue
+with the remaining slides; completed batches are kept.
 Deliberate slide-language overrides remain in effect. Readiness follows the current target, including after **Reset**, Save, Cancel and reopening. Writing style affects later text generation;
 spoken delivery changes audio only. Unchanged synthesis inputs reuse current audio.
 Previously recorded audio remains available as **Play previous audio** when stale.
