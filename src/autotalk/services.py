@@ -267,7 +267,7 @@ def narration_batches(project, task, client, pages, workers, preserve_title=Fals
                 result = (future.result() if future else
                           {"title": outline["title"], "slides": [s for s in outline["slides"] if s["page"] in batch]} if outline else
                           narration_result(project, task, client, pages=batch))
-                apply_narration(project, result, task, fit=preserve_title)
+                apply_narration(project, result, task, fit=preserve_title or i > 0)
             task.check()
             future = workers.submit(narration_result, copy.deepcopy(project), task, client,
                                     pages=batches[i+1], outline=outline) if i+1 < len(batches) else None

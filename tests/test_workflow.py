@@ -83,7 +83,7 @@ def batch_run(project, monkeypatch):
                     assert state['release'].wait(5)
             if not planning and pages[0] == state['fail'] and not state.get('invalid'):
                 raise ValueError('Batch failed')
-            result = {'title': 'Talk', 'slides': [
+            result = {'title': 'Talk' if planning else 'Later batch title', 'slides': [
                 {'page': page, 'narration': ('Outline ' if planning and page != next(s.page for s in project.slides if not project.text_ready(s)) else 'Final ') + str(page),
                  'notes': '', 'budget_seconds': 10} for page in pages]}
             if not planning and pages[0] == state['fail'] and state.get('invalid'):
@@ -101,6 +101,7 @@ def batch_run(project, monkeypatch):
 @pytest.mark.parametrize('entry', ['text', 'Prepared', 'Quick'])
 def test_batches_save_in_order_and_share_preparation_path(batch_run, monkeypatch, entry):
     project, state, event = batch_run
+    first_title = project.title if entry == 'text' else 'Talk'
     task = Task(report=state['reports'].append, event=event)
     if entry == 'text':
         services.narrate(project, task, pages=list(range(1, 33)))
@@ -112,6 +113,7 @@ def test_batches_save_in_order_and_share_preparation_path(batch_run, monkeypatch
                 assert state['writing'].wait(3), 'Next batch must overlap speech'
         monkeypatch.setattr(services, 'synthesize', synthesize)
         services.workflow(project, task)
+    assert project.title == Project.load(project.manifest).title == first_title
     assert state['saved'] == [1, 11, 21, 31, 32]
     assert [(len(pages), images) for pages, images, _ in state['calls']] == [(32, 32), (10, 0), (10, 0), (10, 0), (1, 0)]
     assert all(slide.narration == f'Final {slide.page}' for slide in project.slides)
