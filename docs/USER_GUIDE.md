@@ -1,6 +1,6 @@
 # AutoTalk UI user guide
 
-This guide describes the current AutoTalk 0.3 interface, including the speech-engine
+This guide describes the current AutoTalk 0.4.0 interface, including the speech-engine
 task-based placement implemented on 27 September 2026. Instructions use the Linux UI. Windows and
 macOS builds have not yet received equivalent native testing; screen recording
 with system audio is currently a Linux feature.

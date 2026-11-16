@@ -11,7 +11,7 @@ Narration is written through **Codex app-server** using your ChatGPT sign-in.
 **Qwen3-TTS 1.7B** generates speech locally. The interface is built with Python
 and PySide6 and follows the platform's appearance.
 
-**Status:** first public release, **v0.1**. Linux is the primary platform tested
+**Status:** version **0.4.0**. Linux is the primary platform tested
 on real hardware. Linux x86_64, Windows and macOS pass automated tests, package builds
 and startup checks. Linux ARM64 is integrated but awaits native package and DGX Spark
 hardware qualification. End-to-end Windows/macOS speech and recording workflows
@@ -74,8 +74,8 @@ are sent to Codex. Voice references and speech synthesis remain local.
 ## Get started
 
 Download the package for your platform from the
-[v0.1 release](https://github.com/SNodeC/AutoTalk/releases/tag/v0.1), or run from source.
-Release assets include SHA-256 checksums. This initial release has the platform
+[release downloads](https://github.com/SNodeC/AutoTalk/releases), or run from source.
+Release assets include SHA-256 checksums. The packages have the platform
 qualification limits described above.
 
 For a source installation on Linux or macOS, use **Python 3.12–3.14**:

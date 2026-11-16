@@ -46,7 +46,7 @@ def test_system_qt_build_requires_matching_bindings(tmp_path, monkeypatch, qt_ve
     script = tmp_path / "tools/build.py"
     script.parent.mkdir()
     shutil.copy2(Path(__file__).parents[1] / "tools/build.py", script)
-    (tmp_path / "pyproject.toml").write_text('[project]\nversion="0.3.0"\n')
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion="0.4.0"\n')
     monkeypatch.setattr(platform, "system", lambda: "Linux")
     monkeypatch.setattr(platform, "machine", lambda: machine)
     monkeypatch.setattr(PySide6, "__version__", binding_version)
@@ -129,7 +129,7 @@ def test_linux_native_archive_and_checksum(tmp_path, monkeypatch, machine):
     script = tmp_path / "tools/build.py"
     script.parent.mkdir()
     shutil.copy2(root / "tools/build.py", script)
-    (tmp_path / "pyproject.toml").write_text('[project]\nversion="0.1.0"\n')
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion="0.4.0"\n')
     for name in ("README.md", "LICENSE", "THIRD_PARTY.md", "docs"):
         source = root / name
         if source.is_dir():
@@ -148,7 +148,7 @@ def test_linux_native_archive_and_checksum(tmp_path, monkeypatch, machine):
 
     monkeypatch.setattr(subprocess, "run", collect)
     runpy.run_path(str(script), run_name="__main__")
-    archive = tmp_path / "dist" / f"AutoTalk-0.1.0-linux-{machine}.tar.gz"
+    archive = tmp_path / "dist" / f"AutoTalk-0.4.0-linux-{machine}.tar.gz"
     assert archive.with_name(archive.name + ".sha256").read_text() == (
         hashlib.sha256(archive.read_bytes()).hexdigest() + "  " + archive.name + "\n")
     with tarfile.open(archive) as package:

@@ -52,7 +52,7 @@ class Codex:
         for reader in self.readers:
             reader.start()
         try:
-            self.call("initialize", {"clientInfo": {"name": "autotalk", "title": "AutoTalk", "version": "0.3.0"}})
+            self.call("initialize", {"clientInfo": {"name": "autotalk", "title": "AutoTalk", "version": "0.4.0"}})
             self.send({"method": "initialized"})
         except Exception:
             self.close()

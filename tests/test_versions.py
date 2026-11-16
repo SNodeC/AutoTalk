@@ -9,6 +9,14 @@ from conftest import make_audio
 from autotalk.project import Project, digest
 
 
+def test_application_release_version():
+    import tomllib
+    from pathlib import Path
+    from autotalk import __version__
+    metadata = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())
+    assert __version__ == metadata["project"]["version"] == "0.4.0"
+
+
 def test_language_versions_roundtrip_without_losing_prepared_audio(project, tmp_path):
     make_audio(project)
     first = project.active_version
